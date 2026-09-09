@@ -51,13 +51,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'dashboard' as const,
       label: 'Операционная воронка',
-      sublabel: '8 показателей воронки',
+      sublabel: '9 показателей конверсии',
       icon: LayoutDashboard,
     },
     {
       id: 'analytics' as const,
       label: 'BI-аналитика',
-      sublabel: 'Срез пользователей базы',
+      sublabel: 'Демография и профиль базы',
       icon: BarChart3,
     },
     {
