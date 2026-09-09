@@ -7,6 +7,8 @@ import {
   aggregateByAge,
   aggregateByCategory,
   aggregateByRegionHierarchy,
+  aggregateMonthlyDynamics,
+  aggregateTopCrossCombinations,
 } from '@/lib/analytics-aggregations';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +38,20 @@ export async function GET() {
       const ageNum = parseInt(rawAgeStr, 10);
       const age = !isNaN(ageNum) && ageNum > 0 && ageNum < 120 ? ageNum : null;
 
+      // Extract creation date for dynamics and BI period filtering
+      let creationDate = r['Дата создания'] || r['date'] || r['Дата'] || '';
+      if (creationDate) {
+        // Normalize DD.MM.YYYY to YYYY-MM-DD
+        const parts = creationDate.split(/[T\s]/)[0].split(/[./-]/);
+        if (parts.length === 3) {
+          if (parts[0].length === 4) {
+            creationDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+          } else {
+            creationDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          }
+        }
+      }
+
       if (!phone) emptyPhone++;
       if (!r['Регион']) emptyRegion++;
       if (!r['Возраст']) emptyAge++;
@@ -50,6 +66,7 @@ export async function GET() {
         education,
         profession,
         source,
+        creationDate,
       };
     }
 
@@ -57,7 +74,10 @@ export async function GET() {
     const { bins: ageBins, averageAge } = aggregateByAge(rows);
     const educationCount = aggregateByCategory(rows, 'education');
     const sourceCount = aggregateByCategory(rows, 'source');
+    const professionCount = aggregateByCategory(rows, 'profession');
     const byRegionGender = aggregateByRegionHierarchy(rows);
+    const monthlyDynamics = aggregateMonthlyDynamics(rows);
+    const topPairs = aggregateTopCrossCombinations(rows);
 
     return NextResponse.json({
       rows,
@@ -65,8 +85,11 @@ export async function GET() {
       genderCount,
       educationCount,
       sourceCount,
+      professionCount,
       ageBins,
       averageAge,
+      monthlyDynamics,
+      topPairs,
       dataQuality: {
         emptyPhone,
         emptyRegion,

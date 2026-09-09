@@ -14,7 +14,8 @@ import {
   loadCachedDashboard,
   isCacheStale,
 } from '@/lib/dashboard-cache';
-import { AlertCircle, Clock, TableProperties } from 'lucide-react';
+import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
+import { AlertCircle, Clock, TableProperties, FileSpreadsheet } from 'lucide-react';
 
 export default function Home() {
   const [activeViewTab, setActiveViewTab] = useState<ViewTab>('dashboard');
@@ -35,6 +36,7 @@ export default function Home() {
   const [needsFreshData, setNeedsFreshData] = useState<boolean>(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [settingsUrl, setSettingsUrl] = useState<string | undefined>(undefined);
+  const [isPeriodDetailsOpen, setIsPeriodDetailsOpen] = useState<boolean>(false);
 
   const fetchMetrics = async (start: string, end: string, fresh = false) => {
     if (fresh) {
@@ -180,17 +182,36 @@ export default function Home() {
               )}
 
               <section className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-primary">
-                    Показатели воронки за период
-                  </h2>
-                  <span className="text-xs text-secondary tabular-nums">
-                    {startDate} — {endDate}
-                  </span>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-semibold text-primary">
+                      Показатели воронки за период
+                    </h2>
+                    <span className="text-xs text-secondary tabular-nums">
+                      ({startDate} — {endDate})
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setIsPeriodDetailsOpen(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
+                    title="Показать строки звонков и недошедших за выбранный период"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-accent" />
+                    <span>Детали периода</span>
+                  </button>
                 </div>
 
                 <MetricsGrid metrics={metrics} loading={loading} />
               </section>
+
+              {/* Period Details Drawer */}
+              <PeriodDetailsPanel
+                startDate={startDate}
+                endDate={endDate}
+                isOpen={isPeriodDetailsOpen}
+                onClose={() => setIsPeriodDetailsOpen(false)}
+              />
             </>
           )}
 

@@ -5,6 +5,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Database,
   AlertCircle,
   Download,
@@ -26,10 +28,19 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [pageInput, setPageInput] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [showAllColumnsMobile, setShowAllColumnsMobile] = useState(false);
   const [, startTransition] = useTransition();
+
+  const goToPage = () => {
+    const n = parseInt(pageInput, 10);
+    if (!isNaN(n) && n >= 1 && data && n <= data.totalPages) {
+      setPage(n);
+    }
+    setPageInput('');
+  };
 
   const fetchData = async (p = page, search = activeSearch, size = pageSize) => {
     setLoading(true);
@@ -194,6 +205,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             <option value={25}>25</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
+            <option value={250}>250</option>
+            <option value={500}>500</option>
           </select>
         </div>
       </div>
@@ -304,33 +317,127 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
       {/* Pagination Footer */}
       {data && data.totalPages > 1 && (
-        <div className="p-2.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 bg-surface text-xs text-secondary">
-          <div className="text-[11px]">
-            Страница <strong className="text-primary tabular-nums">{data.page}</strong> из{' '}
-            <strong className="text-primary tabular-nums">{data.totalPages}</strong> ({data.total.toLocaleString()} строк)
+        <div className="p-2.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface text-xs text-secondary">
+          <div className="flex items-center gap-2 text-[11px] flex-wrap">
+            <span>
+              Всего строк:{' '}
+              <strong className="text-primary tabular-nums">
+                {data.total.toLocaleString()}
+              </strong>
+            </span>
+            <span className="text-border">|</span>
+            <div className="flex items-center gap-1">
+              <span>Стр.</span>
+              <input
+                type="number"
+                min={1}
+                max={data.totalPages}
+                placeholder={String(page)}
+                value={pageInput}
+                onChange={(e) => setPageInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && goToPage()}
+                className="w-12 px-1.5 py-0.5 bg-surface-2 border border-border rounded-[4px] text-[11px] text-primary text-center tabular-nums focus:outline-none focus:border-accent"
+              />
+              <span>
+                из{' '}
+                <strong className="text-primary tabular-nums">
+                  {data.totalPages}
+                </strong>
+              </span>
+              <button
+                onClick={goToPage}
+                className="px-2 py-0.5 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border border-border text-[11px] transition-colors cursor-pointer"
+              >
+                Перейти
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 flex-wrap justify-center">
+            {/* First page button */}
+            <button
+              onClick={() => setPage(1)}
+              disabled={page <= 1 || loading}
+              className="p-1 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-30 text-primary border border-border transition-colors cursor-pointer"
+              title="В начало (первая страница)"
+            >
+              <ChevronsLeft className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Prev page button */}
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
-              className="p-1.5 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
+              className="p-1 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-30 text-primary border border-border transition-colors cursor-pointer"
               title="Предыдущая страница"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <span className="px-2.5 py-1 text-primary bg-surface-2 border border-border rounded-[4px] text-[11px] tabular-nums">
-              {page}
-            </span>
+            {/* Clickable Page Numbers with Ellipsis */}
+            {(() => {
+              const total = data.totalPages;
+              const cur = page;
+              const items: (number | 'ellipsis')[] = [];
+              if (total <= 7) {
+                for (let i = 1; i <= total; i++) items.push(i);
+              } else {
+                items.push(1);
+                if (cur > 3) items.push('ellipsis');
+                const start = Math.max(2, cur - 1);
+                const end = Math.min(total - 1, cur + 1);
+                for (let i = start; i <= end; i++) items.push(i);
+                if (cur < total - 2) items.push('ellipsis');
+                items.push(total);
+              }
 
+              return items.map((item, idx) => {
+                if (item === 'ellipsis') {
+                  return (
+                    <span
+                      key={`el-${idx}`}
+                      className="px-1 text-secondary text-[11px]"
+                    >
+                      …
+                    </span>
+                  );
+                }
+                const isCurrent = item === cur;
+                return (
+                  <button
+                    key={item}
+                    onClick={() => setPage(item)}
+                    disabled={loading}
+                    className={`min-w-[26px] h-6 px-1 rounded-[4px] text-[11px] tabular-nums font-medium transition-colors cursor-pointer border ${
+                      isCurrent
+                        ? 'bg-accent/15 border-accent text-accent'
+                        : 'bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border-border'
+                    }`}
+                  >
+                    {item}
+                  </button>
+                );
+              });
+            })()}
+
+            {/* Next page button */}
             <button
               onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
               disabled={page >= data.totalPages || loading}
-              className="p-1.5 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
+              className="p-1 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-30 text-primary border border-border transition-colors cursor-pointer"
               title="Следующая страница"
             >
               <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Last page button */}
+            <button
+              onClick={() => setPage(data.totalPages)}
+              disabled={page >= data.totalPages || loading}
+              className="p-1 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-30 text-primary border border-border transition-colors cursor-pointer"
+              title="В конец (последняя страница)"
+            >
+              <ChevronsRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

@@ -18,7 +18,15 @@ interface Props {
 }
 
 export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading }) => {
-  const { selectedRegion, setSelectedRegion } = useAnalyticsFilter();
+  const {
+    selectedRegion,
+    setSelectedRegion,
+    selectedDistrict,
+    setSelectedDistrict,
+    selectedCompareRegions,
+    toggleCompareRegion,
+  } = useAnalyticsFilter();
+
   const [expandedRegions, setExpandedRegions] = useState<Record<string, boolean>>({});
 
   if (loading) {
@@ -41,9 +49,21 @@ export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading 
   const handleRegionClick = (region: string) => {
     if (selectedRegion === region) {
       setSelectedRegion(null);
+      setSelectedDistrict(null);
     } else {
       setSelectedRegion(region);
+      setSelectedDistrict(null);
+      // Auto-expand on selection
+      setExpandedRegions((prev) => ({ ...prev, [region]: true }));
     }
+  };
+
+  const handleDistrictClick = (region: string, district: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (selectedRegion !== region) {
+      setSelectedRegion(region);
+    }
+    setSelectedDistrict(selectedDistrict === district ? null : district);
   };
 
   const sortedRegions = Object.entries(byRegionGender).sort((a, b) => {
@@ -61,14 +81,27 @@ export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading 
             Иерархия: Регион ▸ Район / Город
           </h4>
         </div>
-        {selectedRegion && (
-          <button
-            onClick={() => setSelectedRegion(null)}
-            className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 transition-colors cursor-pointer"
-          >
-            Сброс ({selectedRegion}) ✕
-          </button>
-        )}
+        <div className="flex items-center gap-1.5">
+          {selectedDistrict && (
+            <button
+              onClick={() => setSelectedDistrict(null)}
+              className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 transition-colors cursor-pointer"
+            >
+              Район: {selectedDistrict} ✕
+            </button>
+          )}
+          {selectedRegion && (
+            <button
+              onClick={() => {
+                setSelectedRegion(null);
+                setSelectedDistrict(null);
+              }}
+              className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 transition-colors cursor-pointer"
+            >
+              Регион: {selectedRegion} ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-y-auto flex-1 mt-2 pr-1 space-y-0.5 text-xs">
@@ -76,6 +109,7 @@ export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading 
           const totalRegion = regData.Мужской + regData.Женский;
           const isExpanded = !!expandedRegions[region];
           const isSelected = selectedRegion === region;
+          const isCompared = selectedCompareRegions.includes(region);
           const districts = Object.entries(regData.district).sort(
             (a, b) => b[1].Мужской + b[1].Женский - (a[1].Мужской + a[1].Женский)
           );
@@ -87,10 +121,23 @@ export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading 
                 className={`flex items-center justify-between px-2.5 py-1.5 rounded-[6px] cursor-pointer transition-colors ${
                   isSelected
                     ? 'bg-accent/15 border-l-2 border-accent text-primary font-medium'
+                    : isCompared
+                    ? 'bg-surface-2 border-l-2 border-accent/50 text-primary'
                     : 'hover:bg-surface-2 text-primary border-l-2 border-transparent'
                 }`}
               >
                 <div className="flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={isCompared}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleCompareRegion(region);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-3 h-3 rounded-[2px] accent-accent cursor-pointer"
+                    title="Сравнить регион (до 3)"
+                  />
                   <button
                     onClick={(e) => toggleExpand(region, e)}
                     className="p-0.5 hover:bg-surface-2 rounded text-secondary"
@@ -116,15 +163,21 @@ export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading 
                 </div>
               </div>
 
-              {/* Nested districts */}
+              {/* Nested districts with clickable selection */}
               {isExpanded && (
                 <div className="ml-5 my-0.5 space-y-0.5 border-l border-border pl-2">
                   {districts.map(([district, dData]) => {
                     const dTotal = dData.Мужской + dData.Женский;
+                    const isDistrictSelected = selectedDistrict === district;
                     return (
                       <div
                         key={district}
-                        className="flex items-center justify-between py-1 px-2 rounded-[4px] text-secondary hover:text-primary hover:bg-surface-2/60 text-[11px]"
+                        onClick={(e) => handleDistrictClick(region, district, e)}
+                        className={`flex items-center justify-between py-1 px-2 rounded-[4px] cursor-pointer transition-colors text-[11px] ${
+                          isDistrictSelected
+                            ? 'bg-accent/20 text-primary font-medium border-l-2 border-accent'
+                            : 'text-secondary hover:text-primary hover:bg-surface-2/60'
+                        }`}
                       >
                         <span className="truncate max-w-xs">{district}</span>
                         <div className="flex items-center gap-2 text-[10px]">

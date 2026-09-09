@@ -20,7 +20,7 @@ interface Props {
   title: string;
   loading: boolean;
   limit?: number;
-  filterType?: 'education' | 'source';
+  filterType?: 'education' | 'profession' | 'source';
 }
 
 export const CategoryBarChart: React.FC<Props> = ({
@@ -30,9 +30,42 @@ export const CategoryBarChart: React.FC<Props> = ({
   limit = 7,
   filterType,
 }) => {
-  const { selectedRegion, selectedEducation, setSelectedEducation } = useAnalyticsFilter();
+  const {
+    selectedRegion,
+    selectedEducation,
+    setSelectedEducation,
+    selectedProfession,
+    setSelectedProfession,
+    selectedSource,
+    setSelectedSource,
+  } = useAnalyticsFilter();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
+
+  const currentSelected =
+    filterType === 'education'
+      ? selectedEducation
+      : filterType === 'profession'
+      ? selectedProfession
+      : filterType === 'source'
+      ? selectedSource
+      : null;
+
+  const handleToggle = (val: string) => {
+    if (filterType === 'education') {
+      setSelectedEducation(selectedEducation === val ? null : val);
+    } else if (filterType === 'profession') {
+      setSelectedProfession(selectedProfession === val ? null : val);
+    } else if (filterType === 'source') {
+      setSelectedSource(selectedSource === val ? null : val);
+    }
+  };
+
+  const handleReset = () => {
+    if (filterType === 'education') setSelectedEducation(null);
+    else if (filterType === 'profession') setSelectedProfession(null);
+    else if (filterType === 'source') setSelectedSource(null);
+  };
 
   if (loading) {
     return <Skeleton className="h-64 rounded-[8px]" />;
@@ -72,13 +105,13 @@ export const CategoryBarChart: React.FC<Props> = ({
             </span>
           )}
         </div>
-        {filterType === 'education' && selectedEducation && (
+        {filterType && currentSelected && (
           <button
-            onClick={() => setSelectedEducation(null)}
+            onClick={handleReset}
             className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 transition-colors cursor-pointer"
-            title="Сбросить фильтр по образованию"
+            title="Сбросить фильтр"
           >
-            {selectedEducation} ✕
+            {currentSelected} ✕
           </button>
         )}
       </div>
@@ -113,18 +146,18 @@ export const CategoryBarChart: React.FC<Props> = ({
               dataKey="count"
               radius={[0, 2, 2, 0]}
               onClick={(entry: any) => {
-                if (filterType === 'education') {
+                if (filterType) {
                   const clicked = entry?.fullName || entry?.payload?.fullName;
                   if (clicked) {
-                    setSelectedEducation(selectedEducation === clicked ? null : clicked);
+                    handleToggle(clicked);
                   }
                 }
               }}
-              className={filterType === 'education' ? 'cursor-pointer' : ''}
+              className={filterType ? 'cursor-pointer' : ''}
             >
               {data.map((entry) => {
-                const isSelected = filterType === 'education' && selectedEducation === entry.fullName;
-                const isFaded = filterType === 'education' && selectedEducation && !isSelected;
+                const isSelected = Boolean(filterType && currentSelected === entry.fullName);
+                const isFaded = Boolean(filterType && currentSelected && !isSelected);
                 return (
                   <Cell
                     key={entry.fullName}

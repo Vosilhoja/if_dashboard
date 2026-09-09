@@ -77,13 +77,29 @@ table,
 /* Controlled focus styles: clean outline only on keyboard navigation (:focus-visible) */
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg-page), 0 0 0 4px var(--accent);
   border-radius: inherit;
 }
 
 button:focus,
-a:focus {
+a:focus,
+select:focus,
+textarea:focus,
+[tabindex]:focus {
   outline: none;
+}
+
+/* SVG elements inside recharts (Pie/Bar cells) — remove default outline on click */
+svg *:focus {
+  outline: none !important;
+}
+
+/* Remove mobile tap highlight flash */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
