@@ -13,12 +13,12 @@ import {
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 import { useTheme } from '@/lib/theme-context';
+import { DATA_COLORS_LIST } from '@/lib/chart-colors';
 
 interface Props {
   dataCounts: Record<string, number> | null;
   title: string;
   loading: boolean;
-  barColor?: string;
   limit?: number;
   filterType?: 'education' | 'source';
 }
@@ -27,8 +27,7 @@ export const CategoryBarChart: React.FC<Props> = ({
   dataCounts,
   title,
   loading,
-  barColor = '#6366f1',
-  limit = 8,
+  limit = 7,
   filterType,
 }) => {
   const { selectedRegion, selectedEducation, setSelectedEducation } = useAnalyticsFilter();
@@ -36,12 +35,12 @@ export const CategoryBarChart: React.FC<Props> = ({
   const isDark = theme === 'dark';
 
   if (loading) {
-    return <Skeleton className="h-72" />;
+    return <Skeleton className="h-64 rounded-[8px]" />;
   }
 
   if (!dataCounts || Object.keys(dataCounts).length === 0) {
     return (
-      <div className="h-72 rounded-2xl bg-surface border border-border flex items-center justify-center text-secondary text-sm">
+      <div className="h-64 rounded-[8px] bg-surface border border-border flex items-center justify-center text-secondary text-xs">
         Нет данных для отображения
       </div>
     );
@@ -51,19 +50,20 @@ export const CategoryBarChart: React.FC<Props> = ({
     .filter(([name]) => name && name !== 'Не указано' && name !== 'null')
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
-    .map(([name, count]) => ({
-      name: name.length > 22 ? name.slice(0, 20) + '…' : name,
+    .map(([name, count], index) => ({
+      name: name.length > 20 ? name.slice(0, 18) + '…' : name,
       fullName: name,
       count,
+      color: DATA_COLORS_LIST[index % DATA_COLORS_LIST.length],
     }));
 
-  const axisTextColor = isDark ? '#94a3b8' : '#64748b';
+  const axisTextColor = isDark ? '#7C8494' : '#6B7280';
 
   return (
-    <div className="h-72 rounded-2xl bg-surface border border-border p-4 flex flex-col">
-      <div className="flex items-center justify-between mb-2">
+    <div className="h-64 rounded-[8px] bg-surface border border-border p-3.5 flex flex-col justify-between">
+      <div className="flex items-center justify-between mb-1">
         <div>
-          <h4 className="text-xs font-bold text-primary tracking-wider uppercase">
+          <h4 className="text-xs font-semibold text-primary">
             {title}
           </h4>
           {selectedRegion && (
@@ -75,7 +75,7 @@ export const CategoryBarChart: React.FC<Props> = ({
         {filterType === 'education' && selectedEducation && (
           <button
             onClick={() => setSelectedEducation(null)}
-            className="text-[10px] px-2 py-0.5 rounded bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 transition-colors cursor-pointer"
+            className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25 transition-colors cursor-pointer"
             title="Сбросить фильтр по образованию"
           >
             {selectedEducation} ✕
@@ -83,14 +83,14 @@ export const CategoryBarChart: React.FC<Props> = ({
         )}
       </div>
 
-      <div className="flex-1 w-full min-h-[200px]">
+      <div className="flex-1 w-full min-h-[170px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <BarChart data={data} layout="vertical" margin={{ top: 2, right: 15, left: 5, bottom: 2 }}>
             <XAxis type="number" tick={{ fill: axisTextColor, fontSize: 10 }} />
             <YAxis
               type="category"
               dataKey="name"
-              width={110}
+              width={105}
               tick={{ fill: axisTextColor, fontSize: 10 }}
             />
             <Tooltip
@@ -101,17 +101,17 @@ export const CategoryBarChart: React.FC<Props> = ({
                 payload?.[0]?.payload?.fullName || ''
               }
               contentStyle={{
-                backgroundColor: isDark ? '#10151f' : '#ffffff',
-                borderColor: isDark ? '#1f2733' : '#e2e8f0',
-                borderRadius: '0.75rem',
-                fontSize: '12px',
-                color: isDark ? '#f1f5f9' : '#0f172a',
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                backgroundColor: isDark ? '#12161F' : '#FFFFFF',
+                borderColor: isDark ? '#1E2430' : '#E7E5E0',
+                borderRadius: '6px',
+                fontSize: '11px',
+                color: isDark ? '#E4E7EC' : '#1C1E21',
+                padding: '6px 10px',
               }}
             />
             <Bar
               dataKey="count"
-              radius={[0, 4, 4, 0]}
+              radius={[0, 2, 2, 0]}
               onClick={(entry: any) => {
                 if (filterType === 'education') {
                   const clicked = entry?.fullName || entry?.payload?.fullName;
@@ -128,8 +128,8 @@ export const CategoryBarChart: React.FC<Props> = ({
                 return (
                   <Cell
                     key={entry.fullName}
-                    fill={isSelected ? '#6366f1' : barColor}
-                    opacity={isFaded ? 0.35 : 1}
+                    fill={entry.color}
+                    opacity={isFaded ? 0.3 : 1}
                   />
                 );
               })}

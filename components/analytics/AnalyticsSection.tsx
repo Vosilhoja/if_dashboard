@@ -120,7 +120,6 @@ function AnalyticsDashboardContent() {
     return aggregateByCategory(filteredRows, 'source');
   }, [data, filteredRows]);
 
-  // Region hierarchy can either show global or region slice
   const regionHierarchyData = useMemo(() => {
     if (!data?.rows) return data?.byRegionGender ?? null;
     if (!selectedGender && !selectedEducation) return data.byRegionGender;
@@ -130,38 +129,38 @@ function AnalyticsDashboardContent() {
   const hasActiveFilters = Boolean(selectedRegion || selectedGender || selectedEducation);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-border">
         <div>
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-accent" />
-            <h3 className="text-base font-bold text-primary tracking-wide">
-              BI-аналитика панели пользователей (main_base)
+            <BarChart3 className="w-4 h-4 text-accent" />
+            <h3 className="text-sm font-semibold text-primary">
+              BI-аналитика базы респондентов (main_base)
             </h3>
           </div>
-          <p className="text-xs text-secondary mt-0.5">
-            Демографический профиль, образование, источники и качество базы данных ({data?.dataQuality?.totalRows?.toLocaleString() || '33 228'} строк)
+          <p className="text-[11px] text-secondary mt-0.5">
+            Демографический профиль, образование, источники и аудит полей (<span className="tabular-nums font-medium text-primary">{data?.dataQuality?.totalRows?.toLocaleString() || '33 228'}</span> строк)
           </p>
         </div>
 
         {hasActiveFilters && (
           <div className="flex items-center flex-wrap gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/20 text-accent text-xs">
-              <Filter className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-surface-2 border border-border text-xs text-primary">
+              <Filter className="w-3 h-3 text-accent" />
               <span>
-                Фильтры:
-                {selectedRegion && <strong> {selectedRegion}</strong>}
-                {selectedGender && <strong> • {selectedGender}</strong>}
-                {selectedEducation && <strong> • {selectedEducation}</strong>}
+                Срез:
+                {selectedRegion && <strong className="ml-1 text-primary">{selectedRegion}</strong>}
+                {selectedGender && <strong className="ml-1 text-primary">• {selectedGender}</strong>}
+                {selectedEducation && <strong className="ml-1 text-primary">• {selectedEducation}</strong>}
               </span>
-              <span className="ml-1 text-secondary">
+              <span className="text-secondary text-[11px] tabular-nums">
                 ({filteredRows.length.toLocaleString()} чел.)
               </span>
             </div>
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
               title="Сбросить все фильтры"
             >
               <RotateCcw className="w-3 h-3" />
@@ -172,13 +171,13 @@ function AnalyticsDashboardContent() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
+        <div className="p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
           Ошибка загрузки аналитических данных: {error}
         </div>
       )}
 
-      {/* Grid of BI widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {/* Grid of BI widgets with tighter gaps */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <GenderPieChart genderCount={reactiveGenderCount} loading={loading} />
         <AgePyramidChart
           ageBins={reactiveAgeBins}
@@ -188,13 +187,12 @@ function AnalyticsDashboardContent() {
         <CategoryBarChart
           dataCounts={reactiveEducationCount}
           title="Уровень образования"
-          barColor="#a855f7"
           filterType="education"
           loading={loading}
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <div className="lg:col-span-2">
           <RegionHierarchyTable
             byRegionGender={regionHierarchyData}
@@ -207,12 +205,11 @@ function AnalyticsDashboardContent() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <CategoryBarChart
           dataCounts={reactiveSourceCount}
           title="Откуда пришёл пользователь"
-          barColor="#06b6d4"
-          limit={10}
+          limit={7}
           filterType="source"
           loading={loading}
         />

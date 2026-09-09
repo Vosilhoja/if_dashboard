@@ -125,15 +125,15 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col">
+    <div className="bg-surface border border-border rounded-[8px] overflow-hidden flex flex-col">
       {/* Controls Bar */}
-      <div className="p-3 sm:p-4 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface">
+      <div className="p-3 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface">
         <div className="flex items-center justify-between sm:justify-start gap-2">
           <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-accent" />
-            <h3 className="text-xs sm:text-sm font-bold text-primary tracking-wide">{title}</h3>
+            <Database className="w-3.5 h-3.5 text-secondary" />
+            <h3 className="text-xs font-semibold text-primary">{title}</h3>
             {data && (
-              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-surface-2 text-secondary border border-border">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-surface-2 text-secondary border border-border tabular-nums">
                 {data.total.toLocaleString()} строк
               </span>
             )}
@@ -142,29 +142,29 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           {/* Mobile column toggle button */}
           <button
             onClick={() => setShowAllColumnsMobile(!showAllColumnsMobile)}
-            className="sm:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-2 text-[11px] text-secondary border border-border"
+            className="sm:hidden flex items-center gap-1 px-2 py-1 rounded-[4px] bg-surface-2 text-[10px] text-secondary border border-border"
           >
             {showAllColumnsMobile ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-            <span>{showAllColumnsMobile ? 'Кратко' : 'Все колонки'}</span>
+            <span>{showAllColumnsMobile ? 'Кратко' : 'Все'}</span>
           </button>
         </div>
 
         {/* Search, Download CSV & Page Size */}
-        <div className="flex items-center flex-wrap gap-2">
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
+        <div className="flex items-center flex-wrap gap-1.5">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary" />
             <input
               type="text"
-              placeholder="Поиск по номеру или тексту..."
+              placeholder="Поиск по номеру..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-16 py-2 min-h-[44px] bg-surface-2 border border-border focus:border-accent rounded-xl text-xs text-primary placeholder-secondary focus:outline-none transition-colors"
+              className="w-full pl-8 pr-12 py-1.5 bg-surface-2 border border-border focus:border-accent rounded-[6px] text-xs text-primary placeholder-secondary focus:outline-none transition-colors"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-secondary hover:text-primary px-2 py-1 rounded bg-surface border border-border cursor-pointer"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-secondary hover:text-primary px-1.5 py-0.5 rounded bg-surface border border-border cursor-pointer"
               >
                 Сброс
               </button>
@@ -175,12 +175,11 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             type="button"
             onClick={downloadCSV}
             disabled={!data || data.rows.length === 0}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
-            title="Скачать текущие строки как CSV"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
+            title="Скачать строки как CSV"
           >
-            <Download className="w-4 h-4 text-accent" />
-            <span className="hidden sm:inline">Скачать CSV</span>
-            <span className="sm:hidden">CSV</span>
+            <Download className="w-3.5 h-3.5 text-secondary" />
+            <span className="hidden sm:inline">CSV</span>
           </button>
 
           <select
@@ -189,7 +188,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="bg-surface-2 border border-border rounded-xl px-2.5 py-2 min-h-[44px] text-xs text-primary focus:outline-none cursor-pointer"
+            className="bg-surface-2 border border-border rounded-[6px] px-2 py-1.5 text-xs text-primary focus:outline-none cursor-pointer tabular-nums"
           >
             <option value={15}>15</option>
             <option value={25}>25</option>
@@ -201,28 +200,25 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
       {/* Error state */}
       {error && (
-        <div className="m-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <div>
-            <div className="font-semibold">Ошибка загрузки таблицы</div>
-            <div className="mt-0.5">{error}</div>
-          </div>
+        <div className="m-3 p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <div>{error}</div>
         </div>
       )}
 
       {/* Table Container */}
-      <div className="overflow-x-auto relative min-h-[350px] max-h-[550px] scrollbar-thin">
+      <div className="overflow-x-auto relative min-h-[320px] max-h-[500px] scrollbar-thin">
         {loading && !data ? (
-          <div className="p-4 space-y-3">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <Skeleton key={i} className="h-10 w-full" />
+          <div className="p-3 space-y-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-8 w-full rounded-[4px]" />
             ))}
           </div>
         ) : data && data.rows.length > 0 ? (
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-surface text-secondary font-semibold border-b border-border z-10">
+            <thead className="sticky top-0 bg-surface-2 text-secondary font-medium border-b border-border z-10 text-[11px]">
               <tr>
-                <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface z-20 shadow-[1px_0_0_var(--border-color)]">
+                <th className="py-2 px-2.5 w-10 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">
                   #
                 </th>
                 {data.headers.map((header) => {
@@ -230,7 +226,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                   return (
                     <th
                       key={header}
-                      className={`py-3 px-3 whitespace-nowrap tracking-wider uppercase text-[11px] ${
+                      className={`py-2 px-2.5 whitespace-nowrap font-medium ${
                         !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                       }`}
                     >
@@ -248,7 +244,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                     key={idx}
                     className="hover:bg-surface-2/60 transition-colors odd:bg-surface-2/20"
                   >
-                    <td className="py-2.5 px-3 text-center text-secondary font-mono text-[10px] sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)]">
+                    <td className="py-1.5 px-2.5 text-center text-secondary font-mono text-[10px] sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)] tabular-nums">
                       {rowIndex}
                     </td>
                     {data.headers.map((header) => {
@@ -265,28 +261,28 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                       return (
                         <td
                           key={header}
-                          className={`py-2.5 px-3 whitespace-nowrap text-primary max-w-xs truncate ${
+                          className={`py-1.5 px-2.5 whitespace-nowrap text-primary max-w-xs truncate ${
                             !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                           }`}
                           title={cellVal}
                         >
                           {isPhone && cellVal ? (
                             <div className="inline-flex items-center gap-1.5">
-                              <span className="font-mono text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
+                              <span className="font-mono text-primary bg-surface-2 px-1.5 py-0.5 rounded-[4px] border border-border tabular-nums text-[11px]">
                                 {formatPhoneDisplay(phoneDiag?.normalized || cellVal, phoneDiag?.country)}
                               </span>
                               {phoneDiag && phoneDiag.country !== 'UZ' && phoneDiag.country !== 'UNKNOWN' && (
-                                <span className="text-[10px] px-1 py-0.5 rounded bg-surface-2 border border-border text-secondary font-semibold">
+                                <span className="text-[10px] px-1 py-0.5 rounded-[4px] bg-surface-2 border border-border text-secondary font-medium">
                                   {phoneDiag.country}
                                 </span>
                               )}
                             </div>
                           ) : isStatus && cellVal ? (
-                            <span className="font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <span className="font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-[4px] border border-emerald-500/20 text-[11px]">
                               {cellVal}
                             </span>
                           ) : (
-                            cellVal || <span className="text-secondary/50">—</span>
+                            <span className="tabular-nums">{cellVal || '—'}</span>
                           )}
                         </td>
                       );
@@ -298,12 +294,9 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           </table>
         ) : (
           !loading && (
-            <div className="flex flex-col items-center justify-center h-64 text-secondary text-xs">
-              <Database className="w-8 h-8 mb-2 opacity-40" />
+            <div className="flex flex-col items-center justify-center h-48 text-secondary text-xs">
+              <Database className="w-6 h-6 mb-1.5 opacity-40" />
               <span>Данных не найдено</span>
-              {activeSearch && (
-                <span className="mt-1 text-primary">по запросу &quot;{activeSearch}&quot;</span>
-              )}
             </div>
           )
         )}
@@ -311,33 +304,33 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
       {/* Pagination Footer */}
       {data && data.totalPages > 1 && (
-        <div className="p-3 sm:p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface text-xs text-secondary">
-          <div>
-            Страница <strong className="text-primary">{data.page}</strong> из{' '}
-            <strong className="text-primary">{data.totalPages}</strong> ({data.total.toLocaleString()} строк)
+        <div className="p-2.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 bg-surface text-xs text-secondary">
+          <div className="text-[11px]">
+            Страница <strong className="text-primary tabular-nums">{data.page}</strong> из{' '}
+            <strong className="text-primary tabular-nums">{data.totalPages}</strong> ({data.total.toLocaleString()} строк)
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1 || loading}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
+              className="p-1.5 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
               title="Предыдущая страница"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            <span className="px-3 py-1 font-mono text-primary bg-surface-2 border border-border rounded-lg">
+            <span className="px-2.5 py-1 text-primary bg-surface-2 border border-border rounded-[4px] text-[11px] tabular-nums">
               {page}
             </span>
 
             <button
               onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
               disabled={page >= data.totalPages || loading}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
+              className="p-1.5 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
               title="Следующая страница"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

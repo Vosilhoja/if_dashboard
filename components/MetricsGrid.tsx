@@ -23,9 +23,9 @@ interface MetricsGridProps {
 export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) => {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-          <Skeleton key={i} className="h-40 p-5" />
+          <Skeleton key={i} className="h-28 rounded-[8px]" />
         ))}
       </div>
     );
@@ -34,9 +34,9 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
   if (!metrics) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* 8 Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard
           title="1. Звонков операторов"
           metric={metrics.callsCount}
@@ -92,24 +92,24 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
         />
       </div>
 
-      {/* Diagnostics summary strip if any anomalous numbers detected */}
+      {/* Diagnostics summary strip */}
       {metrics.phoneDiagnostics && (
-        <div className="bg-surface border border-border rounded-xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 text-xs text-secondary shadow-sm">
-          <span className="font-semibold text-primary">
-            Качество телефонных номеров:
+        <div className="bg-surface border border-border rounded-[8px] p-2.5 px-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-secondary">
+          <span className="font-medium text-primary">
+            Качество номеров:
           </span>
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3.5">
             <span>
-              Научная нотация: <strong className="text-amber-500 font-semibold">{metrics.phoneDiagnostics.corrupted}</strong>
+              Научная нотация: <strong className="text-amber-500 font-medium tabular-nums">{metrics.phoneDiagnostics.corrupted}</strong>
             </span>
             <span>
-              Обрезаны: <strong className="text-rose-500 font-semibold">{metrics.phoneDiagnostics.truncated}</strong>
+              Обрезаны: <strong className="text-rose-500 font-medium tabular-nums">{metrics.phoneDiagnostics.truncated}</strong>
             </span>
             <span>
-              Мусор / &le;8: <strong className="text-primary font-semibold">{metrics.phoneDiagnostics.invalid}</strong>
+              Мусор / &le;8: <strong className="text-primary font-medium tabular-nums">{metrics.phoneDiagnostics.invalid}</strong>
             </span>
             <span>
-              Иностранные: <strong className="text-accent font-semibold">{metrics.phoneDiagnostics.foreign}</strong>
+              Иностранные: <strong className="text-accent font-medium tabular-nums">{metrics.phoneDiagnostics.foreign}</strong>
             </span>
           </div>
         </div>

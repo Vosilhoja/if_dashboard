@@ -100,7 +100,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter change: if autoFetch is true (prev/next week or preset), fetch immediately
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {
     setStartDate(start);
     setEndDate(end);
@@ -133,16 +132,16 @@ export default function Home() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0">
-        <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 space-y-5">
           {/* Tab 1: Operational Metrics Dashboard */}
           {activeViewTab === 'dashboard' && (
             <>
-              <section className="space-y-4">
+              <section className="space-y-2.5">
                 <div>
-                  <h2 className="text-lg font-bold text-primary tracking-tight">
+                  <h2 className="text-sm font-semibold text-primary">
                     Период операционной воронки
                   </h2>
-                  <p className="text-xs text-secondary mt-0.5">
+                  <p className="text-[11px] text-secondary">
                     Фильтрация звонков поддержки, SMS и конверсий в регистрацию
                   </p>
                 </div>
@@ -159,14 +158,14 @@ export default function Home() {
               </section>
 
               {needsFreshData && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-center justify-between gap-3 shadow-sm">
+                <div className="p-2.5 rounded-[6px] bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 shrink-0 text-amber-500" />
-                    <span>Период изменён вручную. Нажмите «Обновить данные», чтобы пересчитать метрики.</span>
+                    <Clock className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                    <span>Период изменён. Нажмите «Обновить данные», чтобы пересчитать метрики.</span>
                   </div>
                   <button
                     onClick={handleRefresh}
-                    className="px-3 py-1.5 min-h-[36px] rounded-lg bg-amber-500 text-white font-semibold text-xs whitespace-nowrap cursor-pointer shadow-sm"
+                    className="px-2.5 py-1 rounded-[4px] bg-amber-500 text-white font-medium text-xs whitespace-nowrap cursor-pointer"
                   >
                     Обновить
                   </button>
@@ -174,21 +173,18 @@ export default function Home() {
               )}
 
               {error && (
-                <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-3">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <div>
-                    <div className="font-semibold">Ошибка при загрузке данных</div>
-                    <div className="mt-0.5">{error}</div>
-                  </div>
+                <div className="p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <div>{error}</div>
                 </div>
               )}
 
-              <section className="space-y-3">
+              <section className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-primary tracking-tight">
-                    Ключевые показатели за период
+                  <h2 className="text-sm font-semibold text-primary">
+                    Показатели воронки за период
                   </h2>
-                  <span className="text-xs text-secondary">
+                  <span className="text-xs text-secondary tabular-nums">
                     {startDate} — {endDate}
                   </span>
                 </div>
@@ -203,15 +199,15 @@ export default function Home() {
 
           {/* Tab 3: Raw Data Tables Section */}
           {activeViewTab === 'raw' && (
-            <section className="space-y-4">
+            <section className="space-y-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <TableProperties className="w-5 h-5 text-accent" />
-                  <h2 className="text-lg font-bold text-primary tracking-tight">
+                <div className="flex items-center gap-1.5">
+                  <TableProperties className="w-4 h-4 text-secondary" />
+                  <h2 className="text-sm font-semibold text-primary">
                     Сырые данные Google Таблиц
                   </h2>
                 </div>
-                <p className="text-xs text-secondary mt-1">
+                <p className="text-[11px] text-secondary mt-0.5">
                   Просмотр строк напрямую из подключённых баз данных с постраничной пагинацией и поиском по номеру
                 </p>
               </div>
@@ -222,8 +218,8 @@ export default function Home() {
         </div>
 
         {/* Minimal Footer */}
-        <footer className="border-t border-border py-4 px-4 text-center text-xs text-secondary mt-auto">
-          HURMO UZ Analytics Dashboard • Google Spreadsheet API Integration
+        <footer className="border-t border-border py-3 px-4 text-center text-[11px] text-secondary mt-auto">
+          HURMO UZ Analytics Dashboard • Google Spreadsheet API
         </footer>
       </main>
     </div>

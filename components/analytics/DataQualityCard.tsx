@@ -20,12 +20,12 @@ interface Props {
 
 export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
   if (loading) {
-    return <Skeleton className="h-72" />;
+    return <Skeleton className="h-80 rounded-[8px]" />;
   }
 
   if (!quality) {
     return (
-      <div className="h-72 rounded-2xl bg-surface border border-border flex items-center justify-center text-secondary text-sm">
+      <div className="h-80 rounded-[8px] bg-surface border border-border flex items-center justify-center text-secondary text-xs">
         Нет данных для отображения
       </div>
     );
@@ -40,26 +40,26 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
   ];
 
   return (
-    <div className="h-72 rounded-2xl bg-surface border border-border p-4 flex flex-col justify-between shadow-sm">
+    <div className="h-80 rounded-[8px] bg-surface border border-border p-3.5 flex flex-col justify-between">
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <h4 className="text-xs font-bold text-primary tracking-wider uppercase">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-secondary" />
+          <h4 className="text-xs font-semibold text-primary">
             Контроль качества данных (main_base)
           </h4>
         </div>
-        <p className="text-[11px] text-secondary mb-4">
-          Анализ незаполненных обязательных полей среди {quality.totalRows.toLocaleString()} респондентов
+        <p className="text-[11px] text-secondary mb-3">
+          Анализ незаполненных обязательных полей среди <span className="tabular-nums font-medium text-primary">{quality.totalRows.toLocaleString()}</span> строк
         </p>
 
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           {items.map((item) => {
             const pct = ((item.count / quality.totalRows) * 100).toFixed(1);
             return (
-              <div key={item.label} className="flex items-center justify-between text-xs">
+              <div key={item.label} className="flex items-center justify-between text-xs py-0.5 border-b border-border/50 last:border-0">
                 <span className="text-secondary">{item.label}</span>
-                <div className="flex items-center gap-2 font-mono">
-                  <span className={item.count > 0 ? 'text-amber-500 font-semibold' : 'text-emerald-500 font-semibold'}>
+                <div className="flex items-center gap-1.5 tabular-nums">
+                  <span className={item.count > 0 ? 'text-amber-500 font-medium' : 'text-primary font-medium'}>
                     {item.count.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-secondary">({pct}%)</span>
@@ -70,9 +70,9 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
         </div>
       </div>
 
-      <div className="pt-3 border-t border-border text-[10px] text-secondary flex items-center gap-1.5">
-        <AlertCircle className="w-3.5 h-3.5 text-accent shrink-0" />
-        <span>Пустые поля исключаются из аналитических срезов автоматически</span>
+      <div className="pt-2.5 border-t border-border text-[10px] text-secondary flex items-center gap-1.5">
+        <AlertCircle className="w-3 h-3 text-secondary shrink-0" />
+        <span>Пустые поля исключаются из срезов автоматически</span>
       </div>
     </div>
   );

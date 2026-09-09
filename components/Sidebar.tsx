@@ -50,13 +50,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: 'dashboard' as const,
       label: 'Операционная воронка',
-      sublabel: '8 ключевых метрик',
+      sublabel: '8 показателей воронки',
       icon: LayoutDashboard,
     },
     {
       id: 'analytics' as const,
       label: 'BI-аналитика',
-      sublabel: 'main_base срез',
+      sublabel: 'Срез пользователей базы',
       icon: BarChart3,
     },
     {
@@ -73,30 +73,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full justify-between p-4 sm:p-5">
+    <div className="flex flex-col h-full justify-between p-3.5">
       {/* Brand & Top Info */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent text-white flex items-center justify-center font-bold text-base shrink-0">
+      <div className="space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-[4px] bg-accent text-white flex items-center justify-center font-bold text-xs shrink-0">
               H
             </div>
             <div>
-              <div className="text-base font-bold text-primary tracking-tight">HURMO UZ</div>
-              <div className="text-[11px] text-secondary">Аналитический дашборд</div>
+              <div className="text-sm font-semibold text-primary tracking-tight">HURMO UZ</div>
+              <div className="text-[11px] text-secondary">BI Dashboard</div>
             </div>
           </div>
           <button
             onClick={() => setMobileDrawerOpen(false)}
-            className="lg:hidden p-2 text-secondary hover:text-primary rounded-lg"
+            className="lg:hidden p-1.5 text-secondary hover:text-primary rounded-[6px]"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Vertical Navigation items */}
-        <div className="space-y-1">
-          <div className="text-[10px] uppercase font-semibold text-secondary px-3 mb-2 tracking-wider">
+        {/* Vertical Navigation items: Linear-style thin left accent border, no full block fill */}
+        <div className="space-y-0.5">
+          <div className="text-[10px] uppercase font-medium text-secondary px-2.5 mb-1.5 tracking-wider">
             Разделы
           </div>
           {navItems.map((item) => {
@@ -106,20 +106,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-left transition-colors cursor-pointer ${
+                className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[6px] text-left transition-colors cursor-pointer border-l-2 ${
                   isActive
-                    ? 'bg-accent text-white font-medium shadow-sm'
-                    : 'text-secondary hover:text-primary hover:bg-surface-2'
+                    ? 'border-accent bg-surface-2 text-primary font-medium'
+                    : 'border-transparent text-secondary hover:text-primary hover:bg-surface-2/60'
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : 'text-secondary'}`} />
                 <div className="truncate">
-                  <div className="text-xs sm:text-sm">{item.label}</div>
-                  <div
-                    className={`text-[10px] ${
-                      isActive ? 'text-white/80' : 'text-secondary/70'
-                    }`}
-                  >
+                  <div className="text-xs font-medium">{item.label}</div>
+                  <div className="text-[10px] text-secondary">
                     {item.sublabel}
                   </div>
                 </div>
@@ -128,25 +124,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* Global base count overview */}
+        {/* Database overview */}
         {totalStats && (
-          <div className="p-3 rounded-xl bg-surface-2/60 border border-border text-xs space-y-2">
-            <div className="flex items-center gap-1.5 text-secondary text-[11px] font-semibold uppercase tracking-wider">
-              <Activity className="w-3.5 h-3.5 text-accent" />
+          <div className="p-2.5 rounded-[6px] bg-surface-2 border border-border text-xs space-y-1.5">
+            <div className="flex items-center gap-1.5 text-secondary text-[10px] font-medium uppercase tracking-wider">
+              <Activity className="w-3 h-3 text-secondary" />
               <span>Базы данных</span>
             </div>
             <div className="space-y-1 text-secondary text-[11px]">
               <div className="flex justify-between">
                 <span>main_base:</span>
-                <strong className="text-primary font-mono">{totalStats.main.toLocaleString()}</strong>
+                <strong className="text-primary tabular-nums">{totalStats.main.toLocaleString()}</strong>
               </div>
               <div className="flex justify-between">
                 <span>numbers:</span>
-                <strong className="text-primary font-mono">{totalStats.numbers.toLocaleString()}</strong>
+                <strong className="text-primary tabular-nums">{totalStats.numbers.toLocaleString()}</strong>
               </div>
               <div className="flex justify-between">
                 <span>eskiz:</span>
-                <strong className="text-primary font-mono">{totalStats.eskiz.toLocaleString()}</strong>
+                <strong className="text-primary tabular-nums">{totalStats.eskiz.toLocaleString()}</strong>
               </div>
             </div>
           </div>
@@ -154,16 +150,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Sticky Sidebar Footer */}
-      <div className="pt-4 border-t border-border space-y-3">
+      <div className="pt-3 border-t border-border space-y-2">
         {settingsUrl && (
           <a
             href={settingsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors"
+            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Sliders className="w-3.5 h-3.5 text-accent" />
+              <Sliders className="w-3.5 h-3.5 text-secondary" />
               <span>Настройки статусов</span>
             </div>
             <ExternalLink className="w-3 h-3 opacity-60" />
@@ -173,17 +169,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-accent text-white hover:opacity-90 disabled:opacity-50 text-xs font-medium transition-all cursor-pointer shadow-sm"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-[6px] bg-accent text-white hover:opacity-90 disabled:opacity-50 text-xs font-medium transition-all cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span>{isRefreshing ? 'Синхронизация...' : 'Обновить данные'}</span>
         </button>
 
-        <div className="flex items-center justify-between pt-2 text-xs text-secondary">
+        <div className="flex items-center justify-between pt-1 text-xs text-secondary">
           <div className="truncate text-[10px]">
             {lastUpdated ? (
               <span>
-                Обновлено: {new Date(lastUpdated).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                {new Date(lastUpdated).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                 {isStale && ' ⚠️'}
               </span>
             ) : (
@@ -193,10 +189,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-surface-2 hover:bg-surface-2/80 text-primary border border-border transition-colors cursor-pointer"
+            className="p-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-primary border border-border transition-colors cursor-pointer"
             title={`Переключить на ${theme === 'dark' ? 'светлую' : 'тёмную'} тему`}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-accent" />}
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-accent" />}
           </button>
         </div>
       </div>
@@ -206,27 +202,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* Compact Top-bar for Mobile (< lg) */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-surface border-b border-border shadow-sm">
-        <div className="flex items-center gap-2.5">
+      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-3 py-2.5 bg-surface border-b border-border">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setMobileDrawerOpen(true)}
-            className="p-2 -ml-2 rounded-lg text-primary hover:bg-surface-2"
+            className="p-1.5 -ml-1.5 rounded-[6px] text-primary hover:bg-surface-2"
             title="Открыть меню"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-accent text-white flex items-center justify-center font-bold text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-[4px] bg-accent text-white flex items-center justify-center font-bold text-[10px]">
               H
             </div>
-            <span className="font-bold text-sm text-primary">HURMO UZ</span>
+            <span className="font-semibold text-xs text-primary">HURMO UZ</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-primary hover:bg-surface-2"
+            className="p-1.5 rounded-[6px] text-primary hover:bg-surface-2"
             title="Сменить тему"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-accent" />}
@@ -234,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="p-2 rounded-lg text-primary hover:bg-surface-2 disabled:opacity-50"
+            className="p-1.5 rounded-[6px] text-primary hover:bg-surface-2 disabled:opacity-50"
             title="Обновить"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-accent' : ''}`} />
@@ -249,7 +245,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setMobileDrawerOpen(false)}
         >
           <div
-            className="w-72 max-w-[80vw] h-full bg-surface border-r border-border shadow-2xl animate-in slide-in-from-left duration-200"
+            className="w-64 max-w-[80vw] h-full bg-surface border-r border-border animate-in slide-in-from-left duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent}
@@ -258,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 xl:w-72 shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto">
+      <aside className="hidden lg:flex flex-col w-60 shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto">
         {sidebarContent}
       </aside>
     </>
