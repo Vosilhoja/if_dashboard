@@ -104,3 +104,10 @@ export function isRepeatSentStatus(
 ): boolean {
   return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.repeatSent);
 }
+
+export function isDeclinedStatus(
+  rawStatusOrComment: string | null | undefined,
+  categoryConfig?: StatusCategoryConfig
+): boolean {
+  return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.declined);
+}

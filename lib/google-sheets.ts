@@ -127,6 +127,7 @@ export async function fetchStatusConfig(forceRefresh = false): Promise<StatusCon
 
     const linkSentPhrases: string[] = [];
     const repeatSentPhrases: string[] = [];
+    const declinedPhrases: string[] = [];
 
     rows.forEach((row: GoogleSpreadsheetRow) => {
       const category = (row.get('category') || '').trim();
@@ -137,6 +138,8 @@ export async function fetchStatusConfig(forceRefresh = false): Promise<StatusCon
         linkSentPhrases.push(phrase);
       } else if (category === 'repeat_sent') {
         repeatSentPhrases.push(phrase);
+      } else if (category === 'declined') {
+        declinedPhrases.push(phrase);
       }
     });
 
@@ -149,6 +152,10 @@ export async function fetchStatusConfig(forceRefresh = false): Promise<StatusCon
       repeatSent: {
         ...DEFAULT_STATUS_CONFIG.repeatSent,
         phrases: repeatSentPhrases.length > 0 ? repeatSentPhrases : DEFAULT_STATUS_CONFIG.repeatSent.phrases,
+      },
+      declined: {
+        ...DEFAULT_STATUS_CONFIG.declined,
+        phrases: declinedPhrases.length > 0 ? declinedPhrases : DEFAULT_STATUS_CONFIG.declined.phrases,
       },
       thresholds: DEFAULT_STATUS_CONFIG.thresholds,
     };
