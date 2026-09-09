@@ -29,6 +29,7 @@ interface SidebarProps {
     main: number;
     numbers: number;
     eskiz: number;
+    not_completed?: number;
   };
   settingsUrl?: string;
 }
@@ -144,6 +145,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <span>eskiz:</span>
                 <strong className="text-primary tabular-nums">{totalStats.eskiz.toLocaleString()}</strong>
               </div>
+              {totalStats.not_completed !== undefined && (
+                <div className="flex justify-between">
+                  <span>not_completed:</span>
+                  <strong className="text-primary tabular-nums">{totalStats.not_completed.toLocaleString()}</strong>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -16,7 +16,7 @@ import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-u
 import { Skeleton } from './ui/Skeleton';
 
 interface DataTableProps {
-  sheetType: 'main' | 'numbers' | 'eskiz';
+  sheetType: 'main' | 'numbers' | 'eskiz' | 'not_completed';
   title: string;
 }
 
@@ -207,7 +207,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       )}
 
       {/* Table Container */}
-      <div className="overflow-x-auto relative min-h-[320px] max-h-[500px] scrollbar-thin">
+      <div className="overflow-x-auto relative min-h-[320px] max-h-[500px]">
         {loading && !data ? (
           <div className="p-3 space-y-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (

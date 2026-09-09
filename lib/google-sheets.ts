@@ -1,7 +1,7 @@
 import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
-export type SheetType = 'main' | 'numbers' | 'eskiz' | 'numbers_repeat';
+export type SheetType = 'main' | 'numbers' | 'eskiz' | 'numbers_repeat' | 'not_completed';
 
 interface CacheEntry<T> {
   data: T;
@@ -48,6 +48,9 @@ export function getSheetId(type: SheetType): string {
       break;
     case 'eskiz':
       id = process.env.GOOGLE_SHEET_ESKIZ || '';
+      break;
+    case 'not_completed':
+      id = process.env.GOOGLE_SHEET_NOT_COMPLETED || '';
       break;
   }
   if (!id) {

@@ -7,16 +7,31 @@ export interface MetricValue {
   error?: string;
 }
 
+export interface NotCompletedRow {
+  'Статус': string;
+  'Result id': string;
+  'Дата создания': string;
+  'Creation time': string;
+  'Start date': string;
+  'Start time': string;
+  'Язык': string;
+  'ID пользователя': string;
+  'Phone': string;
+  'Nickname': string;
+  'Last activity': string;
+}
+
 export interface DashboardMetrics {
   callsCount: MetricValue;
   smsSentVerification: MetricValue;
   registeredMainBase: MetricValue;
   registeredFromSupport: MetricValue;
   registeredAfterRepeat: MetricValue;
-  declinedCount: MetricValue;           // Новое: отказы (13k+ записей)
-  alreadyRegisteredCount: MetricValue;  // Новое: уже зарегистрирован через бот
-  wrongPersonCount: MetricValue;        // Новое: не тот человек / номер
-  phoneDiagnostics: {                   // Новое: диагностика номеров
+  declinedCount: MetricValue;           // Отказы (13k+ записей)
+  alreadyRegisteredCount: MetricValue;  // Уже зарегистрирован через бот
+  wrongPersonCount: MetricValue;        // Не тот человек / номер
+  notCompletedCount: MetricValue;       // 9-я метрика: не завершили регистрацию за период
+  phoneDiagnostics: {                   // Диагностика номеров
     corrupted: number;
     truncated: number;
     invalid: number;
@@ -30,6 +45,7 @@ export interface DashboardMetrics {
     main: number;
     numbers: number;
     eskiz: number;
+    not_completed?: number;
   };
   cachedAt: string;
 }

@@ -5,7 +5,7 @@ import { Users, Phone, MessageSquare } from 'lucide-react';
 import { DataTable } from './DataTable';
 
 export const RawDataTabs: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'main' | 'numbers' | 'eskiz'>('numbers');
+  const [activeTab, setActiveTab] = useState<'main' | 'numbers' | 'eskiz' | 'not_completed'>('numbers');
 
   const tabs = [
     {
@@ -25,6 +25,12 @@ export const RawDataTabs: React.FC = () => {
       label: 'SMS-шлюз (eskiz)',
       icon: MessageSquare,
       description: 'Отправленные сообщения, статусы доставки и списания',
+    },
+    {
+      id: 'not_completed' as const,
+      label: 'Не завершили регистрацию (not_completed)',
+      icon: Users,
+      description: 'Пользователи, начавшие регистрацию, но не завершившие её',
     },
   ];
 

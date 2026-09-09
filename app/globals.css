@@ -50,3 +50,40 @@ table,
 [data-tabular-nums] {
   font-variant-numeric: tabular-nums;
 }
+
+/* Custom thin scrollbar in project theme */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary);
+}
+
+/* Controlled focus styles: clean outline only on keyboard navigation (:focus-visible) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-page), 0 0 0 4px var(--accent);
+  border-radius: inherit;
+}
+
+button:focus,
+a:focus {
+  outline: none;
+}

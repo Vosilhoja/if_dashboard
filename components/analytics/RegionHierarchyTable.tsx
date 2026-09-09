@@ -71,7 +71,7 @@ export const RegionHierarchyTable: React.FC<Props> = ({ byRegionGender, loading 
         )}
       </div>
 
-      <div className="overflow-y-auto flex-1 mt-2 pr-1 space-y-0.5 scrollbar-thin text-xs">
+      <div className="overflow-y-auto flex-1 mt-2 pr-1 space-y-0.5 text-xs">
         {sortedRegions.map(([region, regData]) => {
           const totalRegion = regData.Мужской + regData.Женский;
           const isExpanded = !!expandedRegions[region];

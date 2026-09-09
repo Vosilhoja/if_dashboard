@@ -24,14 +24,16 @@ export async function GET(request: NextRequest) {
       clearSheetCache();
     }
 
-    // Safely load all 3 sheets and dynamic status config in parallel
+    // Safely load all sheets and dynamic status config in parallel
     let mainRows: Record<string, string>[] = [];
     let numbersRows: Record<string, string>[] = [];
     let eskizRows: Record<string, string>[] = [];
+    let notCompletedRows: Record<string, string>[] = [];
 
     let mainError: string | null = null;
     let numbersError: string | null = null;
     let eskizError: string | null = null;
+    let notCompletedError: string | null = null;
 
     const [statusConfig] = await Promise.all([
       fetchStatusConfig(refresh),
@@ -52,6 +54,12 @@ export async function GET(request: NextRequest) {
         .catch((err) => {
           console.error('Failed to load eskiz:', err);
           eskizError = err.message || 'Ошибка загрузки eskiz';
+        }),
+      fetchAllRowsForSheet('not_completed', refresh)
+        .then((res) => (notCompletedRows = res))
+        .catch((err) => {
+          console.error('Failed to load not_completed:', err);
+          notCompletedError = err.message || 'Ошибка загрузки not_completed';
         }),
     ]);
 
@@ -190,6 +198,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Metric 9: Not completed registrations in period
+    let notCompletedInPeriodCount = 0;
+    if (!notCompletedError) {
+      for (const row of notCompletedRows) {
+        // Defensive check: ensure status is Not completed if status column exists
+        const status = (row['Статус'] || row['status'] || '').trim().toLowerCase();
+        if (status && !status.includes('not completed') && !status.includes('не заверш')) {
+          continue;
+        }
+
+        const dateStr = row['Дата создания'] || row['Start date'] || row['Дата'] || row['Creation date'] || '';
+        const d = parseSheetDate(dateStr);
+        if (isDateInRange(d, startDate, endDate)) {
+          notCompletedInPeriodCount++;
+        }
+      }
+    }
+
     const response: DashboardMetrics = {
       callsCount: {
         value: numbersError ? '—' : callsCountVal,
@@ -248,6 +274,11 @@ export async function GET(request: NextRequest) {
         subtext: numbersError ? undefined : `Не тот номер, другой человек, второй номер`,
         error: numbersError || undefined,
       },
+      notCompletedCount: {
+        value: notCompletedError ? '—' : notCompletedInPeriodCount,
+        subtext: notCompletedError ? undefined : `Не завершили регистрацию за период`,
+        error: notCompletedError || undefined,
+      },
       phoneDiagnostics,
       period: {
         startDate,
@@ -257,6 +288,7 @@ export async function GET(request: NextRequest) {
         main: mainRows.length,
         numbers: numbersRows.length,
         eskiz: eskizRows.length,
+        not_completed: notCompletedRows.length,
       },
       cachedAt: new Date().toISOString(),
     };

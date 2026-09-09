@@ -13,7 +13,7 @@ export async function GET(
     const resolvedParams = await params;
     const typeStr = resolvedParams.type;
 
-    if (typeStr !== 'main' && typeStr !== 'numbers' && typeStr !== 'eskiz') {
+    if (typeStr !== 'main' && typeStr !== 'numbers' && typeStr !== 'eskiz' && typeStr !== 'not_completed') {
       return NextResponse.json({ error: 'Неизвестный тип таблицы' }, { status: 400 });
     }
 

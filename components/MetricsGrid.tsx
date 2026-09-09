@@ -90,6 +90,14 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           badgeText="boshqa odam"
           tooltipText="Зарегистрированы с другого номера, чужой номер, второй номер"
         />
+        {metrics.notCompletedCount && (
+          <MetricCard
+            title="9. Не завершили регистрацию"
+            metric={metrics.notCompletedCount}
+            badgeText="not_completed"
+            tooltipText="Пользователи, начавшие регистрацию в период, но не завершившие её (Not completed)"
+          />
+        )}
       </div>
 
       {/* Diagnostics summary strip */}
