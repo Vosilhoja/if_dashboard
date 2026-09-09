@@ -91,10 +91,16 @@ export function matchesCategory(
   return false;
 }
 
-export function isLinkSentStatus(rawStatusOrComment: string | null | undefined): boolean {
-  return matchesCategory(rawStatusOrComment, STATUS_CONFIG.linkSent);
+export function isLinkSentStatus(
+  rawStatusOrComment: string | null | undefined,
+  categoryConfig?: StatusCategoryConfig
+): boolean {
+  return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.linkSent);
 }
 
-export function isRepeatSentStatus(rawStatusOrComment: string | null | undefined): boolean {
-  return matchesCategory(rawStatusOrComment, STATUS_CONFIG.repeatSent);
+export function isRepeatSentStatus(
+  rawStatusOrComment: string | null | undefined,
+  categoryConfig?: StatusCategoryConfig
+): boolean {
+  return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.repeatSent);
 }

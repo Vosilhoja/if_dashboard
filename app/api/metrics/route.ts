@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchAllRowsForSheet, clearSheetCache } from '@/lib/google-sheets';
+import { fetchAllRowsForSheet, clearSheetCache, fetchStatusConfig } from '@/lib/google-sheets';
 import { isDateInRange, parseSheetDate } from '@/lib/date-utils';
 import { normalizePhone } from '@/lib/phone-utils';
 import { isLinkSentStatus, isRepeatSentStatus } from '@/lib/status-matcher';
-import { STATUS_CONFIG } from '@/lib/status-config';
 import { DashboardMetrics } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
       clearSheetCache();
     }
 
-    // Safely load all 3 sheets with individual error handling so one failing sheet doesn't crash everything
+    // Safely load all 3 sheets and dynamic status config in parallel
     let mainRows: Record<string, string>[] = [];
     let numbersRows: Record<string, string>[] = [];
     let eskizRows: Record<string, string>[] = [];
@@ -28,7 +27,8 @@ export async function GET(request: NextRequest) {
     let numbersError: string | null = null;
     let eskizError: string | null = null;
 
-    await Promise.all([
+    const [statusConfig] = await Promise.all([
+      fetchStatusConfig(refresh),
       fetchAllRowsForSheet('main', refresh)
         .then((res) => (mainRows = res))
         .catch((err) => {
@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
     ]);
 
     // 1. Prepare fast lookup for main_base phones
-    // Key: normalized phone, Value: true
     const mainPhoneSet = new Set<string>();
     if (!mainError) {
       for (const row of mainRows) {
@@ -61,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     // Filter rows for the period
     // -------------------------------------------------------------
-    // Metric 1: Calls count (rows in numbers in period)
+    // Metric 1: Calls count (rows in numbers in period, every row is a call)
     let callsCountVal = 0;
     const numbersInPeriod: Record<string, string>[] = [];
     if (!numbersError) {
@@ -91,8 +90,8 @@ export async function GET(request: NextRequest) {
     if (!numbersError) {
       for (const row of numbersInPeriod) {
         const comment = row['Коментарий'] || '';
-        const status = row['Статус звонка'] || '';
-        if (isLinkSentStatus(comment) || isLinkSentStatus(status)) {
+        // Only check comment text, ignoring numeric status call codes
+        if (isLinkSentStatus(comment, statusConfig.linkSent)) {
           numbersLinkSentCount++;
         }
       }
@@ -100,7 +99,7 @@ export async function GET(request: NextRequest) {
 
     const smsRatio = eskizCount > 0 ? numbersLinkSentCount / eskizCount : 1;
     const smsRatioPercent = (smsRatio * 100).toFixed(1);
-    const smsIsAlert = eskizCount > 0 && smsRatio < STATUS_CONFIG.thresholds.smsMatchPercentage;
+    const smsIsAlert = eskizCount > 0 && smsRatio < statusConfig.thresholds.smsMatchPercentage;
 
     // Metric 3: Registered in panel (main_base created in period)
     let registeredMainVal = 0;
@@ -115,30 +114,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Metric 4: Registered from support (numbers in period matched in main_base)
-    // We normalize phone for each numbers row and check mainPhoneSet
-    let registeredFromSupportCount = 0;
+    // Counts unique users who registered after support contact
+    let totalSupportMatchesCount = 0;
     const matchedPhonesSupport = new Set<string>();
     if (!numbersError && !mainError) {
       for (const row of numbersInPeriod) {
         const p = normalizePhone(row['Телефон'] || row['Phone']);
         if (p && mainPhoneSet.has(p)) {
-          registeredFromSupportCount++;
+          totalSupportMatchesCount++;
           matchedPhonesSupport.add(p);
         }
       }
     }
 
     // Metric 5: Registered after repeat link sent
-    let registeredAfterRepeatCount = 0;
+    let repeatStatusesFoundInPeriod = 0;
+    let totalRepeatMatchesCount = 0;
     const matchedRepeatPhones = new Set<string>();
     if (!numbersError && !mainError) {
       for (const row of numbersInPeriod) {
         const comment = row['Коментарий'] || '';
-        const status = row['Статус звонка'] || '';
-        if (isRepeatSentStatus(comment) || isRepeatSentStatus(status)) {
+        // Only check comment text, ignoring numeric status call codes
+        if (isRepeatSentStatus(comment, statusConfig.repeatSent)) {
+          repeatStatusesFoundInPeriod++;
           const p = normalizePhone(row['Телефон'] || row['Phone']);
           if (p && mainPhoneSet.has(p)) {
-            registeredAfterRepeatCount++;
+            totalRepeatMatchesCount++;
             matchedRepeatPhones.add(p);
           }
         }
@@ -169,17 +170,23 @@ export async function GET(request: NextRequest) {
         error: mainError || undefined,
       },
       registeredFromSupport: {
-        value: (numbersError || mainError) ? '—' : registeredFromSupportCount,
+        value: (numbersError || mainError) ? '—' : matchedPhonesSupport.size,
         subtext: (numbersError || mainError)
           ? undefined
-          : `Совпадений номеров с базой (уникальных: ${matchedPhonesSupport.size})`,
+          : `Уникальных номеров в базе (всего звонков по ним: ${totalSupportMatchesCount})`,
         error: (numbersError || mainError) || undefined,
       },
       registeredAfterRepeat: {
-        value: (numbersError || mainError) ? '—' : registeredAfterRepeatCount,
+        value: (numbersError || mainError)
+          ? '—'
+          : repeatStatusesFoundInPeriod === 0
+          ? 0
+          : matchedRepeatPhones.size,
         subtext: (numbersError || mainError)
           ? undefined
-          : `Статусы повторной отправки (уникальных: ${matchedRepeatPhones.size})`,
+          : repeatStatusesFoundInPeriod === 0
+          ? '0 (статусов повтора не найдено в данных)'
+          : `Уникальных номеров (всего совпадений: ${totalRepeatMatchesCount})`,
         error: (numbersError || mainError) || undefined,
       },
       period: {

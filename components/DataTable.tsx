@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
-import { Search, ChevronLeft, ChevronRight, Loader2, Database, AlertCircle } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Loader2, Database, AlertCircle, Download } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay } from '@/lib/phone-utils';
 
@@ -73,6 +73,33 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     return h.includes('статус') || h.includes('status');
   };
 
+  const downloadCSV = () => {
+    if (!data || data.rows.length === 0) return;
+    const headers = data.headers;
+    const escapeCsv = (val: string) => {
+      const v = String(val ?? '').replace(/"/g, '""');
+      return `"${v}"`;
+    };
+
+    const csvLines: string[] = [];
+    csvLines.push(headers.map(escapeCsv).join(','));
+
+    data.rows.forEach((row) => {
+      const line = headers.map((h) => escapeCsv(row[h] || '')).join(',');
+      csvLines.push(line);
+    });
+
+    const csvContent = '\uFEFF' + csvLines.join('\n'); // Add BOM for Excel UTF-8 compatibility
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${sheetType}_data_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
       {/* Controls Bar */}
@@ -87,9 +114,9 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           )}
         </div>
 
-        {/* Search & Page Size */}
-        <div className="flex items-center gap-2">
-          <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-72">
+        {/* Search, Download CSV & Page Size */}
+        <div className="flex items-center flex-wrap gap-2">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
@@ -108,6 +135,18 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               </button>
             )}
           </form>
+
+          <button
+            type="button"
+            onClick={downloadCSV}
+            disabled={!data || data.rows.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 text-xs font-medium transition-colors cursor-pointer"
+            title="Скачать текущие отфильтрованные строки как CSV"
+          >
+            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden sm:inline">Скачать как CSV</span>
+            <span className="sm:hidden">CSV</span>
+          </button>
 
           <select
             value={pageSize}

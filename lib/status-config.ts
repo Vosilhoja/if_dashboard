@@ -9,19 +9,21 @@ export interface StatusCategoryConfig {
   description: string;
   // Exact or normalized regex match phrases
   phrases: string[];
-  // Status codes if recorded as numbers (e.g. '4', '2')
+  // Status codes if recorded as numbers
   codes?: string[];
   // Max Levenshtein distance for fuzzy matching
   maxDistance?: number;
 }
 
-export const STATUS_CONFIG: {
+export interface StatusConfigType {
   linkSent: StatusCategoryConfig;
   repeatSent: StatusCategoryConfig;
   thresholds: {
     smsMatchPercentage: number; // 90%
   };
-} = {
+}
+
+export const DEFAULT_STATUS_CONFIG: StatusConfigType = {
   linkSent: {
     id: 'link_sent',
     name: 'Ссылка отправлена',
@@ -33,14 +35,12 @@ export const STATUS_CONFIG: {
       'silka yuborildi',
       'yubordik',
       'yuborildi',
-      'yuborilmagan', // will not match if excluded
       'sms yuborildi',
       'link sent',
       'отправлена ссылка',
       'ссылка отправлена',
       'отправили ссылку'
     ],
-    // In some systems, code '2' or '4' might correspond to link sent, but we match strings reliably
     codes: [],
     maxDistance: 2
   },
@@ -66,3 +66,6 @@ export const STATUS_CONFIG: {
     smsMatchPercentage: 0.9 // 90% threshold for green / red indicator
   }
 };
+
+// Backwards compatibility alias
+export const STATUS_CONFIG = DEFAULT_STATUS_CONFIG;

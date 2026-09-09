@@ -11,7 +11,7 @@ interface MetricsGridProps {
 }
 
 export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) => {
-  if (loading && !metrics) {
+  if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[1, 2, 3, 4, 5].map((i) => (
@@ -43,6 +43,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
         metric={metrics.smsSentVerification}
         icon={MessageSquareCheck}
         badgeText="numbers / eskiz"
+        tooltipText="X ссылок отправлено по данным numbers / Y SMS реально отправлено по Eskiz"
       />
       <MetricCard
         title="3. Регистраций в панели"

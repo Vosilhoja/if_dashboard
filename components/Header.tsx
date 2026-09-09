@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw, ExternalLink, Sliders } from 'lucide-react';
 
 interface HeaderProps {
   onRefresh: () => void;
@@ -12,6 +12,7 @@ interface HeaderProps {
     numbers: number;
     eskiz: number;
   };
+  settingsUrl?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,6 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   isRefreshing,
   lastUpdated,
   totalStats,
+  settingsUrl,
 }) => {
   return (
     <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-30 px-4 lg:px-8 py-4">
@@ -59,6 +61,20 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-xs text-slate-400 hidden sm:inline">
               Обновлено: {new Date(lastUpdated).toLocaleTimeString('ru-RU')}
             </span>
+          )}
+
+          {settingsUrl && (
+            <a
+              href={settingsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition-all"
+              title="Открыть лист settings в Google Sheets для редактирования статусов"
+            >
+              <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Изменить список статусов</span>
+              <ExternalLink className="w-3 h-3 text-slate-400" />
+            </a>
           )}
 
           <button

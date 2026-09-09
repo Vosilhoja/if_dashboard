@@ -97,7 +97,76 @@ export async function fetchAllRowsForSheet(
   return data;
 }
 
+import { DEFAULT_STATUS_CONFIG, StatusConfigType } from './status-config';
+
+// Status config cache
+let statusConfigCache: { data: StatusConfigType; timestamp: number } | null = null;
+
+export async function fetchStatusConfig(forceRefresh = false): Promise<StatusConfigType> {
+  const now = Date.now();
+  if (!forceRefresh && statusConfigCache) {
+    if (now - statusConfigCache.timestamp < CACHE_TTL_MS) {
+      return statusConfigCache.data;
+    }
+  }
+
+  try {
+    const auth = getJwtClient();
+    const sheetId = getSheetId('numbers');
+    const doc = new GoogleSpreadsheet(sheetId, auth);
+    await doc.loadInfo();
+
+    const settingsSheet = doc.sheetsByTitle['settings'];
+    if (!settingsSheet) {
+      console.warn('Settings sheet not found in numbers document. Using default status config.');
+      return DEFAULT_STATUS_CONFIG;
+    }
+
+    await settingsSheet.loadHeaderRow();
+    const rows = await settingsSheet.getRows();
+
+    const linkSentPhrases: string[] = [];
+    const repeatSentPhrases: string[] = [];
+
+    rows.forEach((row: GoogleSpreadsheetRow) => {
+      const category = (row.get('category') || '').trim();
+      const phrase = (row.get('phrase') || '').trim();
+      if (!phrase) return;
+
+      if (category === 'link_sent') {
+        linkSentPhrases.push(phrase);
+      } else if (category === 'repeat_sent') {
+        repeatSentPhrases.push(phrase);
+      }
+    });
+
+    // Fallback if empty
+    const dynamicConfig: StatusConfigType = {
+      linkSent: {
+        ...DEFAULT_STATUS_CONFIG.linkSent,
+        phrases: linkSentPhrases.length > 0 ? linkSentPhrases : DEFAULT_STATUS_CONFIG.linkSent.phrases,
+      },
+      repeatSent: {
+        ...DEFAULT_STATUS_CONFIG.repeatSent,
+        phrases: repeatSentPhrases.length > 0 ? repeatSentPhrases : DEFAULT_STATUS_CONFIG.repeatSent.phrases,
+      },
+      thresholds: DEFAULT_STATUS_CONFIG.thresholds,
+    };
+
+    statusConfigCache = {
+      data: dynamicConfig,
+      timestamp: now,
+    };
+
+    return dynamicConfig;
+  } catch (err) {
+    console.error('Failed to fetch status config from Google Sheets, using defaults:', err);
+    return DEFAULT_STATUS_CONFIG;
+  }
+}
+
 export function clearSheetCache(type?: SheetType) {
+  statusConfigCache = null;
   if (type) {
     delete cache[`sheet_${type}`];
   } else {

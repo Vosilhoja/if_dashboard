@@ -22,10 +22,20 @@ export default function DashboardPage() {
   const [startDate, setStartDate] = useState<string>(formatDateToISO(initialWeekStart));
   const [endDate, setEndDate] = useState<string>(formatDateToISO(initialWeekEnd));
 
+  const [settingsUrl, setSettingsUrl] = useState<string>('');
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/settings-link')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.url) setSettingsUrl(data.url);
+      })
+      .catch((e) => console.error('Failed to load settings URL', e));
+  }, []);
 
   const fetchMetrics = useCallback(
     async (start: string, end: string, refresh = false) => {
@@ -79,6 +89,7 @@ export default function DashboardPage() {
         isRefreshing={isRefreshing}
         lastUpdated={metrics?.cachedAt}
         totalStats={metrics?.totalRows}
+        settingsUrl={settingsUrl}
       />
 
       {/* Main Content Area */}

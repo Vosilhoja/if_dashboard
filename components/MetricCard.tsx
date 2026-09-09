@@ -1,29 +1,30 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, LucideIcon } from 'lucide-react';
+import { AlertTriangle, LucideIcon, Info } from 'lucide-react';
 import { MetricValue } from '@/lib/types';
 
 interface MetricCardProps {
   title: string;
   metric: MetricValue;
   icon: LucideIcon;
-  colorClass?: string;
   badgeText?: string;
+  tooltipText?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
   title,
   metric,
   icon: Icon,
-  colorClass = 'from-blue-600/20 to-indigo-600/10 border-blue-500/30 text-blue-400',
   badgeText,
+  tooltipText,
 }) => {
   const isAlert = metric.isAlert;
+  const isError = Boolean(metric.error);
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl backdrop-blur-sm ${
+      className={`group relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] shadow-xl backdrop-blur-sm ${
         isAlert
           ? 'bg-rose-950/30 border-rose-500/50 shadow-rose-950/20'
           : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700'
@@ -37,9 +38,20 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       />
 
       <div className="flex items-start justify-between gap-2 mb-3">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          {title}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            {title}
+          </span>
+          {tooltipText && (
+            <div className="relative group/tooltip inline-block">
+              <Info className="w-3.5 h-3.5 text-slate-500 hover:text-indigo-400 cursor-help transition-colors" />
+              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-900 text-[11px] text-slate-300 rounded-xl border border-slate-700 shadow-2xl opacity-0 group-hover/tooltip:opacity-100 transition-opacity z-50">
+                {tooltipText}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-700" />
+              </div>
+            </div>
+          )}
+        </div>
         <div
           className={`p-2.5 rounded-xl border flex items-center justify-center ${
             isAlert
@@ -51,7 +63,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </div>
       </div>
 
-      {metric.error ? (
+      {isError ? (
         <div className="my-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{metric.error}</span>
@@ -66,7 +78,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             >
               {typeof metric.value === 'number'
                 ? metric.value.toLocaleString('ru-RU')
-                : metric.value}
+                : metric.value ?? '—'}
             </span>
             {badgeText && (
               <span className="text-xs px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
