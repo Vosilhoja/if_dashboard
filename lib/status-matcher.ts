@@ -29,7 +29,8 @@ export function levenshteinDistance(a: string, b: string): number {
 }
 
 /**
- * Normalize raw status/comment text (lowercase, replace punctuation/apostrophes, collapse spaces)
+ * Normalize raw status/comment text (lowercase, replace punctuation/apostrophes/backticks, collapse spaces)
+ * Applies to rawText BEFORE comparing.
  */
 export function normalizeText(text: string | null | undefined): string {
   if (!text) return '';
@@ -53,11 +54,6 @@ export function matchesCategory(
   if (!rawText) return false;
   const norm = normalizeText(rawText);
   if (!norm) return false;
-
-  // Direct code match if specified
-  if (category.codes && category.codes.includes(norm)) {
-    return true;
-  }
 
   // Check phrase inclusion
   for (const phrase of category.phrases) {
@@ -110,4 +106,18 @@ export function isDeclinedStatus(
   categoryConfig?: StatusCategoryConfig
 ): boolean {
   return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.declined);
+}
+
+export function isAlreadyRegisteredStatus(
+  rawStatusOrComment: string | null | undefined,
+  categoryConfig?: StatusCategoryConfig
+): boolean {
+  return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.alreadyRegistered);
+}
+
+export function isWrongPersonStatus(
+  rawStatusOrComment: string | null | undefined,
+  categoryConfig?: StatusCategoryConfig
+): boolean {
+  return matchesCategory(rawStatusOrComment, categoryConfig || STATUS_CONFIG.wrongPerson);
 }

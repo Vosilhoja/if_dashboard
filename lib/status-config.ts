@@ -1,103 +1,95 @@
-/**
- * Status configuration for HURMO UZ call-center & dashboard
- * Based on real data analysis from 59,873 rows of the 'numbers' table.
- */
+// lib/status-config.ts
 
 export interface StatusCategoryConfig {
   id: string;
   name: string;
   description: string;
-  // Exact or normalized regex match phrases
   phrases: string[];
-  // Status codes if recorded as numbers
-  codes?: string[];
-  // Max Levenshtein distance for fuzzy matching
   maxDistance?: number;
 }
 
-export interface StatusConfigType {
+export const STATUS_CONFIG: {
   linkSent: StatusCategoryConfig;
   repeatSent: StatusCategoryConfig;
   declined: StatusCategoryConfig;
-  thresholds: {
-    smsMatchPercentage: number; // 90%
-  };
-}
-
-export const DEFAULT_STATUS_CONFIG: StatusConfigType = {
+  alreadyRegistered: StatusCategoryConfig;
+  wrongPerson: StatusCategoryConfig;
+  thresholds: { smsMatchPercentage: number };
+} = {
   linkSent: {
     id: 'link_sent',
     name: 'Ссылка отправлена',
-    description: 'Статусы и комментарии, означающие первичную или успешную отправку ссылки (6 344+ записей в данных)',
-    phrases: [
-      'silka yuborildi',
-      'silka_yuborildi',
-      'silka yuborilgan',
-      'silka_yuborilgan',
-      'yubordik',
-      'yuborildi',
-      'sms yuborildi',
-      'силка юборилди',
-      'link sent',
-      'отправлена ссылка',
-      'ссылка отправлена',
-      'отправили ссылку'
-    ],
-    codes: [],
-    maxDistance: 2
+    description: 'Ссылка на регистрацию отправлена абоненту',
+    phrases: ['silka yuborildi', 'silka_yuborildi', 'silka yuborilgan', 'silka_yuborilgan', 'yubordik', 'sms yuborildi'],
+    maxDistance: 2,
   },
   repeatSent: {
     id: 'repeat_sent',
-    name: 'Повторная отправка ссылки',
-    description: 'Статусы и комментарии о повторной отправке ссылки (466+ записей в данных)',
+    name: 'Повторная отправка',
+    description: 'Ссылка отправлена повторно',
     phrases: [
       'povtor silka yuborildi',
       'povtor silka',
-      'povtor silka yuborilgan',
       'povtor',
-      'повтор силка юборилди',
-      'повтор силка',
-      'повторно',
-      'повтор',
-      'повторная отправка',
-      'qayta yuborildi',
-      'qayta silka yuborildi',
-      'qayta silka'
+      'qayta malumot berildi',
+      'qayta silka',
+      'кайта малумот берилди',
+      'учирган кайта малумот берилди',
     ],
-    codes: [],
-    maxDistance: 2
+    maxDistance: 2,
   },
   declined: {
     id: 'declined',
     name: 'Отказ',
-    description: 'Отказы респондентов, отсутствие времени, нежелание участвовать (14 001+ записей в данных)',
+    description: 'Абонент отказался или недоступен для регистрации',
     phrases: [
       'otkaz',
-      'отказ',
-      'otkaz qildi',
-      'otlaz',
-      'otkaxz',
-      'foydalanmasligini aytdi',
-      'foydalanmasligini',
-      'vaqti yo\'q',
+      "foydalanmasligini aytdi",
+      "vaqti yo'q",
       'vaqti yo`q',
-      'vaqti yo;q',
-      'вакти йук',
-      'bezovta qilmasligimizni aytdi',
-      'noma`lum silka xohlamadi shubxali',
-      'botni shubhali deb o\'ylagan',
-      'botga ishonmagani uchun kirmagan',
-      'oila a\'zolari ruxsat bermagan',
-      'turmush o\'rtog\'i ruxsat bermagan',
-      'silka orqali kirishni xohlamadi'
+      "o'chirib qo'ydi",
+      'o`chirib qo`ydi',
+      'учириб куйди',
+      'ishtirok etmagan',
+      'sms ketmadi',
+      "o'ylab ko'radi",
+      'o`ylab ko`radi',
+      'keyinroq',
+      'keyinro',
     ],
-    codes: [],
-    maxDistance: 2
+    maxDistance: 2,
+  },
+  alreadyRegistered: {
+    id: 'already_registered',
+    name: 'Уже зарегистрирован через бот',
+    description: 'Абонент сообщил, что уже пользуется ботом или сам зарегистрируется',
+    phrases: [
+      'bot bor',
+      'botdan o`zi ro`yxatdan o`tishini aytdi',
+      "botdan ro'yxatdan o'tdik",
+      'botdan ro`yxatdan o`tdik',
+      'руйхатдан уттик',
+      "botdan ro'yxatdan o'tdi",
+      "o'zi ro'yxatdan o'tishini aytdi",
+    ],
+    maxDistance: 2,
+  },
+  wrongPerson: {
+    id: 'wrong_person',
+    name: 'Не тот человек / номер',
+    description: 'Номер принадлежит другому человеку или зарегистрирован с другого номера',
+    phrases: [
+      'boshqa raqamidan ro`yxatdan o`tgan',
+      'boshqa odam',
+      'raqam egasi boshqa',
+      'иккинчи раками',
+    ],
+    maxDistance: 2,
   },
   thresholds: {
-    smsMatchPercentage: 0.9 // 90% threshold for green / red indicator
-  }
+    smsMatchPercentage: 0.9,
+  },
 };
 
-// Backwards compatibility alias
-export const STATUS_CONFIG = DEFAULT_STATUS_CONFIG;
+export type StatusConfigType = typeof STATUS_CONFIG;
+export const DEFAULT_STATUS_CONFIG = STATUS_CONFIG;

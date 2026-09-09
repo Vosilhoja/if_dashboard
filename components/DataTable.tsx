@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
-import { Search, ChevronLeft, ChevronRight, Loader2, Database, AlertCircle, Download } from 'lucide-react';
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Database,
+  AlertCircle,
+  Download,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay } from '@/lib/phone-utils';
 
@@ -18,6 +28,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [pageSize, setPageSize] = useState(25);
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
+  const [showAllColumnsMobile, setShowAllColumnsMobile] = useState(false);
   const [, startTransition] = useTransition();
 
   const fetchData = async (p = page, search = activeSearch, size = pageSize) => {
@@ -62,7 +73,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     setPage(1);
   };
 
-  // Determine key columns to highlight
+  // Identify column types
   const isPhoneColumn = (header: string) => {
     const h = header.toLowerCase();
     return h.includes('phone') || h.includes('телефон') || h.includes('номер');
@@ -71,6 +82,19 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const isStatusColumn = (header: string) => {
     const h = header.toLowerCase();
     return h.includes('статус') || h.includes('status');
+  };
+
+  // Determine priority mobile columns
+  const isPriorityMobileColumn = (header: string) => {
+    const h = header.toLowerCase();
+    return (
+      isPhoneColumn(header) ||
+      h.includes('дата') ||
+      h.includes('date') ||
+      isStatusColumn(header) ||
+      h.includes('коментарий') ||
+      h.includes('имя')
+    );
   };
 
   const downloadCSV = () => {
@@ -89,7 +113,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       csvLines.push(line);
     });
 
-    const csvContent = '\uFEFF' + csvLines.join('\n'); // Add BOM for Excel UTF-8 compatibility
+    const csvContent = '\uFEFF' + csvLines.join('\n'); // BOM for Excel UTF-8
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -103,15 +127,26 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   return (
     <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
       {/* Controls Bar */}
-      <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90">
-        <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-sm font-bold text-white tracking-wide">{title}</h3>
-          {data && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
-              {data.total.toLocaleString()} строк
-            </span>
-          )}
+      <div className="p-3 sm:p-4 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90">
+        <div className="flex items-center justify-between sm:justify-start gap-2">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-xs sm:text-sm font-bold text-white tracking-wide">{title}</h3>
+            {data && (
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                {data.total.toLocaleString()} строк
+              </span>
+            )}
+          </div>
+
+          {/* Mobile column toggle button */}
+          <button
+            onClick={() => setShowAllColumnsMobile(!showAllColumnsMobile)}
+            className="sm:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 text-[11px] text-slate-300 border border-slate-700"
+          >
+            {showAllColumnsMobile ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            <span>{showAllColumnsMobile ? 'Кратко' : 'Все колонки'}</span>
+          </button>
         </div>
 
         {/* Search, Download CSV & Page Size */}
@@ -123,13 +158,13 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               placeholder="Поиск по номеру или тексту..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-16 py-1.5 bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+              className="w-full pl-9 pr-16 py-2 min-h-[44px] bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-800 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 cursor-pointer"
               >
                 Сброс
               </button>
@@ -140,10 +175,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             type="button"
             onClick={downloadCSV}
             disabled={!data || data.rows.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 text-xs font-medium transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 text-xs font-medium transition-colors cursor-pointer"
             title="Скачать текущие отфильтрованные строки как CSV"
           >
-            <Download className="w-3.5 h-3.5 text-indigo-400" />
+            <Download className="w-4 h-4 text-indigo-400" />
             <span className="hidden sm:inline">Скачать как CSV</span>
             <span className="sm:hidden">CSV</span>
           </button>
@@ -154,12 +189,12 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+            className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 min-h-[44px] text-xs text-slate-300 focus:outline-none cursor-pointer"
           >
-            <option value={15}>15 на стр.</option>
-            <option value={25}>25 на стр.</option>
-            <option value={50}>50 на стр.</option>
-            <option value={100}>100 на стр.</option>
+            <option value={15}>15</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
           </select>
         </div>
       </div>
@@ -175,10 +210,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
         </div>
       )}
 
-      {/* Table Container with virtualized scroll */}
+      {/* Table Container with horizontal scroll and sticky first column */}
       <div className="overflow-x-auto relative min-h-[350px] max-h-[550px] scrollbar-thin scrollbar-thumb-slate-700">
         {loading && (
-          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center z-20">
             <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Загрузка данных...</span>
@@ -188,17 +223,24 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
         {data && data.rows.length > 0 ? (
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 z-1">
+            <thead className="sticky top-0 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 z-10">
               <tr>
-                <th className="py-3 px-3 w-12 text-center text-slate-500">#</th>
-                {data.headers.map((header) => (
-                  <th
-                    key={header}
-                    className="py-3 px-3 whitespace-nowrap tracking-wider uppercase text-[11px]"
-                  >
-                    {header}
-                  </th>
-                ))}
+                <th className="py-3 px-3 w-12 text-center text-slate-500 sticky left-0 bg-slate-950 z-20 shadow-[1px_0_0_rgba(51,65,85,1)]">
+                  #
+                </th>
+                {data.headers.map((header) => {
+                  const isPriority = isPriorityMobileColumn(header);
+                  return (
+                    <th
+                      key={header}
+                      className={`py-3 px-3 whitespace-nowrap tracking-wider uppercase text-[11px] ${
+                        !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
+                      }`}
+                    >
+                      {header}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
@@ -209,18 +251,21 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                     key={idx}
                     className="hover:bg-slate-800/40 transition-colors odd:bg-slate-900/20"
                   >
-                    <td className="py-2.5 px-3 text-center text-slate-500 font-mono text-[10px]">
+                    <td className="py-2.5 px-3 text-center text-slate-500 font-mono text-[10px] sticky left-0 bg-slate-900/90 sm:bg-slate-950 z-10 shadow-[1px_0_0_rgba(51,65,85,0.6)]">
                       {rowIndex}
                     </td>
                     {data.headers.map((header) => {
                       const cellVal = row[header] || '';
                       const isPhone = isPhoneColumn(header);
                       const isStatus = isStatusColumn(header);
+                      const isPriority = isPriorityMobileColumn(header);
 
                       return (
                         <td
                           key={header}
-                          className="py-2.5 px-3 whitespace-nowrap text-slate-300 max-w-xs truncate"
+                          className={`py-2.5 px-3 whitespace-nowrap text-slate-300 max-w-xs truncate ${
+                            !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
+                          }`}
                           title={cellVal}
                         >
                           {isPhone && cellVal ? (
@@ -257,8 +302,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
       {/* Pagination Bar */}
       {data && (
-        <div className="p-3 border-t border-slate-800 flex items-center justify-between gap-2 bg-slate-950 text-xs text-slate-400">
-          <div>
+        <div className="p-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-950 text-xs text-slate-400">
+          <div className="text-[11px] sm:text-xs">
             Показаны строки с {(data.page - 1) * data.pageSize + 1} по{' '}
             {Math.min(data.page * data.pageSize, data.total)} из {data.total.toLocaleString()}
           </div>
@@ -267,7 +312,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={data.page <= 1 || loading}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white transition-colors cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white transition-colors cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -277,7 +322,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             <button
               onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
               disabled={data.page >= data.totalPages || loading}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white transition-colors cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white transition-colors cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

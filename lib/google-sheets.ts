@@ -1,7 +1,7 @@
 import { GoogleSpreadsheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
 import { JWT } from 'google-auth-library';
 
-export type SheetType = 'main' | 'numbers' | 'eskiz';
+export type SheetType = 'main' | 'numbers' | 'eskiz' | 'numbers_repeat';
 
 interface CacheEntry<T> {
   data: T;
@@ -43,6 +43,7 @@ export function getSheetId(type: SheetType): string {
       id = process.env.GOOGLE_SHEET_MAIN || '';
       break;
     case 'numbers':
+    case 'numbers_repeat':
       id = process.env.GOOGLE_SHEET_NUMBERS || '';
       break;
     case 'eskiz':
@@ -73,17 +74,20 @@ export async function fetchAllRowsForSheet(
   const doc = new GoogleSpreadsheet(sheetId, auth);
 
   await doc.loadInfo();
-  const sheet = doc.sheetsByIndex[0];
+  let sheet = doc.sheetsByIndex[0];
+  if (type === 'numbers_repeat') {
+    sheet = doc.sheetsByTitle['Повторные'] || doc.sheetsByTitle['повторные'] || doc.sheetsByIndex[1] || sheet;
+  }
   if (!sheet) {
     throw new Error(`No sheets found in document for "${type}"`);
   }
 
-  await sheet.loadHeaderRow();
-  const rawRows = await sheet.getRows();
+  await sheet.loadHeaderRow().catch(() => {});
+  const rawRows = await sheet.getRows().catch(() => []);
 
   const data: Record<string, string>[] = rawRows.map((row: GoogleSpreadsheetRow) => {
     const obj: Record<string, string> = {};
-    for (const h of sheet.headerValues) {
+    for (const h of sheet.headerValues || []) {
       obj[h] = row.get(h) ?? '';
     }
     return obj;
@@ -128,6 +132,8 @@ export async function fetchStatusConfig(forceRefresh = false): Promise<StatusCon
     const linkSentPhrases: string[] = [];
     const repeatSentPhrases: string[] = [];
     const declinedPhrases: string[] = [];
+    const alreadyRegisteredPhrases: string[] = [];
+    const wrongPersonPhrases: string[] = [];
 
     rows.forEach((row: GoogleSpreadsheetRow) => {
       const category = (row.get('category') || '').trim();
@@ -140,6 +146,10 @@ export async function fetchStatusConfig(forceRefresh = false): Promise<StatusCon
         repeatSentPhrases.push(phrase);
       } else if (category === 'declined') {
         declinedPhrases.push(phrase);
+      } else if (category === 'already_registered' || category === 'alreadyRegistered') {
+        alreadyRegisteredPhrases.push(phrase);
+      } else if (category === 'wrong_person' || category === 'wrongPerson') {
+        wrongPersonPhrases.push(phrase);
       }
     });
 
@@ -156,6 +166,14 @@ export async function fetchStatusConfig(forceRefresh = false): Promise<StatusCon
       declined: {
         ...DEFAULT_STATUS_CONFIG.declined,
         phrases: declinedPhrases.length > 0 ? declinedPhrases : DEFAULT_STATUS_CONFIG.declined.phrases,
+      },
+      alreadyRegistered: {
+        ...DEFAULT_STATUS_CONFIG.alreadyRegistered,
+        phrases: alreadyRegisteredPhrases.length > 0 ? alreadyRegisteredPhrases : DEFAULT_STATUS_CONFIG.alreadyRegistered.phrases,
+      },
+      wrongPerson: {
+        ...DEFAULT_STATUS_CONFIG.wrongPerson,
+        phrases: wrongPersonPhrases.length > 0 ? wrongPersonPhrases : DEFAULT_STATUS_CONFIG.wrongPerson.phrases,
       },
       thresholds: DEFAULT_STATUS_CONFIG.thresholds,
     };

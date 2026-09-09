@@ -13,6 +13,15 @@ export interface DashboardMetrics {
   registeredMainBase: MetricValue;
   registeredFromSupport: MetricValue;
   registeredAfterRepeat: MetricValue;
+  declinedCount: MetricValue;           // Новое: отказы (13k+ записей)
+  alreadyRegisteredCount: MetricValue;  // Новое: уже зарегистрирован через бот
+  wrongPersonCount: MetricValue;        // Новое: не тот человек / номер
+  phoneDiagnostics: {                   // Новое: диагностика номеров
+    corrupted: number;
+    truncated: number;
+    invalid: number;
+    foreign: number;
+  };
   period: {
     startDate: string;
     endDate: string;

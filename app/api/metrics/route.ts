@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchAllRowsForSheet, clearSheetCache, fetchStatusConfig } from '@/lib/google-sheets';
 import { isDateInRange, parseSheetDate } from '@/lib/date-utils';
-import { normalizePhone } from '@/lib/phone-utils';
-import { isLinkSentStatus, isRepeatSentStatus } from '@/lib/status-matcher';
+import { normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
+import {
+  isLinkSentStatus,
+  isRepeatSentStatus,
+  isDeclinedStatus,
+  isAlreadyRegisteredStatus,
+  isWrongPersonStatus,
+} from '@/lib/status-matcher';
 import { DashboardMetrics } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -49,12 +55,27 @@ export async function GET(request: NextRequest) {
         }),
     ]);
 
-    // 1. Prepare fast lookup for main_base phones
+    // 1. Prepare fast lookup for main_base phones and collect phone diagnostics
     const mainPhoneSet = new Set<string>();
+    const phoneDiagnostics = {
+      corrupted: 0,
+      truncated: 0,
+      invalid: 0,
+      foreign: 0,
+    };
+
     if (!mainError) {
       for (const row of mainRows) {
-        const p = normalizePhone(row['Phone'] || row['phone'] || row['Телефон']);
-        if (p) mainPhoneSet.add(p);
+        const rawP = row['Phone'] || row['phone'] || row['Телефон'];
+        const diag = normalizePhoneWithDiagnostics(rawP);
+        if (diag.status === 'corrupted_scientific') phoneDiagnostics.corrupted++;
+        else if (diag.status === 'truncated') phoneDiagnostics.truncated++;
+        else if (diag.status === 'invalid') phoneDiagnostics.invalid++;
+        else if (diag.status === 'foreign') phoneDiagnostics.foreign++;
+
+        if (diag.normalized) {
+          mainPhoneSet.add(diag.normalized);
+        }
       }
     }
 
@@ -65,6 +86,13 @@ export async function GET(request: NextRequest) {
     const numbersInPeriod: Record<string, string>[] = [];
     if (!numbersError) {
       for (const row of numbersRows) {
+        const rawP = row['Телефон'] || row['Phone'];
+        const diag = normalizePhoneWithDiagnostics(rawP);
+        if (diag.status === 'corrupted_scientific') phoneDiagnostics.corrupted++;
+        else if (diag.status === 'truncated') phoneDiagnostics.truncated++;
+        else if (diag.status === 'invalid') phoneDiagnostics.invalid++;
+        else if (diag.status === 'foreign') phoneDiagnostics.foreign++;
+
         const dateStr = row['Дата (формат xx.xx.xxxx)'] || row['Дата'] || row['date'];
         const d = parseSheetDate(dateStr);
         if (isDateInRange(d, startDate, endDate)) {
@@ -74,25 +102,40 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Metric 2: SMS sent verification (eskiz in period vs numbers link_sent in period)
+    // Metric 2: SMS sent verification (eskiz DELIVERED + ACCEPTED vs numbers link_sent in period)
     let eskizCount = 0;
     if (!eskizError) {
       for (const row of eskizRows) {
         const dateStr = row['Дата'] || row['Отправлено в'] || row['date'];
+        const status = (row['Статус'] || '').trim().toUpperCase();
         const d = parseSheetDate(dateStr);
-        if (isDateInRange(d, startDate, endDate)) {
+        // Only count DELIVERED and ACCEPTED as successfully sent (excluding REJECTED)
+        if (isDateInRange(d, startDate, endDate) && (status === 'DELIVERED' || status === 'ACCEPTED')) {
           eskizCount++;
         }
       }
     }
 
     let numbersLinkSentCount = 0;
+    let declinedVal = 0;
+    let alreadyRegisteredVal = 0;
+    let wrongPersonVal = 0;
+
     if (!numbersError) {
       for (const row of numbersInPeriod) {
-        const comment = row['Коментарий'] || '';
-        // Only check comment text, ignoring numeric status call codes
+        const comment = (row['Коментарий'] || '').trim();
+
         if (isLinkSentStatus(comment, statusConfig.linkSent)) {
           numbersLinkSentCount++;
+        }
+        if (isDeclinedStatus(comment, statusConfig.declined)) {
+          declinedVal++;
+        }
+        if (isAlreadyRegisteredStatus(comment, statusConfig.alreadyRegistered)) {
+          alreadyRegisteredVal++;
+        }
+        if (isWrongPersonStatus(comment, statusConfig.wrongPerson)) {
+          wrongPersonVal++;
         }
       }
     }
@@ -119,7 +162,8 @@ export async function GET(request: NextRequest) {
     const matchedPhonesSupport = new Set<string>();
     if (!numbersError && !mainError) {
       for (const row of numbersInPeriod) {
-        const p = normalizePhone(row['Телефон'] || row['Phone']);
+        const pDiag = normalizePhoneWithDiagnostics(row['Телефон'] || row['Phone']);
+        const p = pDiag.normalized;
         if (p && mainPhoneSet.has(p)) {
           totalSupportMatchesCount++;
           matchedPhonesSupport.add(p);
@@ -133,11 +177,11 @@ export async function GET(request: NextRequest) {
     const matchedRepeatPhones = new Set<string>();
     if (!numbersError && !mainError) {
       for (const row of numbersInPeriod) {
-        const comment = row['Коментарий'] || '';
-        // Only check comment text, ignoring numeric status call codes
+        const comment = (row['Коментарий'] || '').trim();
         if (isRepeatSentStatus(comment, statusConfig.repeatSent)) {
           repeatStatusesFoundInPeriod++;
-          const p = normalizePhone(row['Телефон'] || row['Phone']);
+          const pDiag = normalizePhoneWithDiagnostics(row['Телефон'] || row['Phone']);
+          const p = pDiag.normalized;
           if (p && mainPhoneSet.has(p)) {
             totalRepeatMatchesCount++;
             matchedRepeatPhones.add(p);
@@ -161,7 +205,7 @@ export async function GET(request: NextRequest) {
           : eskizCount === 0
           ? 'Нет SMS за период'
           : `Соотношение: ${smsRatioPercent}% ${smsIsAlert ? '⚠️ Ниже 90%' : '✅ В норме'}`,
-        subtext: `Найдено в numbers: ${numbersLinkSentCount} | В eskiz: ${eskizCount}`,
+        subtext: `Найдено в numbers: ${numbersLinkSentCount} | В eskiz (DELIVERED+ACCEPTED): ${eskizCount}`,
         error: (eskizError || numbersError) || undefined,
       },
       registeredMainBase: {
@@ -189,6 +233,22 @@ export async function GET(request: NextRequest) {
           : `Уникальных номеров (всего совпадений: ${totalRepeatMatchesCount})`,
         error: (numbersError || mainError) || undefined,
       },
+      declinedCount: {
+        value: numbersError ? '—' : declinedVal,
+        subtext: numbersError ? undefined : `Отказов, нет времени, бросили трубку за период`,
+        error: numbersError || undefined,
+      },
+      alreadyRegisteredCount: {
+        value: numbersError ? '—' : alreadyRegisteredVal,
+        subtext: numbersError ? undefined : `Уже зарегистрированы через бот (bot bor и др.)`,
+        error: numbersError || undefined,
+      },
+      wrongPersonCount: {
+        value: numbersError ? '—' : wrongPersonVal,
+        subtext: numbersError ? undefined : `Не тот номер, другой человек, второй номер`,
+        error: numbersError || undefined,
+      },
+      phoneDiagnostics,
       period: {
         startDate,
         endDate,

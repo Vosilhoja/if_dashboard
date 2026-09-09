@@ -1,8 +1,24 @@
 'use client';
 
-import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, CalendarDays, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { startOfWeek, endOfWeek, addWeeks, subWeeks, format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import React, { useState } from 'react';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import {
+  startOfWeek,
+  endOfWeek,
+  addWeeks,
+  subWeeks,
+  format,
+  startOfMonth,
+  endOfMonth,
+} from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { formatDateToISO } from '@/lib/date-utils';
 
@@ -27,6 +43,8 @@ export const DateFilter: React.FC<DateFilterProps> = ({
   endDate,
   onCustomRangeChange,
 }) => {
+  const [mobileModalOpen, setMobileModalOpen] = useState(false);
+
   // Helpers for week mode (Monday start)
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
@@ -93,7 +111,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
         <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 self-start">
           <button
             onClick={() => handleModeSwitch('week')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               mode === 'week'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-white'
@@ -104,7 +122,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
           </button>
           <button
             onClick={() => handleModeSwitch('custom')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               mode === 'custom'
                 ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
                 : 'text-slate-400 hover:text-white'
@@ -120,14 +138,14 @@ export const DateFilter: React.FC<DateFilterProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrevWeek}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors cursor-pointer"
               title="Предыдущая неделя"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
 
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 border border-slate-700/70 rounded-xl text-xs sm:text-sm font-medium text-white shadow-inner">
-              <CalendarDays className="w-4 h-4 text-indigo-400" />
+            <div className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-slate-800/80 border border-slate-700/70 rounded-xl text-xs sm:text-sm font-medium text-white shadow-inner">
+              <CalendarDays className="w-4 h-4 text-indigo-400 shrink-0" />
               <span>
                 {weekStartFormatted} — {weekEndFormatted}
               </span>
@@ -135,7 +153,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
 
             <button
               onClick={handleNextWeek}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/60 transition-colors cursor-pointer"
               title="Следующая неделя"
             >
               <ChevronRight className="w-4 h-4" />
@@ -143,10 +161,10 @@ export const DateFilter: React.FC<DateFilterProps> = ({
           </div>
         )}
 
-        {/* Custom Date Range Inputs */}
+        {/* Custom Date Range Inputs - Desktop */}
         {mode === 'custom' && (
-          <div className="flex items-center flex-wrap gap-2 text-xs">
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+          <div className="hidden sm:flex items-center flex-wrap gap-2 text-xs">
+            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-2 min-h-[44px] rounded-xl">
               <span className="text-slate-400">С:</span>
               <input
                 type="date"
@@ -156,7 +174,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
               />
             </div>
             <span className="text-slate-500">—</span>
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-2 min-h-[44px] rounded-xl">
               <span className="text-slate-400">По:</span>
               <input
                 type="date"
@@ -165,6 +183,19 @@ export const DateFilter: React.FC<DateFilterProps> = ({
                 className="bg-transparent text-white focus:outline-none cursor-pointer"
               />
             </div>
+          </div>
+        )}
+
+        {/* Custom Date Range - Mobile Button trigger */}
+        {mode === 'custom' && (
+          <div className="sm:hidden">
+            <button
+              onClick={() => setMobileModalOpen(true)}
+              className="w-full flex items-center justify-between px-4 py-2.5 min-h-[44px] bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
+            >
+              <span>Диапазон: {startDate} — {endDate}</span>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+            </button>
           </div>
         )}
       </div>
@@ -178,25 +209,70 @@ export const DateFilter: React.FC<DateFilterProps> = ({
         <button
           type="button"
           onClick={applyPresetThisWeek}
-          className="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
+          className="px-3 py-1.5 min-h-[36px] rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
         >
           Эта неделя
         </button>
         <button
           type="button"
           onClick={applyPresetLastWeek}
-          className="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
+          className="px-3 py-1.5 min-h-[36px] rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
         >
           Прошлая неделя
         </button>
         <button
           type="button"
           onClick={applyPresetThisMonth}
-          className="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
+          className="px-3 py-1.5 min-h-[36px] rounded-lg bg-slate-800/60 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 transition-colors cursor-pointer"
         >
           Этот месяц
         </button>
       </div>
+
+      {/* Fullscreen bottom-sheet modal on mobile for custom date picker */}
+      {mobileModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end sm:hidden">
+          <div className="bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 space-y-4 animate-in slide-in-from-bottom duration-200">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-sm font-bold text-white">Выбор произвольного периода</h3>
+              <button
+                onClick={() => setMobileModalOpen(false)}
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-400 mb-1">Дата начала (С):</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => onCustomRangeChange(e.target.value, endDate)}
+                  className="w-full bg-slate-950 border border-slate-800 px-4 py-3 min-h-[44px] rounded-xl text-white text-sm focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-400 mb-1">Дата окончания (По):</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => onCustomRangeChange(startDate, e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 px-4 py-3 min-h-[44px] rounded-xl text-white text-sm focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => setMobileModalOpen(false)}
+              className="w-full py-3 min-h-[44px] rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-lg shadow-indigo-600/30"
+            >
+              Применить период
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
