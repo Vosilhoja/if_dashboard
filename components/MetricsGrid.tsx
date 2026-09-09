@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { DashboardMetrics } from '@/lib/types';
 import { MetricCard } from './MetricCard';
+import { Skeleton } from './ui/Skeleton';
 
 interface MetricsGridProps {
   metrics: DashboardMetrics | null;
@@ -24,14 +25,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-          <div
-            key={i}
-            className="h-40 rounded-2xl bg-slate-900/40 border border-slate-800 animate-pulse p-5 flex flex-col justify-between"
-          >
-            <div className="h-4 w-28 bg-slate-800 rounded" />
-            <div className="h-8 w-20 bg-slate-800 rounded" />
-            <div className="h-3 w-36 bg-slate-800/60 rounded" />
-          </div>
+          <Skeleton key={i} className="h-40 p-5" />
         ))}
       </div>
     );
@@ -41,7 +35,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
 
   return (
     <div className="space-y-4">
-      {/* 8 Metric Cards: 5 core + 3 new high-volume funnel categories */}
+      {/* 8 Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <MetricCard
           title="1. Звонков операторов"
@@ -100,22 +94,22 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
 
       {/* Diagnostics summary strip if any anomalous numbers detected */}
       {metrics.phoneDiagnostics && (
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
-          <span className="font-semibold text-slate-300">
+        <div className="bg-surface border border-border rounded-xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 text-xs text-secondary shadow-sm">
+          <span className="font-semibold text-primary">
             Качество телефонных номеров:
           </span>
           <div className="flex flex-wrap items-center gap-4">
             <span>
-              Научная нотация Excel: <strong className="text-amber-400">{metrics.phoneDiagnostics.corrupted}</strong>
+              Научная нотация: <strong className="text-amber-500 font-semibold">{metrics.phoneDiagnostics.corrupted}</strong>
             </span>
             <span>
-              Неполные / обрезаны: <strong className="text-rose-400">{metrics.phoneDiagnostics.truncated}</strong>
+              Обрезаны: <strong className="text-rose-500 font-semibold">{metrics.phoneDiagnostics.truncated}</strong>
             </span>
             <span>
-              Мусор / &le;8 цифр: <strong className="text-slate-300">{metrics.phoneDiagnostics.invalid}</strong>
+              Мусор / &le;8: <strong className="text-primary font-semibold">{metrics.phoneDiagnostics.invalid}</strong>
             </span>
             <span>
-              Иностранные (РФ/Укр): <strong className="text-indigo-400">{metrics.phoneDiagnostics.foreign}</strong>
+              Иностранные: <strong className="text-accent font-semibold">{metrics.phoneDiagnostics.foreign}</strong>
             </span>
           </div>
         </div>

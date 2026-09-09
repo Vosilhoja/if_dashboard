@@ -5,7 +5,6 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Database,
   AlertCircle,
   Download,
@@ -13,7 +12,8 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
-import { formatPhoneDisplay } from '@/lib/phone-utils';
+import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
+import { Skeleton } from './ui/Skeleton';
 
 interface DataTableProps {
   sheetType: 'main' | 'numbers' | 'eskiz';
@@ -22,7 +22,7 @@ interface DataTableProps {
 
 export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [data, setData] = useState<SheetPaginatedResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -125,15 +125,15 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+    <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm flex flex-col">
       {/* Controls Bar */}
-      <div className="p-3 sm:p-4 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900/90">
+      <div className="p-3 sm:p-4 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface">
         <div className="flex items-center justify-between sm:justify-start gap-2">
           <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-xs sm:text-sm font-bold text-white tracking-wide">{title}</h3>
+            <Database className="w-4 h-4 text-accent" />
+            <h3 className="text-xs sm:text-sm font-bold text-primary tracking-wide">{title}</h3>
             {data && (
-              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded-full bg-surface-2 text-secondary border border-border">
                 {data.total.toLocaleString()} строк
               </span>
             )}
@@ -142,7 +142,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           {/* Mobile column toggle button */}
           <button
             onClick={() => setShowAllColumnsMobile(!showAllColumnsMobile)}
-            className="sm:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 text-[11px] text-slate-300 border border-slate-700"
+            className="sm:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-surface-2 text-[11px] text-secondary border border-border"
           >
             {showAllColumnsMobile ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             <span>{showAllColumnsMobile ? 'Кратко' : 'Все колонки'}</span>
@@ -152,19 +152,19 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
         {/* Search, Download CSV & Page Size */}
         <div className="flex items-center flex-wrap gap-2">
           <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
             <input
               type="text"
               placeholder="Поиск по номеру или тексту..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-16 py-2 min-h-[44px] bg-slate-950 border border-slate-800 focus:border-indigo-500/50 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+              className="w-full pl-9 pr-16 py-2 min-h-[44px] bg-surface-2 border border-border focus:border-accent rounded-xl text-xs text-primary placeholder-secondary focus:outline-none transition-colors"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-800 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-secondary hover:text-primary px-2 py-1 rounded bg-surface border border-border cursor-pointer"
               >
                 Сброс
               </button>
@@ -175,11 +175,11 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             type="button"
             onClick={downloadCSV}
             disabled={!data || data.rows.length === 0}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 border border-slate-700 text-xs font-medium transition-colors cursor-pointer"
-            title="Скачать текущие отфильтрованные строки как CSV"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
+            title="Скачать текущие строки как CSV"
           >
-            <Download className="w-4 h-4 text-indigo-400" />
-            <span className="hidden sm:inline">Скачать как CSV</span>
+            <Download className="w-4 h-4 text-accent" />
+            <span className="hidden sm:inline">Скачать CSV</span>
             <span className="sm:hidden">CSV</span>
           </button>
 
@@ -189,7 +189,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 min-h-[44px] text-xs text-slate-300 focus:outline-none cursor-pointer"
+            className="bg-surface-2 border border-border rounded-xl px-2.5 py-2 min-h-[44px] text-xs text-primary focus:outline-none cursor-pointer"
           >
             <option value={15}>15</option>
             <option value={25}>25</option>
@@ -201,31 +201,28 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
       {/* Error state */}
       {error && (
-        <div className="m-4 p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+        <div className="m-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 shrink-0" />
           <div>
             <div className="font-semibold">Ошибка загрузки таблицы</div>
-            <div className="text-rose-400/80 mt-0.5">{error}</div>
+            <div className="mt-0.5">{error}</div>
           </div>
         </div>
       )}
 
-      {/* Table Container with horizontal scroll and sticky first column */}
-      <div className="overflow-x-auto relative min-h-[350px] max-h-[550px] scrollbar-thin scrollbar-thumb-slate-700">
-        {loading && (
-          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center z-20">
-            <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 shadow-xl">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Загрузка данных...</span>
-            </div>
+      {/* Table Container */}
+      <div className="overflow-x-auto relative min-h-[350px] max-h-[550px] scrollbar-thin">
+        {loading && !data ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
           </div>
-        )}
-
-        {data && data.rows.length > 0 ? (
+        ) : data && data.rows.length > 0 ? (
           <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 z-10">
+            <thead className="sticky top-0 bg-surface text-secondary font-semibold border-b border-border z-10">
               <tr>
-                <th className="py-3 px-3 w-12 text-center text-slate-500 sticky left-0 bg-slate-950 z-20 shadow-[1px_0_0_rgba(51,65,85,1)]">
+                <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface z-20 shadow-[1px_0_0_var(--border-color)]">
                   #
                 </th>
                 {data.headers.map((header) => {
@@ -243,15 +240,15 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-border/60">
               {data.rows.map((row, idx) => {
                 const rowIndex = (data.page - 1) * data.pageSize + idx + 1;
                 return (
                   <tr
                     key={idx}
-                    className="hover:bg-slate-800/40 transition-colors odd:bg-slate-900/20"
+                    className="hover:bg-surface-2/60 transition-colors odd:bg-surface-2/20"
                   >
-                    <td className="py-2.5 px-3 text-center text-slate-500 font-mono text-[10px] sticky left-0 bg-slate-900/90 sm:bg-slate-950 z-10 shadow-[1px_0_0_rgba(51,65,85,0.6)]">
+                    <td className="py-2.5 px-3 text-center text-secondary font-mono text-[10px] sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)]">
                       {rowIndex}
                     </td>
                     {data.headers.map((header) => {
@@ -260,24 +257,36 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                       const isStatus = isStatusColumn(header);
                       const isPriority = isPriorityMobileColumn(header);
 
+                      let phoneDiag = null;
+                      if (isPhone && cellVal) {
+                        phoneDiag = normalizePhoneWithDiagnostics(cellVal);
+                      }
+
                       return (
                         <td
                           key={header}
-                          className={`py-2.5 px-3 whitespace-nowrap text-slate-300 max-w-xs truncate ${
+                          className={`py-2.5 px-3 whitespace-nowrap text-primary max-w-xs truncate ${
                             !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                           }`}
                           title={cellVal}
                         >
                           {isPhone && cellVal ? (
-                            <span className="font-mono text-indigo-300 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                              {formatPhoneDisplay(cellVal)}
-                            </span>
+                            <div className="inline-flex items-center gap-1.5">
+                              <span className="font-mono text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
+                                {formatPhoneDisplay(phoneDiag?.normalized || cellVal, phoneDiag?.country)}
+                              </span>
+                              {phoneDiag && phoneDiag.country !== 'UZ' && phoneDiag.country !== 'UNKNOWN' && (
+                                <span className="text-[10px] px-1 py-0.5 rounded bg-surface-2 border border-border text-secondary font-semibold">
+                                  {phoneDiag.country}
+                                </span>
+                              )}
+                            </div>
                           ) : isStatus && cellVal ? (
-                            <span className="font-medium text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            <span className="font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                               {cellVal}
                             </span>
                           ) : (
-                            cellVal || <span className="text-slate-600">—</span>
+                            cellVal || <span className="text-secondary/50">—</span>
                           )}
                         </td>
                       );
@@ -289,40 +298,44 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           </table>
         ) : (
           !loading && (
-            <div className="flex flex-col items-center justify-center h-64 text-slate-500 text-xs">
-              <Database className="w-8 h-8 mb-2 opacity-30" />
+            <div className="flex flex-col items-center justify-center h-64 text-secondary text-xs">
+              <Database className="w-8 h-8 mb-2 opacity-40" />
               <span>Данных не найдено</span>
               {activeSearch && (
-                <span className="mt-1 text-slate-400">по запросу &quot;{activeSearch}&quot;</span>
+                <span className="mt-1 text-primary">по запросу &quot;{activeSearch}&quot;</span>
               )}
             </div>
           )
         )}
       </div>
 
-      {/* Pagination Bar */}
-      {data && (
-        <div className="p-3 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 bg-slate-950 text-xs text-slate-400">
-          <div className="text-[11px] sm:text-xs">
-            Показаны строки с {(data.page - 1) * data.pageSize + 1} по{' '}
-            {Math.min(data.page * data.pageSize, data.total)} из {data.total.toLocaleString()}
+      {/* Pagination Footer */}
+      {data && data.totalPages > 1 && (
+        <div className="p-3 sm:p-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface text-xs text-secondary">
+          <div>
+            Страница <strong className="text-primary">{data.page}</strong> из{' '}
+            <strong className="text-primary">{data.totalPages}</strong> ({data.total.toLocaleString()} строк)
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={data.page <= 1 || loading}
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white transition-colors cursor-pointer"
+              disabled={page <= 1 || loading}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
+              title="Предыдущая страница"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2 font-medium text-white">
-              {data.page} / {data.totalPages}
+
+            <span className="px-3 py-1 font-mono text-primary bg-surface-2 border border-border rounded-lg">
+              {page}
             </span>
+
             <button
               onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-              disabled={data.page >= data.totalPages || loading}
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white transition-colors cursor-pointer"
+              disabled={page >= data.totalPages || loading}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-primary border border-border transition-colors cursor-pointer"
+              title="Следующая страница"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

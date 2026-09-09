@@ -1,7 +1,13 @@
 // app/api/analytics/route.ts
 import { NextResponse } from 'next/server';
 import { fetchAllRowsForSheet } from '@/lib/google-sheets';
-import { binAge } from '@/lib/age-utils';
+import {
+  AnalyticsRow,
+  aggregateByGender,
+  aggregateByAge,
+  aggregateByCategory,
+  aggregateByRegionHierarchy,
+} from '@/lib/analytics-aggregations';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,71 +15,58 @@ export async function GET() {
   try {
     const mainRows = await fetchAllRowsForSheet('main');
 
-    const byRegionGender: Record<
-      string,
-      {
-        Мужской: number;
-        Женский: number;
-        district: Record<string, { Мужской: number; Женский: number }>;
-      }
-    > = {};
-    const genderCount = { Мужской: 0, Женский: 0 };
-    const educationCount: Record<string, number> = {};
-    const sourceCount: Record<string, number> = {};
-    const ageBins = {
-      'До 18': { Мужской: 0, Женский: 0 },
-      '18-24': { Мужской: 0, Женский: 0 },
-      '25-34': { Мужской: 0, Женский: 0 },
-      '35-49': { Мужской: 0, Женский: 0 },
-      '50+': { Мужской: 0, Женский: 0 },
-    };
-    let ageSum = 0;
-    let ageCount = 0;
+    const rows: AnalyticsRow[] = new Array(mainRows.length);
+    let emptyPhone = 0;
+    let emptyRegion = 0;
+    let emptyAge = 0;
+    let emptyEducation = 0;
+    let emptyProfession = 0;
 
-    const emptyPhone = mainRows.filter((r) => !r['Phone']).length;
-    const emptyRegion = mainRows.filter((r) => !r['Регион']).length;
-    const emptyAge = mainRows.filter((r) => !r['Возраст']).length;
-    const emptyEducation = mainRows.filter((r) => !r['Оброзование']).length;
-    const emptyProfession = mainRows.filter((r) => !r['Профессия']).length;
+    for (let i = 0; i < mainRows.length; i++) {
+      const r = mainRows[i];
+      const phone = r['Phone'];
+      const region = r['Регион'] || 'Не указан';
+      const district = r['Район'] || r['Город'] || 'Не указан';
+      const genderRaw = r['Пол'];
+      const gender = genderRaw === 'Мужской' || genderRaw === 'Женский' ? genderRaw : null;
+      const education = r['Оброзование'] || 'Не указано';
+      const profession = r['Профессия'] || 'Не указана';
+      const source = r['Откуда пришёл пользователь'] || 'Не указано';
+      const rawAgeStr = r['Возраст'] || '';
+      const ageNum = parseInt(rawAgeStr, 10);
+      const age = !isNaN(ageNum) && ageNum > 0 && ageNum < 120 ? ageNum : null;
 
-    for (const row of mainRows) {
-      const region = row['Регион'] || 'Не указан';
-      const district = row['Район'] || row['Город'] || 'Не указан';
-      const gender =
-        row['Пол'] === 'Мужской' || row['Пол'] === 'Женский' ? row['Пол'] : null;
-      const education = row['Оброзование'] || 'Не указано';
-      const source = row['Откуда пришёл пользователь'] || 'Не указано';
-      const ageRaw = parseInt(row['Возраст'] || '', 10);
+      if (!phone) emptyPhone++;
+      if (!r['Регион']) emptyRegion++;
+      if (!r['Возраст']) emptyAge++;
+      if (!r['Оброзование']) emptyEducation++;
+      if (!r['Профессия']) emptyProfession++;
 
-      if (!byRegionGender[region]) {
-        byRegionGender[region] = { Мужской: 0, Женский: 0, district: {} };
-      }
-      if (gender) byRegionGender[region][gender]++;
-      if (!byRegionGender[region].district[district]) {
-        byRegionGender[region].district[district] = { Мужской: 0, Женский: 0 };
-      }
-      if (gender) byRegionGender[region].district[district][gender]++;
-
-      if (gender) genderCount[gender]++;
-
-      educationCount[education] = (educationCount[education] || 0) + 1;
-      sourceCount[source] = (sourceCount[source] || 0) + 1;
-
-      if (!isNaN(ageRaw) && ageRaw > 0 && ageRaw < 120) {
-        ageSum += ageRaw;
-        ageCount++;
-        const bin = binAge(ageRaw);
-        if (gender) ageBins[bin][gender]++;
-      }
+      rows[i] = {
+        region,
+        district,
+        gender,
+        age,
+        education,
+        profession,
+        source,
+      };
     }
 
+    const genderCount = aggregateByGender(rows);
+    const { bins: ageBins, averageAge } = aggregateByAge(rows);
+    const educationCount = aggregateByCategory(rows, 'education');
+    const sourceCount = aggregateByCategory(rows, 'source');
+    const byRegionGender = aggregateByRegionHierarchy(rows);
+
     return NextResponse.json({
+      rows,
       byRegionGender,
       genderCount,
       educationCount,
       sourceCount,
       ageBins,
-      averageAge: ageCount > 0 ? +(ageSum / ageCount).toFixed(1) : null,
+      averageAge,
       dataQuality: {
         emptyPhone,
         emptyRegion,

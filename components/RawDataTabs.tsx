@@ -31,7 +31,7 @@ export const RawDataTabs: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Tab headers */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -41,8 +41,8 @@ export const RawDataTabs: React.FC = () => {
               onClick={() => setActiveTab(t.id)}
               className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 border border-indigo-500'
-                  : 'bg-slate-900/60 text-slate-400 hover:text-slate-200 border border-slate-800 hover:border-slate-700'
+                  ? 'bg-accent text-white shadow-sm border border-accent'
+                  : 'bg-surface text-secondary hover:text-primary border border-border hover:bg-surface-2'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -52,7 +52,7 @@ export const RawDataTabs: React.FC = () => {
         })}
       </div>
 
-      {/* Active Tab Content */}
+      {/* Active Tab Content - isolated state per tab using key */}
       <DataTable
         key={activeTab}
         sheetType={activeTab}

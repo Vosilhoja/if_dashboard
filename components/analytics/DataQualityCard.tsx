@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface DataQualityData {
   emptyPhone: number;
@@ -19,12 +20,12 @@ interface Props {
 
 export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
   if (loading) {
-    return <div className="h-72 rounded-2xl bg-slate-900/60 animate-pulse" />;
+    return <Skeleton className="h-72" />;
   }
 
   if (!quality) {
     return (
-      <div className="h-72 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-center text-slate-500 text-sm">
+      <div className="h-72 rounded-2xl bg-surface border border-border flex items-center justify-center text-secondary text-sm">
         Нет данных для отображения
       </div>
     );
@@ -39,15 +40,15 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
   ];
 
   return (
-    <div className="h-72 rounded-2xl bg-slate-900/60 border border-slate-800 p-4 flex flex-col justify-between">
+    <div className="h-72 rounded-2xl bg-surface border border-border p-4 flex flex-col justify-between shadow-sm">
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <h4 className="text-xs font-bold text-white tracking-wider uppercase">
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <h4 className="text-xs font-bold text-primary tracking-wider uppercase">
             Контроль качества данных (main_base)
           </h4>
         </div>
-        <p className="text-[11px] text-slate-400 mb-4">
+        <p className="text-[11px] text-secondary mb-4">
           Анализ незаполненных обязательных полей среди {quality.totalRows.toLocaleString()} респондентов
         </p>
 
@@ -56,12 +57,12 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
             const pct = ((item.count / quality.totalRows) * 100).toFixed(1);
             return (
               <div key={item.label} className="flex items-center justify-between text-xs">
-                <span className="text-slate-400">{item.label}</span>
+                <span className="text-secondary">{item.label}</span>
                 <div className="flex items-center gap-2 font-mono">
-                  <span className={item.count > 0 ? 'text-amber-400' : 'text-emerald-400'}>
+                  <span className={item.count > 0 ? 'text-amber-500 font-semibold' : 'text-emerald-500 font-semibold'}>
                     {item.count.toLocaleString()}
                   </span>
-                  <span className="text-[10px] text-slate-500">({pct}%)</span>
+                  <span className="text-[10px] text-secondary">({pct}%)</span>
                 </div>
               </div>
             );
@@ -69,8 +70,8 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
         </div>
       </div>
 
-      <div className="pt-3 border-t border-slate-800 text-[10px] text-slate-500 flex items-center gap-1.5">
-        <AlertCircle className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+      <div className="pt-3 border-t border-border text-[10px] text-secondary flex items-center gap-1.5">
+        <AlertCircle className="w-3.5 h-3.5 text-accent shrink-0" />
         <span>Пустые поля исключаются из аналитических срезов автоматически</span>
       </div>
     </div>

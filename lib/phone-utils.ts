@@ -1,24 +1,38 @@
 // lib/phone-utils.ts
 
 export type PhoneStatus = 'ok' | 'corrupted_scientific' | 'foreign' | 'truncated' | 'invalid';
+export type CountryCode = 'UZ' | 'RU' | 'UA' | 'KZ' | 'US' | 'UNKNOWN';
 
 export interface PhoneDiagnostic {
   normalized: string;
   status: PhoneStatus;
+  country: CountryCode;
   original: string;
 }
 
+interface CountryRule {
+  code: CountryCode;
+  countryDigits: string; // '998', '7', '380', '1'
+  localLength: number; // length of subscriber part
+}
+
+const COUNTRY_RULES: CountryRule[] = [
+  { code: 'UZ', countryDigits: '998', localLength: 9 },
+  { code: 'RU', countryDigits: '7', localLength: 10 },
+  { code: 'KZ', countryDigits: '7', localLength: 10 },
+  { code: 'UA', countryDigits: '380', localLength: 9 },
+  { code: 'US', countryDigits: '1', localLength: 10 },
+];
+
 /**
- * Определяет, является ли сырое значение испорченным Excel-числом
- * в scientific notation (типа 9.09269949997969e+17).
- * Проверяем ДО очистки от нецифровых символов.
+ * Checks if raw value is broken by Excel scientific notation float
  */
 function looksLikeCorruptedScientific(raw: string | number): boolean {
   const str = String(raw);
   if (/e\+?\d+/i.test(str)) return true;
   if (typeof raw === 'number') {
     if (!Number.isInteger(raw) && raw > 1e14) return true;
-    if (raw > 1e14) return true; // подозрительно длинное число, физический номер столько цифр не имеет
+    if (raw > 1e14) return true;
   }
   return false;
 }
@@ -33,79 +47,125 @@ export function normalizePhoneWithDiagnostics(
   const original = rawPhone === null || rawPhone === undefined ? '' : String(rawPhone);
 
   if (!rawPhone && rawPhone !== 0) {
-    return { normalized: '', status: 'invalid', original };
+    return { normalized: '', status: 'invalid', country: 'UNKNOWN', original };
   }
 
   if (looksLikeCorruptedScientific(rawPhone)) {
-    return { normalized: '', status: 'corrupted_scientific', original };
+    return { normalized: '', status: 'corrupted_scientific', country: 'UNKNOWN', original };
   }
 
   let digits = original.replace(/\D/g, '');
 
   if (!digits || digits.length <= 8 || isAllSameDigit(digits)) {
-    return { normalized: '', status: 'invalid', original };
+    return { normalized: '', status: 'invalid', country: 'UNKNOWN', original };
   }
 
-  // 9 цифр -> добавить 998
+  // --- 1. UZBEKISTAN PRIORITY RULES (Data is predominantly Uzbek) ---
+
+  // 9 digits -> add 998
   if (digits.length === 9) {
     if (digits.startsWith('998')) {
-      // 998 + 6 цифр = подозрительно короткий номер (truncated)
-      return { normalized: '', status: 'truncated', original };
+      // 998 + 6 digits = truncated
+      return { normalized: '', status: 'truncated', country: 'UZ', original };
     }
-    return { normalized: '998' + digits, status: 'ok', original };
+    return { normalized: '998' + digits, status: 'ok', country: 'UZ', original };
   }
 
-  // 10 цифр, начинается с локального 0 -> убрать 0, добавить 998
+  // 10 digits starting with local 0 -> remove 0, add 998
   if (digits.length === 10 && digits.startsWith('0')) {
-    return { normalized: '998' + digits.slice(1), status: 'ok', original };
+    return { normalized: '998' + digits.slice(1), status: 'ok', country: 'UZ', original };
   }
 
-  // 12 цифр, уже 998... -> норма
+  // 12 digits, already 998... -> normal Uzbek
   if (digits.length === 12 && digits.startsWith('998')) {
-    return { normalized: digits, status: 'ok', original };
+    return { normalized: digits, status: 'ok', country: 'UZ', original };
   }
 
-  // 12 цифр, начинается с 8998 обрезано неверно быть не может (это 12 цифр не 8998),
-  // реальный кейс "8" + "998" + 9 цифр = 13 цифр, обработаем в ветке 13-14 ниже.
-  // 11 цифр: 8998XXXXXXX (8 + 998 + 7 цифр = неполный номер) или 998XXXXXXXX (998 + 8 цифр = неполный)
+  // 11 digits starting with 8998 or 998
   if (digits.length === 11) {
-    if (digits.startsWith('8998')) {
-      // "8998" + 7 цифр = всего 11, абонентских цифр только 7 из 9 - неполный номер
-      return { normalized: '', status: 'truncated', original };
+    if (digits.startsWith('8998') || digits.startsWith('998')) {
+      return { normalized: '', status: 'truncated', country: 'UZ', original };
     }
-    if (digits.startsWith('998')) {
-      // 998 + 8 цифр (нужно 9) - неполный номер
-      return { normalized: '', status: 'truncated', original };
-    }
-    // Не наш код страны (7 - Россия, 375 - Беларусь и т.п.) - оставляем как иностранный
-    return { normalized: digits, status: 'foreign', original };
   }
 
-  // 13-14 цифр: возможное задвоение кода страны "998998..." или "8" + "998" + 9 цифр = 13
+  // 13-14 digits starting with 8998 (13 digits) or 998998 (doubled code)
   if (digits.length === 13 || digits.length === 14) {
     if (digits.startsWith('8998') && digits.length === 13) {
-      // 8 + 998 + 9 цифр = корректный номер с ведущей восьмёркой доступа
-      return { normalized: digits.slice(1), status: 'ok', original };
+      return { normalized: digits.slice(1), status: 'ok', country: 'UZ', original };
     }
     if (digits.startsWith('998998')) {
-      // код страны введён дважды
-      return { normalized: digits.slice(3), status: 'ok', original };
+      return { normalized: digits.slice(3), status: 'ok', country: 'UZ', original };
     }
-    return { normalized: '', status: 'truncated', original };
   }
 
-  // Всё остальное - не 998, не похоже на известный паттерн: считаем иностранным,
-  // если длина разумная (>= 9), иначе - невалидным (уже отсеяно длиной <=8 выше)
-  return { normalized: digits, status: 'foreign', original };
+  // --- 2. MULTI-COUNTRY RULES FOR NON-UZBEK NUMBERS ---
+
+  // Russia & Kazakhstan (+7)
+  // 11 digits starting with 8 or 7
+  if (digits.length === 11 && (digits.startsWith('8') || digits.startsWith('7'))) {
+    const subscriber = digits.slice(1);
+    // Kazakhstan typically has subscriber prefixes 6xx, 7xx (770, 771, 775, 776, 777, 778, 700, 701, etc.)
+    const isKZ = /^[67]/.test(subscriber);
+    return {
+      normalized: '7' + subscriber,
+      status: 'foreign',
+      country: isKZ ? 'KZ' : 'RU',
+      original,
+    };
+  }
+  // 10 digits without country code for RU/KZ (not starting with 0, not Uzbek 9 digits)
+  // Note: Uzbek numbers of 10 digits starting with 0 were handled above.
+  if (digits.length === 10 && !digits.startsWith('0')) {
+    const isKZ = /^[67]/.test(digits);
+    return {
+      normalized: '7' + digits,
+      status: 'foreign',
+      country: isKZ ? 'KZ' : 'RU',
+      original,
+    };
+  }
+
+  // Ukraine (+380)
+  // 12 digits starting with 380
+  if (digits.length === 12 && digits.startsWith('380')) {
+    return { normalized: digits, status: 'foreign', country: 'UA', original };
+  }
+  // 10 digits starting with 0 (e.g. 0501234567) or 9 digits local
+  if (digits.length === 10 && digits.startsWith('0') && !digits.startsWith('09')) {
+    return { normalized: '380' + digits.slice(1), status: 'foreign', country: 'UA', original };
+  }
+
+  // USA (+1)
+  // 11 digits starting with 1
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return { normalized: digits, status: 'foreign', country: 'US', original };
+  }
+
+  // If 13-14 digits were not UZ patterns:
+  if (digits.length === 13 || digits.length === 14) {
+    return { normalized: '', status: 'truncated', country: 'UNKNOWN', original };
+  }
+
+  // Default international / foreign if reasonable length (9-15 digits)
+  if (digits.length >= 9 && digits.length <= 15) {
+    return { normalized: digits, status: 'foreign', country: 'UNKNOWN', original };
+  }
+
+  return { normalized: '', status: 'invalid', country: 'UNKNOWN', original };
 }
 
-/** Обратная совместимость: старые вызовы normalizePhone(x) продолжают работать */
+/** Backwards-compatible normalizePhone returning string */
 export function normalizePhone(rawPhone: string | number | null | undefined): string {
   return normalizePhoneWithDiagnostics(rawPhone).normalized;
 }
 
-export function formatPhoneDisplay(normalizedPhone: string): string {
+export function formatPhoneDisplay(
+  normalizedPhone: string,
+  country?: CountryCode
+): string {
   if (!normalizedPhone) return '-';
+
+  // UZ (+998)
   if (normalizedPhone.length === 12 && normalizedPhone.startsWith('998')) {
     const code = normalizedPhone.slice(3, 5);
     const p1 = normalizedPhone.slice(5, 8);
@@ -113,5 +173,32 @@ export function formatPhoneDisplay(normalizedPhone: string): string {
     const p3 = normalizedPhone.slice(10, 12);
     return `+998 (${code}) ${p1}-${p2}-${p3}`;
   }
+
+  // RU / KZ (+7)
+  if (normalizedPhone.length === 11 && normalizedPhone.startsWith('7')) {
+    const code = normalizedPhone.slice(1, 4);
+    const p1 = normalizedPhone.slice(4, 7);
+    const p2 = normalizedPhone.slice(7, 9);
+    const p3 = normalizedPhone.slice(9, 11);
+    return `+7 (${code}) ${p1}-${p2}-${p3}`;
+  }
+
+  // UA (+380)
+  if (normalizedPhone.length === 12 && normalizedPhone.startsWith('380')) {
+    const code = normalizedPhone.slice(3, 5);
+    const p1 = normalizedPhone.slice(5, 8);
+    const p2 = normalizedPhone.slice(8, 10);
+    const p3 = normalizedPhone.slice(10, 12);
+    return `+380 ${code} ${p1} ${p2} ${p3}`;
+  }
+
+  // US (+1)
+  if (normalizedPhone.length === 11 && normalizedPhone.startsWith('1')) {
+    const code = normalizedPhone.slice(1, 4);
+    const p1 = normalizedPhone.slice(4, 7);
+    const p2 = normalizedPhone.slice(7, 11);
+    return `+1 (${code}) ${p1}-${p2}`;
+  }
+
   return `+${normalizedPhone}`;
 }

@@ -11,10 +11,18 @@ import { CategoryBarChart } from './CategoryBarChart';
 import { RegionHierarchyTable } from './RegionHierarchyTable';
 import { RegionMap } from './RegionMap';
 import { DataQualityCard } from './DataQualityCard';
-import { BarChart3, Filter } from 'lucide-react';
+import { BarChart3, Filter, RotateCcw } from 'lucide-react';
 import { AgeBin } from '@/lib/age-utils';
+import {
+  AnalyticsRow,
+  aggregateByGender,
+  aggregateByAge,
+  aggregateByCategory,
+  aggregateByRegionHierarchy,
+} from '@/lib/analytics-aggregations';
 
 interface AnalyticsPayload {
+  rows?: AnalyticsRow[];
   byRegionGender: Record<
     string,
     {
@@ -40,7 +48,13 @@ interface AnalyticsPayload {
 }
 
 function AnalyticsDashboardContent() {
-  const { selectedRegion } = useAnalyticsFilter();
+  const {
+    selectedRegion,
+    selectedGender,
+    selectedEducation,
+    resetFilters,
+  } = useAnalyticsFilter();
+
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,56 +75,121 @@ function AnalyticsDashboardContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter gender count if region selected via useMemo
-  const filteredGenderCount = useMemo(() => {
-    if (!data) return null;
-    if (!selectedRegion) return data.genderCount;
-    const reg = data.byRegionGender[selectedRegion];
-    if (!reg) return { Мужской: 0, Женский: 0 };
-    return { Мужской: reg.Мужской, Женский: reg.Женский };
-  }, [data, selectedRegion]);
+  // Filter rows reactively on client using Variant A
+  const filteredRows = useMemo(() => {
+    if (!data?.rows) return [];
+    let result = data.rows;
+
+    if (selectedRegion) {
+      result = result.filter((r) => r.region === selectedRegion);
+    }
+    if (selectedGender) {
+      result = result.filter((r) => r.gender === selectedGender);
+    }
+    if (selectedEducation) {
+      result = result.filter((r) => r.education === selectedEducation);
+    }
+
+    return result;
+  }, [data?.rows, selectedRegion, selectedGender, selectedEducation]);
+
+  // Compute reactive slice metrics
+  const reactiveGenderCount = useMemo(() => {
+    if (!data?.rows) return data?.genderCount ?? null;
+    return aggregateByGender(filteredRows);
+  }, [data, filteredRows]);
+
+  const { reactiveAgeBins, reactiveAverageAge } = useMemo(() => {
+    if (!data?.rows) {
+      return {
+        reactiveAgeBins: data?.ageBins ?? null,
+        reactiveAverageAge: data?.averageAge ?? null,
+      };
+    }
+    const { bins, averageAge } = aggregateByAge(filteredRows);
+    return { reactiveAgeBins: bins, reactiveAverageAge: averageAge };
+  }, [data, filteredRows]);
+
+  const reactiveEducationCount = useMemo(() => {
+    if (!data?.rows) return data?.educationCount ?? null;
+    return aggregateByCategory(filteredRows, 'education');
+  }, [data, filteredRows]);
+
+  const reactiveSourceCount = useMemo(() => {
+    if (!data?.rows) return data?.sourceCount ?? null;
+    return aggregateByCategory(filteredRows, 'source');
+  }, [data, filteredRows]);
+
+  // Region hierarchy can either show global or region slice
+  const regionHierarchyData = useMemo(() => {
+    if (!data?.rows) return data?.byRegionGender ?? null;
+    if (!selectedGender && !selectedEducation) return data.byRegionGender;
+    return aggregateByRegionHierarchy(filteredRows);
+  }, [data, filteredRows, selectedGender, selectedEducation]);
+
+  const hasActiveFilters = Boolean(selectedRegion || selectedGender || selectedEducation);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      {/* Header bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
         <div>
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-indigo-400" />
-            <h3 className="text-base font-bold text-white tracking-wide">
+            <BarChart3 className="w-5 h-5 text-accent" />
+            <h3 className="text-base font-bold text-primary tracking-wide">
               BI-аналитика панели пользователей (main_base)
             </h3>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Демографический профиль, образование, источники и качество базы данных (33 228 строк)
+          <p className="text-xs text-secondary mt-0.5">
+            Демографический профиль, образование, источники и качество базы данных ({data?.dataQuality?.totalRows?.toLocaleString() || '33 228'} строк)
           </p>
         </div>
 
-        {selectedRegion && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs">
-            <Filter className="w-3.5 h-3.5" />
-            <span>Фильтр по региону: <strong>{selectedRegion}</strong></span>
+        {hasActiveFilters && (
+          <div className="flex items-center flex-wrap gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/20 text-accent text-xs">
+              <Filter className="w-3.5 h-3.5" />
+              <span>
+                Фильтры:
+                {selectedRegion && <strong> {selectedRegion}</strong>}
+                {selectedGender && <strong> • {selectedGender}</strong>}
+                {selectedEducation && <strong> • {selectedEducation}</strong>}
+              </span>
+              <span className="ml-1 text-secondary">
+                ({filteredRows.length.toLocaleString()} чел.)
+              </span>
+            </div>
+            <button
+              onClick={resetFilters}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
+              title="Сбросить все фильтры"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Сбросить</span>
+            </button>
           </div>
         )}
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
           Ошибка загрузки аналитических данных: {error}
         </div>
       )}
 
       {/* Grid of BI widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        <GenderPieChart genderCount={filteredGenderCount} loading={loading} />
+        <GenderPieChart genderCount={reactiveGenderCount} loading={loading} />
         <AgePyramidChart
-          ageBins={data?.ageBins ?? null}
-          averageAge={data?.averageAge ?? null}
+          ageBins={reactiveAgeBins}
+          averageAge={reactiveAverageAge}
           loading={loading}
         />
         <CategoryBarChart
-          dataCounts={data?.educationCount ?? null}
+          dataCounts={reactiveEducationCount}
           title="Уровень образования"
           barColor="#a855f7"
+          filterType="education"
           loading={loading}
         />
       </div>
@@ -118,7 +197,7 @@ function AnalyticsDashboardContent() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <RegionHierarchyTable
-            byRegionGender={data?.byRegionGender ?? null}
+            byRegionGender={regionHierarchyData}
             loading={loading}
           />
         </div>
@@ -130,10 +209,11 @@ function AnalyticsDashboardContent() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <CategoryBarChart
-          dataCounts={data?.sourceCount ?? null}
+          dataCounts={reactiveSourceCount}
           title="Откуда пришёл пользователь"
           barColor="#06b6d4"
           limit={10}
+          filterType="source"
           loading={loading}
         />
         <RegionMap />
