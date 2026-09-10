@@ -24,6 +24,7 @@ interface UzbekistanMapProps {
   totalRespondents: number;
   selectedRegion: string | null;
   onSelectRegion: (ruName: string) => void;
+  onDeselect?: () => void;
 }
 
 export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
@@ -31,6 +32,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   totalRespondents,
   selectedRegion,
   onSelectRegion,
+  onDeselect,
 }) => {
   const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -286,9 +288,22 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     });
   };
 
-  const handleRegionClick = (ruName: string) => {
-    onSelectRegion(ruName);
-    zoomToRegion(ruName);
+  const handleRegionClick = (e: React.MouseEvent, ruName: string) => {
+    e.stopPropagation();
+    const isAlreadySelected = Boolean(
+      selectedRegion &&
+        selectedRegion.trim() !== '' &&
+        (normalizeRegionName(selectedRegion) === normalizeRegionName(ruName) ||
+          selectedRegion.trim().toLowerCase() === ruName.toLowerCase())
+    );
+    if (isAlreadySelected) {
+      if (onDeselect) onDeselect();
+      else onSelectRegion('');
+      handleResetZoom();
+    } else {
+      onSelectRegion(ruName);
+      zoomToRegion(ruName);
+    }
   };
 
   if (loading) {
@@ -299,13 +314,13 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           <span>Загрузка векторных полигонов 14 регионов...</span>
         </div>
         {/* Animated Skeleton Map Representation */}
-        <div className="w-full max-w-2xl h-72 bg-neutral-100 dark:bg-surface-2/60 rounded-[8px] flex items-center justify-center p-8 border border-border/50">
+        <div className="w-full max-w-2xl h-72 bg-surface-2/60 rounded-[8px] flex items-center justify-center p-8 border border-border/50">
           <div className="grid grid-cols-4 gap-3 w-full h-full opacity-60">
-            <div className="col-span-2 row-span-2 bg-neutral-200 dark:bg-surface-2 rounded" />
-            <div className="bg-neutral-200 dark:bg-surface-2 rounded" />
-            <div className="bg-neutral-200 dark:bg-surface-2 rounded" />
-            <div className="bg-neutral-200 dark:bg-surface-2 rounded" />
-            <div className="bg-neutral-200 dark:bg-surface-2 rounded" />
+            <div className="col-span-2 row-span-2 bg-surface-2 rounded" />
+            <div className="bg-surface-2 rounded" />
+            <div className="bg-surface-2 rounded" />
+            <div className="bg-surface-2 rounded" />
+            <div className="bg-surface-2 rounded" />
           </div>
         </div>
       </div>
@@ -344,7 +359,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
           <span className="font-semibold text-primary">14 административных регионов</span>
           <span className="text-secondary text-[11px] hidden sm:inline">
-            • Кликните по области для приближения и деталей
+            • Кликните по области для приближения и деталей (повторный клик — сброс)
           </span>
         </div>
 
@@ -382,11 +397,24 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
             <button
               onClick={handleResetZoom}
               className="p-1.5 rounded-[4px] hover:bg-surface text-secondary hover:text-primary transition-colors cursor-pointer"
-              title="Сбросить масштаб"
-              aria-label="Сбросить масштаб"
+              title="Сбросить масштаб (зум)"
+              aria-label="Сбросить масштаб (зум)"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
+            {(selectedRegion || transform.k !== 1 || transform.x !== 0 || transform.y !== 0) && (
+              <button
+                onClick={() => {
+                  handleResetZoom();
+                  if (onDeselect) onDeselect();
+                  else onSelectRegion('');
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded-[4px] bg-accent/10 hover:bg-accent/20 border border-accent/25 text-accent text-[11px] font-semibold transition-colors cursor-pointer ml-1"
+                title="Сбросить масштаб и выбор региона"
+              >
+                <span>Сбросить всё</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -404,7 +432,28 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           viewBox={`0 0 ${width} ${height}`}
           className="w-full h-auto max-h-[560px] min-h-[320px] transition-transform duration-75"
           style={{ transform: 'translateZ(0)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget || (e.target as SVGElement).tagName === 'rect') {
+              if (selectedRegion) {
+                if (onDeselect) onDeselect();
+                else onSelectRegion('');
+              }
+            }
+          }}
         >
+          {/* Background rect for deselecting on empty space click */}
+          <rect
+            width={width}
+            height={height}
+            fill="transparent"
+            className="cursor-default"
+            onClick={() => {
+              if (selectedRegion) {
+                if (onDeselect) onDeselect();
+                else onSelectRegion('');
+              }
+            }}
+          />
           <g
             transform={`translate(${transform.x + 30}, ${transform.y + 30}) scale(${transform.k})`}
             className="transition-transform duration-100 ease-out"
@@ -430,7 +479,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
                     stroke={isSelected ? '#1D4ED8' : 'var(--color-surface)'}
                     strokeWidth={isSelected ? 2.5 / transform.k : 1.2 / transform.k}
                     className="cursor-pointer transition-colors duration-150 hover:brightness-95 dark:hover:brightness-125 focus:outline-none"
-                    onClick={() => handleRegionClick(ruName)}
+                    onClick={(e) => handleRegionClick(e, ruName)}
                     onMouseMove={(e) => handleRegionHover(e, ruName, enName, count)}
                     onMouseLeave={() => setHoveredRegion(null)}
                   />

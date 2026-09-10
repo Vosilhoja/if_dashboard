@@ -94,6 +94,26 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Background auto-refresh interval (configured in Settings)
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    try {
+      const saved = localStorage.getItem('hurmo_auto_refresh_interval');
+      const minutes = saved !== null ? parseInt(saved, 10) : 3;
+      if (minutes > 0) {
+        intervalId = setInterval(() => {
+          fetchMetrics(startDate, endDate, true);
+        }, minutes * 60 * 1000);
+      }
+    } catch {
+      // ignore in SSR
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [startDate, endDate]);
+
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {
     setDateRange(start, end);
     if (autoFetch) {
@@ -172,7 +192,7 @@ export default function DashboardPage() {
       )}
 
       {stale && !needsFreshData && (
-        <div className="p-2.5 rounded-[6px] bg-neutral-100 dark:bg-surface-2 border border-border text-secondary text-xs flex items-center justify-between gap-2">
+        <div className="p-2.5 rounded-[6px] bg-surface-2 border border-border text-secondary text-xs flex items-center justify-between gap-2">
           <span>Данные получены более 15 минут назад.</span>
           <button
             onClick={handleRefresh}
@@ -191,7 +211,7 @@ export default function DashboardPage() {
       )}
 
       {/* Anomaly detection & metrics grid */}
-      <section className="space-y-4">
+      <section id="anomalies" className="space-y-4">
         <AnomalyWidget metrics={metrics} loading={loading} />
 
         <div className="flex items-center justify-between">

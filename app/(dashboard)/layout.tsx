@@ -2,6 +2,8 @@ import React from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { AnalyticsFilterProvider } from '@/lib/analytics-filter-context';
+import { CommandPalette } from '@/components/CommandPalette';
+import { ToastContainer } from '@/components/ui/Toast';
 
 export default function DashboardLayout({
   children,
@@ -24,6 +26,10 @@ export default function DashboardLayout({
             HURMO UZ Analytics Dashboard • Google Spreadsheet API • {new Date().getFullYear()}
           </footer>
         </div>
+
+        {/* Global Command Palette (Cmd+K) & Toast Notifications */}
+        <CommandPalette />
+        <ToastContainer />
       </div>
     </AnalyticsFilterProvider>
   );

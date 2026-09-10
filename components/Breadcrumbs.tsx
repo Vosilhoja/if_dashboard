@@ -65,6 +65,27 @@ export const Breadcrumbs: React.FC = () => {
 
         {/* Action / Status bar */}
         <div className="flex items-center gap-2.5">
+          {/* Quick Search / Command Palette trigger */}
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('open-command-palette'));
+              }
+            }}
+            className="flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-surface-2/80 hover:bg-surface-2 border border-border text-xs text-secondary hover:text-primary transition-all cursor-pointer group"
+            title="Быстрый поиск и команды (Ctrl+K или Cmd+K)"
+          >
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-secondary group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span className="hidden sm:inline font-medium">Поиск...</span>
+            </span>
+            <kbd className="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-secondary/70 bg-surface border border-border rounded">
+              ⌘K
+            </kbd>
+          </button>
+
           {/* Global filter reset action */}
           {hasActiveFilters && (
             <button
@@ -73,7 +94,7 @@ export const Breadcrumbs: React.FC = () => {
               title="Сбросить все активные фильтры (период, регион, демографию)"
             >
               <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">Сбросить все фильтры</span>
+              <span className="hidden sm:inline">Сбросить фильтры</span>
               <span className="sm:hidden">Сброс</span>
             </button>
           )}

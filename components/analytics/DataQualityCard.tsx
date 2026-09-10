@@ -19,6 +19,20 @@ interface Props {
 }
 
 export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
+  const [warnThreshold, setWarnThreshold] = React.useState(10);
+  const [critThreshold, setCritThreshold] = React.useState(20);
+
+  React.useEffect(() => {
+    try {
+      const savedWarn = localStorage.getItem('hurmo_quality_warn');
+      if (savedWarn) setWarnThreshold(parseInt(savedWarn, 10));
+      const savedCrit = localStorage.getItem('hurmo_quality_crit');
+      if (savedCrit) setCritThreshold(parseInt(savedCrit, 10));
+    } catch {
+      // ignore in SSR
+    }
+  }, []);
+
   if (loading) {
     return <Skeleton className="h-80 rounded-[8px]" />;
   }
@@ -54,12 +68,20 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
 
         <div className="space-y-2">
           {items.map((item) => {
-            const pct = ((item.count / quality.totalRows) * 100).toFixed(1);
+            const numPct = quality.totalRows > 0 ? (item.count / quality.totalRows) * 100 : 0;
+            const pct = numPct.toFixed(1);
+            const colorClass =
+              numPct >= critThreshold
+                ? 'text-rose-600 dark:text-rose-400 font-bold'
+                : numPct >= warnThreshold
+                ? 'text-amber-500 font-medium'
+                : 'text-primary font-medium';
+
             return (
               <div key={item.label} className="flex items-center justify-between text-xs py-0.5 border-b border-border/50 last:border-0">
                 <span className="text-secondary">{item.label}</span>
                 <div className="flex items-center gap-1.5 tabular-nums">
-                  <span className={item.count > 0 ? 'text-amber-500 font-medium' : 'text-primary font-medium'}>
+                  <span className={colorClass}>
                     {item.count.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-secondary">({pct}%)</span>

@@ -337,7 +337,7 @@ export default function SettingsPage() {
             return (
               <div
                 key={sheet.key}
-                className="p-3.5 rounded-[6px] bg-neutral-50 dark:bg-surface-2/60 border border-border/60 flex flex-col justify-between space-y-3"
+                className="p-3.5 rounded-[6px] bg-surface-2/60 border border-border/60 flex flex-col justify-between space-y-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -511,7 +511,7 @@ export default function SettingsPage() {
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-          <div className="p-3 rounded-[6px] bg-neutral-50 dark:bg-surface-2/60 border border-border/60 space-y-2">
+          <div className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-secondary font-medium">Предупреждение (жёлтый):</span>
               <span className="font-bold text-primary tabular-nums">{qualityWarningThreshold}%</span>
@@ -526,7 +526,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="p-3 rounded-[6px] bg-neutral-50 dark:bg-surface-2/60 border border-border/60 space-y-2">
+          <div className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-secondary font-medium">Критический порог (красный):</span>
               <span className="font-bold text-primary tabular-nums">{qualityCriticalThreshold}%</span>
@@ -695,7 +695,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/60">
-          <div className="flex items-center justify-between p-3 rounded-[6px] bg-neutral-50 dark:bg-surface-2/60 border border-border/60">
+          <div className="flex items-center justify-between p-3 rounded-[6px] bg-surface-2/60 border border-border/60">
             <div>
               <div className="text-xs font-medium text-primary">Тема оформления</div>
               <div className="text-[11px] text-secondary mt-0.5">
@@ -720,7 +720,7 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between p-3 rounded-[6px] bg-neutral-50 dark:bg-surface-2/60 border border-border/60">
+          <div className="flex items-center justify-between p-3 rounded-[6px] bg-surface-2/60 border border-border/60">
             <div>
               <div className="text-xs font-medium text-primary">Сессия пользователя</div>
               <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5 flex items-center gap-1">

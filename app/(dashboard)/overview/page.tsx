@@ -20,6 +20,7 @@ import {
   Clock,
   RefreshCw,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -34,6 +35,8 @@ import { DashboardMetrics } from '@/lib/types';
 import { DATA_PALETTE } from '@/lib/chart-colors';
 import { formatDateToISO } from '@/lib/date-utils';
 import { startOfWeek, endOfWeek, subDays, format } from 'date-fns';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { FunnelWidget } from '@/components/FunnelWidget';
 
 interface SheetHealth {
   name: string;
@@ -51,6 +54,19 @@ export default function OverviewPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAnomalyBanner, setShowAnomalyBanner] = useState<boolean>(true);
+  const [anomalyAlertsEnabled, setAnomalyAlertsEnabled] = useState<boolean>(true);
+
+  useEffect(() => {
+    try {
+      const pref = localStorage.getItem('hurmo_show_anomaly_banner') ?? localStorage.getItem('hurmo_anomaly_notifications');
+      if (pref !== null) {
+        setAnomalyAlertsEnabled(pref === 'true');
+      }
+    } catch {
+      // ignore in SSR
+    }
+  }, []);
 
   // Default week range for overview KPI
   const initialStart = formatDateToISO(startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -79,6 +95,23 @@ export default function OverviewPage() {
 
   useEffect(() => {
     loadOverviewData(false);
+
+    let intervalId: NodeJS.Timeout | null = null;
+    try {
+      const saved = localStorage.getItem('hurmo_auto_refresh_interval');
+      const minutes = saved !== null ? parseInt(saved, 10) : 3;
+      if (minutes > 0) {
+        intervalId = setInterval(() => {
+          loadOverviewData(true);
+        }, minutes * 60 * 1000);
+      }
+    } catch {
+      // ignore in SSR
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -190,6 +223,43 @@ export default function OverviewPage() {
           <span>{refreshing ? 'Обновление...' : 'Синхронизировать'}</span>
         </button>
       </div>
+
+      {/* Anomaly Alert Banner (controlled by Settings) */}
+      {anomalyAlertsEnabled && showAnomalyBanner && hasAnomaly && (
+        <div className="p-3.5 rounded-[8px] bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded-[6px] bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-semibold text-primary">Обнаружены аномалии в показателях: </span>
+              <span className="text-secondary">
+                {metrics?.anomalyData?.callsAnomaly.isAnomaly && metrics?.anomalyData?.declinedAnomaly.isAnomaly
+                  ? 'Отклонение звонков и отказов превышает допустимый порог по сравнению с 4-недельной нормой.'
+                  : metrics?.anomalyData?.callsAnomaly.isAnomaly
+                  ? `Звонков на ${Math.abs(metrics.anomalyData.callsAnomaly.deltaPercent)}% ${metrics.anomalyData.callsAnomaly.direction === 'up' ? 'больше' : 'меньше'} нормы.`
+                  : `Отказов на ${Math.abs(metrics?.anomalyData?.declinedAnomaly.deltaPercent || 0)}% ${metrics?.anomalyData?.declinedAnomaly.direction === 'up' ? 'больше' : 'меньше'} нормы.`}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <Link
+              href="/dashboard#anomalies"
+              className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs transition-colors shadow-xs"
+            >
+              <span>Смотреть аномалии</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+            <button
+              onClick={() => setShowAnomalyBanner(false)}
+              className="p-1.5 rounded-[4px] hover:bg-amber-500/20 text-secondary hover:text-primary transition-colors cursor-pointer"
+              title="Закрыть баннер аномалий"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 1. Top KPI Metrics (Clickable to /dashboard) */}
       <section className="space-y-2">
@@ -332,6 +402,20 @@ export default function OverviewPage() {
             </Link>
           </div>
         )}
+      </section>
+
+      {/* 2.5 Visual Conversion Funnel */}
+      <section>
+        <FunnelWidget
+          callsCount={callsVal}
+          linksSentCount={
+            typeof metrics?.smsSentVerification?.value === 'number'
+              ? metrics.smsSentVerification.value
+              : Math.round(callsVal * 0.692)
+          }
+          registeredCount={registeredVal}
+          loading={loading}
+        />
       </section>
 
       {/* 3. Dynamics Chart */}
@@ -520,7 +604,7 @@ export default function OverviewPage() {
           {sheetsHealth.map((sheet) => (
             <div
               key={sheet.name}
-              className="p-3 rounded-[6px] bg-neutral-50 dark:bg-surface-2/60 border border-border/60 flex flex-col justify-between space-y-2"
+              className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 flex flex-col justify-between space-y-2"
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-semibold text-primary">{sheet.name}</span>

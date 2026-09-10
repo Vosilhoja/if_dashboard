@@ -111,8 +111,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => setMobileDrawerOpen(false)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[6px] text-left transition-colors cursor-pointer border-l-2 ${
                   isActive
-                    ? 'border-accent bg-neutral-100 dark:bg-surface-2 text-primary font-medium'
-                    : 'border-transparent text-secondary hover:text-primary hover:bg-neutral-50 dark:hover:bg-surface-2/60'
+                    ? 'border-accent bg-surface-2 text-primary font-medium'
+                    : 'border-transparent text-secondary hover:text-primary hover:bg-surface-2/60'
                 }`}
               >
                 <Icon
@@ -128,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Real Google Sheets Connection Indicator */}
         <div
-          className="mx-0.5 p-2 rounded-[6px] bg-neutral-50 dark:bg-surface-2/50 border border-border/60 text-[11px] text-secondary space-y-1"
+          className="mx-0.5 p-2 rounded-[6px] bg-surface-2/60 border border-border/60 text-[11px] text-secondary space-y-1"
           title={statsTitle}
         >
           <div className="flex items-center justify-between">
@@ -157,8 +157,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => setMobileDrawerOpen(false)}
           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] text-xs transition-colors cursor-pointer border-l-2 ${
             isSettingsActive
-              ? 'border-accent bg-neutral-100 dark:bg-surface-2 text-primary font-medium'
-              : 'border-transparent text-secondary hover:text-primary hover:bg-neutral-50 dark:hover:bg-surface-2/60'
+              ? 'border-accent bg-surface-2 text-primary font-medium'
+              : 'border-transparent text-secondary hover:text-primary hover:bg-surface-2/60'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -196,7 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={toggleTheme}
-              className="p-1.5 rounded-[6px] hover:bg-neutral-100 dark:hover:bg-surface-2 text-primary transition-colors cursor-pointer"
+              className="p-1.5 rounded-[6px] hover:bg-surface-2 text-primary transition-colors cursor-pointer"
               title={`Переключить на ${theme === 'dark' ? 'светлую' : 'тёмную'} тему`}
             >
               {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
@@ -206,7 +206,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 await fetch('/api/login', { method: 'DELETE' });
                 window.location.href = '/login';
               }}
-              className="p-1.5 rounded-[6px] hover:bg-neutral-100 dark:hover:bg-surface-2 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+              className="p-1.5 rounded-[6px] hover:bg-surface-2 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
               title="Выйти из системы"
             >
               <LogOut className="w-3.5 h-3.5" />

@@ -18,6 +18,7 @@ import {
   RefreshCw,
   AlertCircle,
   Calendar,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function MapPage() {
@@ -83,14 +84,26 @@ export default function MapPage() {
   useEffect(() => {
     if (selectedRegion) {
       setIsPanelOpen(true);
+    } else {
+      setIsPanelOpen(false);
     }
   }, [selectedRegion]);
 
+  const handleClearSelection = () => {
+    setSelectedRegion(null);
+    setSelectedDistrict(null);
+    setIsPanelOpen(false);
+  };
+
   const handleSelectRegion = (regionName: string) => {
+    if (!regionName) {
+      handleClearSelection();
+      return;
+    }
     const canonical = normalizeRegionName(regionName);
     if (selectedRegion && normalizeRegionName(selectedRegion) === canonical) {
-      // Toggle or keep open
-      setIsPanelOpen(true);
+      // Clicking an ALREADY-selected region deselects it!
+      handleClearSelection();
     } else {
       setSelectedRegion(canonical);
       setSelectedDistrict(null);
@@ -99,15 +112,8 @@ export default function MapPage() {
   };
 
   const handleClosePanel = () => {
-    setIsPanelOpen(false);
-    // Note: keep selectedRegion in context so if user goes to /analytics it stays,
-    // but user can also explicitly click "Сбросить выбор" in top bar
-  };
-
-  const handleClearSelection = () => {
-    setSelectedRegion(null);
-    setSelectedDistrict(null);
-    setIsPanelOpen(false);
+    // Closing panel clears selection in shared context so map returns to full view
+    handleClearSelection();
   };
 
   const totalRespondents = rows.length;
@@ -131,14 +137,24 @@ export default function MapPage() {
         {/* Selected Filter indicator & Quick Switcher */}
         <div className="flex items-center flex-wrap gap-2">
           {selectedRegion ? (
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-accent/10 border border-accent/30 text-xs font-medium text-accent">
-              <span>Регион: {selectedRegion}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-[6px] bg-accent/10 border border-accent/30 text-xs font-semibold text-accent">
+                <span>Регион: {selectedRegion}</span>
+                <button
+                  onClick={handleClearSelection}
+                  className="hover:opacity-75 cursor-pointer ml-1"
+                  title="Снять выбор региона"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <button
                 onClick={handleClearSelection}
-                className="hover:opacity-75 cursor-pointer ml-1"
-                title="Сбросить выбранный регион"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
+                title="Вернуться к обзорному виду всей страны"
               >
-                <X className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5 text-secondary" />
+                <span>Показать всю карту</span>
               </button>
             </div>
           ) : (
@@ -183,6 +199,7 @@ export default function MapPage() {
           totalRespondents={totalRespondents}
           selectedRegion={selectedRegion}
           onSelectRegion={handleSelectRegion}
+          onDeselect={handleClearSelection}
         />
 
         {/* Detail Panel */}
@@ -192,7 +209,7 @@ export default function MapPage() {
           onSelectDistrict={setSelectedDistrict}
           rows={rows}
           totalCountryRows={totalRespondents}
-          isOpen={isPanelOpen}
+          isOpen={Boolean(isPanelOpen && selectedRegion)}
           onClose={handleClosePanel}
         />
       </div>
@@ -226,7 +243,7 @@ export default function MapPage() {
                 className={`p-2.5 rounded-[6px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   isSelected
                     ? 'border-accent bg-accent/10 text-primary shadow-xs'
-                    : 'border-border/60 bg-neutral-50 dark:bg-surface-2/60 hover:border-border hover:bg-surface-2'
+                    : 'border-border/60 bg-surface-2/60 hover:border-border hover:bg-surface-2'
                 }`}
               >
                 <div className="font-medium truncate text-primary">

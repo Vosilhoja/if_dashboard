@@ -10,12 +10,28 @@ interface AnomalyWidgetProps {
 }
 
 export const AnomalyWidget: React.FC<AnomalyWidgetProps> = ({ metrics, loading }) => {
+  const [threshold, setThreshold] = React.useState<number>(30);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hurmo_anomaly_threshold');
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if (!isNaN(val) && val > 0) setThreshold(val);
+      }
+    } catch {
+      // ignore in SSR
+    }
+  }, []);
+
   if (loading || !metrics || !metrics.anomalyData) {
     return null;
   }
 
   const { callsAnomaly, declinedAnomaly } = metrics.anomalyData;
-  const hasAnyAnomaly = callsAnomaly.isAnomaly || declinedAnomaly.isAnomaly;
+  const isCallsAnomaly = Math.abs(callsAnomaly.deltaPercent) >= threshold;
+  const isDeclinedAnomaly = Math.abs(declinedAnomaly.deltaPercent) >= threshold;
+  const hasAnyAnomaly = isCallsAnomaly || isDeclinedAnomaly;
 
   return (
     <div
@@ -41,7 +57,7 @@ export const AnomalyWidget: React.FC<AnomalyWidgetProps> = ({ metrics, loading }
               <span>Аномалии за период</span>
               {hasAnyAnomaly && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium">
-                  Отклонение &gt; ±30%
+                  Отклонение &gt; ±{threshold}%
                 </span>
               )}
             </h3>

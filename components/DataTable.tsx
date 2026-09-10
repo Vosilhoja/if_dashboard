@@ -24,6 +24,9 @@ import { STATUS_CONFIG, StatusCategoryConfig } from '@/lib/status-config';
 import { matchesCategory } from '@/lib/status-matcher';
 import { Skeleton } from './ui/Skeleton';
 
+import { showToast } from './ui/Toast';
+import { Copy, CopyCheck } from 'lucide-react';
+
 const STATUS_CATEGORY_OPTIONS: { id: string; name: string; config: StatusCategoryConfig }[] = [
   { id: 'link_sent', name: 'Ссылка отправлена', config: STATUS_CONFIG.linkSent },
   { id: 'repeat_sent', name: 'Повторная отправка', config: STATUS_CONFIG.repeatSent },
@@ -50,6 +53,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedStatusCategory, setSelectedStatusCategory] = useState<string>('all');
+  const [onlyDuplicates, setOnlyDuplicates] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const handleSort = (col: string) => {
@@ -139,10 +144,45 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     );
   };
 
+  // Compute phone occurrences across the current batch to detect duplicates
+  const phoneCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!data?.rows) return counts;
+    for (const r of data.rows) {
+      for (const [k, v] of Object.entries(r)) {
+        if (isPhoneColumn(k) && v) {
+          const norm = normalizePhoneWithDiagnostics(String(v)).normalized;
+          if (norm) {
+            counts.set(norm, (counts.get(norm) || 0) + 1);
+          }
+        }
+      }
+    }
+    return counts;
+  }, [data?.rows]);
+
+  const duplicatePhoneCount = useMemo(() => {
+    let count = 0;
+    phoneCounts.forEach((val) => {
+      if (val > 1) count++;
+    });
+    return count;
+  }, [phoneCounts]);
+
+  const handleCopyPhone = (phoneStr: string) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(phoneStr);
+      setCopiedPhone(phoneStr);
+      showToast(`Номер ${phoneStr} скопирован в буфер`, 'info');
+      setTimeout(() => setCopiedPhone(null), 2000);
+    }
+  };
+
   const processedRows = useMemo(() => {
     if (!data?.rows) return [];
     let rows = [...data.rows];
 
+    // Filter by status category if selected
     if (selectedStatusCategory !== 'all') {
       const catOption = STATUS_CATEGORY_OPTIONS.find((c) => c.id === selectedStatusCategory);
       if (catOption) {
@@ -151,6 +191,21 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           return matchesCategory(statusVal, catOption.config);
         });
       }
+    }
+
+    // Filter by duplicates only if enabled
+    if (onlyDuplicates) {
+      rows = rows.filter((r) => {
+        for (const [k, v] of Object.entries(r)) {
+          if (isPhoneColumn(k) && v) {
+            const norm = normalizePhoneWithDiagnostics(String(v)).normalized;
+            if (norm && (phoneCounts.get(norm) || 0) > 1) {
+              return true;
+            }
+          }
+        }
+        return false;
+      });
     }
 
     if (sortColumn) {
@@ -169,7 +224,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     }
 
     return rows;
-  }, [data?.rows, sortColumn, sortDirection, selectedStatusCategory]);
+  }, [data?.rows, sortColumn, sortDirection, selectedStatusCategory, onlyDuplicates, phoneCounts]);
 
   const downloadCSV = () => {
     if (!processedRows.length || !data) return;
@@ -257,6 +312,33 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               </button>
             )}
           </div>
+
+          {/* Duplicate phone filter toggle */}
+          <button
+            type="button"
+            onClick={() => setOnlyDuplicates(!onlyDuplicates)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border text-xs font-medium transition-all cursor-pointer ${
+              onlyDuplicates
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 font-semibold'
+                : duplicatePhoneCount > 0
+                ? 'bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border-border'
+                : 'bg-surface-2/40 text-secondary/50 border-border/50 cursor-not-allowed'
+            }`}
+            disabled={duplicatePhoneCount === 0}
+            title={
+              duplicatePhoneCount > 0
+                ? `Найдено ${duplicatePhoneCount} повторяющихся номеров. Нажмите для фильтрации.`
+                : 'Повторяющиеся номера не найдены в текущей выборке'
+            }
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>Дубликаты</span>
+            {duplicatePhoneCount > 0 && (
+              <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-mono">
+                {duplicatePhoneCount}
+              </span>
+            )}
+          </button>
 
           {/* Export Excel (.xlsx) */}
           <button
@@ -383,7 +465,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                           title={cellVal}
                         >
                           {isPhone && cellVal ? (
-                            <div className="inline-flex items-center gap-1.5">
+                            <div className="inline-flex items-center gap-1.5 group/phone">
                               <span className="font-mono text-primary bg-surface-2 px-1.5 py-0.5 rounded-[4px] border border-border tabular-nums text-[11px]">
                                 {formatPhoneDisplay(phoneDiag?.normalized || cellVal, phoneDiag?.country)}
                               </span>
@@ -392,6 +474,26 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                                   {phoneDiag.country}
                                 </span>
                               )}
+                              {phoneDiag?.normalized && (phoneCounts.get(phoneDiag.normalized) || 0) > 1 && (
+                                <span
+                                  className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-medium"
+                                  title={`Номер встречается ${phoneCounts.get(phoneDiag.normalized)} раз в текущей выборке`}
+                                >
+                                  Повтор ({phoneCounts.get(phoneDiag.normalized)}x)
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleCopyPhone(phoneDiag?.normalized || cellVal)}
+                                className="opacity-0 group-hover/phone:opacity-100 transition-opacity p-0.5 hover:bg-surface-2 text-secondary hover:text-primary rounded cursor-pointer"
+                                title="Скопировать номер в буфер обмена"
+                              >
+                                {copiedPhone === (phoneDiag?.normalized || cellVal) ? (
+                                  <CopyCheck className="w-3 h-3 text-emerald-500" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </button>
                             </div>
                           ) : isStatus && cellVal ? (
                             (() => {

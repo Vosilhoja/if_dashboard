@@ -720,7 +720,7 @@ function AnalyticsDashboardContent() {
             loading={loading}
           />
         </div>
-        <RegionMap />
+        <RegionMap rows={rowsForRegionTable} loading={loading} />
       </div>
 
       {/* Region Side-by-Side Comparison Card (Item VII.7) */}
