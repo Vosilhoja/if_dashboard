@@ -47,7 +47,7 @@ export const Breadcrumbs: React.FC = () => {
   };
 
   return (
-    <header className="border-b border-border/80 bg-surface/80 backdrop-blur-xs sticky top-0 z-20 px-4 sm:px-6 lg:px-8 py-3">
+    <header className="border-b border-border/80 bg-surface/80 backdrop-blur-xs px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 hidden sm:block">
       <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
         {/* Breadcrumb path */}
         <div className="flex flex-col">

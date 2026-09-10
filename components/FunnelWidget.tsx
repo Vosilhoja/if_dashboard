@@ -52,16 +52,16 @@ export const FunnelWidget: React.FC<FunnelWidgetProps> = ({
   const maxVal = Math.max(callsCount, 1);
 
   return (
-    <div className="bg-surface border border-border rounded-[8px] p-4 space-y-4 shadow-xs">
-      <div className="flex items-center justify-between pb-2 border-b border-border/60">
+    <div className="bg-surface border border-border rounded-[10px] p-3.5 sm:p-4 space-y-3.5 sm:space-y-4 shadow-xs hover-lift animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-border/60">
         <div>
-          <h3 className="text-xs font-semibold text-primary">Воронка конверсии контактов</h3>
+          <h3 className="text-xs font-bold text-primary">Воронка конверсии контактов</h3>
           <p className="text-[11px] text-secondary">
-            Сквозной путь респондента от звонка до завершения регистрации в main_base
+            Сквозной путь респондента от звонка до завершения регистрации
           </p>
         </div>
-        <div className="text-right">
-          <span className="text-[11px] text-secondary">Итоговая конверсия: </span>
+        <div className="flex items-center gap-1.5 sm:self-auto self-start bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-[6px]">
+          <span className="text-[10px] font-semibold text-secondary">Итоговая конверсия:</span>
           <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs tabular-nums">
             {callsCount > 0 ? ((registeredCount / callsCount) * 100).toFixed(1) : '0.0'}%
           </span>

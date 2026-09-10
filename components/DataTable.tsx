@@ -88,7 +88,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       });
       if (search) params.append('search', search);
 
-      const res = await fetch(`/api/sheets/${sheetType}?${params.toString()}`);
+      const res = await fetch(`/api/proxy/data/sheets/${sheetType}?${params.toString()}`);
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || `HTTP ${res.status}`);
@@ -440,7 +440,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                 return (
                   <tr
                     key={idx}
-                    className="hover:bg-surface-2/50 transition-colors odd:bg-surface-2/20 border-b border-border/40 last:border-0"
+                    style={{
+                      animationDelay: `${Math.min(idx * 15, 200)}ms`,
+                    }}
+                    className="hover:bg-surface-2/50 transition-colors odd:bg-surface-2/20 border-b border-border/40 last:border-0 sm:animate-fade-in"
                   >
                     <td className="py-2.5 px-3 text-center text-secondary font-mono text-xs sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)] tabular-nums">
                       {rowIndex}

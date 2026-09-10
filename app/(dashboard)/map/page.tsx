@@ -51,7 +51,7 @@ export default function MapPage() {
         if (startDate) params.set('startDate', startDate);
         if (endDate) params.set('endDate', endDate);
 
-        const res = await fetch(`/api/analytics?${params.toString()}`);
+        const res = await fetch(`/api/proxy/data/analytics?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.rows) {
@@ -121,21 +121,23 @@ export default function MapPage() {
   return (
     <div className="space-y-4">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-4 rounded-[8px] border border-border/80">
-        <div className="space-y-0.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-4 rounded-2xl sm:rounded-3xl border border-border/80 shadow-xs">
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <MapIcon className="w-5 h-5 text-accent" />
-            <h1 className="text-base font-bold text-primary tracking-tight">
-              Интерактивная карта регионов Узбекистана
+            <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-500 flex items-center justify-center shrink-0">
+              <MapIcon className="w-4 h-4" />
+            </div>
+            <h1 className="text-base sm:text-lg font-bold text-primary tracking-tight">
+              Интерактивная карта регионов
             </h1>
           </div>
           <p className="text-xs text-secondary">
-            Географическое распределение {totalRespondents.toLocaleString('ru-RU')} респондентов базы main_base
+            География {totalRespondents.toLocaleString('ru-RU')} респондентов базы main_base
           </p>
         </div>
 
         {/* Selected Filter indicator & Quick Switcher */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-2 self-start sm:self-auto">
           {selectedRegion ? (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-[6px] bg-accent/10 border border-accent/30 text-xs font-semibold text-accent">

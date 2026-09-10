@@ -190,3 +190,121 @@ button.btn {
   align-items: center;
 }
 
+/* ============================================================
+   HARDWARE-ACCELERATED MOBILE-OPTIMIZED ANIMATIONS (60+ FPS)
+   ============================================================ */
+@keyframes dramaticEntrance {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes springPop {
+  0% {
+    opacity: 0;
+    transform: scale3d(0.9, 0.9, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes slideDramatic {
+  0% {
+    opacity: 0;
+    transform: translate3d(20px, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Base animation classes (Pure GPU Transform & Opacity — No Filter Blur) */
+.animate-fade-in {
+  animation: dramaticEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-pop-in {
+  animation: springPop 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-slide-in {
+  animation: slideDramatic 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Stagger delay utilities */
+.delay-50  { animation-delay: 40ms; }
+.delay-100 { animation-delay: 80ms; }
+.delay-150 { animation-delay: 120ms; }
+.delay-200 { animation-delay: 160ms; }
+.delay-250 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 240ms; }
+.delay-350 { animation-delay: 280ms; }
+.delay-400 { animation-delay: 320ms; }
+.delay-500 { animation-delay: 360ms; }
+
+/* 
+   Hover effects ONLY for devices with real mouse cursor (@media hover: hover)
+   On mobile/touch devices: completely disabled to prevent sticky hover and lag 
+*/
+@media (hover: hover) and (pointer: fine) {
+  .hover-lift {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
+    will-change: transform, box-shadow;
+  }
+
+  .hover-lift:hover {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(91, 127, 255, 0.3);
+  }
+
+  .dark .hover-lift:hover {
+    box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(91, 127, 255, 0.4);
+  }
+
+  .active-press:hover {
+    transform: scale3d(1.02, 1.02, 1);
+  }
+}
+
+/* On Touch/Mobile Devices: Lightweight active feedback without lag */
+.active-press {
+  transition: transform 0.1s ease;
+  will-change: transform;
+}
+
+.active-press:active {
+  transform: scale3d(0.97, 0.97, 1);
+}
+
+/* Respect user's reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

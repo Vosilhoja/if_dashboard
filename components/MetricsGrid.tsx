@@ -78,6 +78,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           sparklineData={callsSparkline.length >= 2 ? callsSparkline : undefined}
           trend={callsTrend}
           trendPercent={callsDelta}
+          delayIndex={0}
         />
         <MetricCard
           title="2. SMS (сверка)"
@@ -85,12 +86,14 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           icon={MessageSquareCheck}
           badgeText="numbers / eskiz"
           tooltipText="X ссылок отправлено по данным numbers / Y SMS реально отправлено по Eskiz (DELIVERED+ACCEPTED)"
+          delayIndex={1}
         />
         <MetricCard
           title="3. Регистраций в панели"
           metric={metrics.registeredMainBase}
           icon={UserCheck}
           badgeText="main_base"
+          delayIndex={2}
         />
         <MetricCard
           title="4. От поддержки"
@@ -98,12 +101,14 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           icon={Headset}
           badgeText="numbers → base"
           tooltipText="Уникальные абоненты из таблицы numbers, найденные среди зарегистрированных в main_base"
+          delayIndex={3}
         />
         <MetricCard
           title="5. После повторной ссылки"
           metric={metrics.registeredAfterRepeat}
           icon={Repeat}
           badgeText="повторно"
+          delayIndex={4}
         />
         <MetricCard
           title="6. Отказы респондентов"
@@ -114,6 +119,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           sparklineData={declinedSparkline.length >= 2 ? declinedSparkline : undefined}
           trend={declinedTrend}
           trendPercent={declinedDelta}
+          delayIndex={5}
         />
         <MetricCard
           title="7. Уже через бот"
@@ -121,6 +127,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           icon={Bot}
           badgeText="bot bor"
           tooltipText="Абоненты, которые сообщили, что уже зарегистрировались или пользуются Telegram-ботом"
+          delayIndex={6}
         />
         <MetricCard
           title="8. Не тот человек / номер"
@@ -128,6 +135,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           icon={UsersRound}
           badgeText="boshqa odam"
           tooltipText="Зарегистрированы с другого номера, чужой номер, второй номер"
+          delayIndex={7}
         />
         {metrics.notCompletedCount && (
           <MetricCard
@@ -135,6 +143,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
             metric={metrics.notCompletedCount}
             badgeText="not_completed"
             tooltipText="Пользователи, начавшие регистрацию в период, но не завершившие её (Not completed)"
+            delayIndex={8}
           />
         )}
       </div>

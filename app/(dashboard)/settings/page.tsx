@@ -145,7 +145,7 @@ export default function SettingsPage() {
         setLoading(true);
         const [settingsRes, metricsRes] = await Promise.all([
           fetch('/api/settings').then((r) => (r.ok ? r.json() : null)),
-          fetch('/api/metrics').then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/proxy/data').then((r) => (r.ok ? r.json() : null)),
         ]);
 
         if (settingsRes?.settingsUrl) {
@@ -264,7 +264,7 @@ export default function SettingsPage() {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
-      await fetch('/api/login', { method: 'DELETE' });
+      await fetch('/api/proxy/logout', { method: 'POST' });
       window.location.href = '/login';
     } catch (e) {
       console.error(e);

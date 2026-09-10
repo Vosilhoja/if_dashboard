@@ -146,8 +146,8 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       selectedAgeBin ||
       selectedSource ||
       selectedCompareRegions.length > 0 ||
-      startDate !== defaultStart ||
-      endDate !== defaultEnd
+      filterMode === 'alltime' ||
+      (filterMode !== 'alltime' && (startDate !== defaultStart || endDate !== defaultEnd))
   );
 
   return (

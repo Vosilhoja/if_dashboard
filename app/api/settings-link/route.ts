@@ -1,16 +1,28 @@
-import { NextResponse } from 'next/server';
-import { getSheetId } from '@/lib/google-sheets';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://if-dashboard-backend.fly.dev';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const sheetId = getSheetId('numbers');
-    // Direct link to the settings sheet tab
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}#gid=538596832`;
-    return NextResponse.json({ url });
+    const token = request.cookies.get('hurmo_jwt_token')?.value;
+
+    const backendRes = await fetch(`${BACKEND_URL}/api/data/settings-info`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    const data = await backendRes.json().catch(() => ({}));
+    if (!backendRes.ok) {
+      return NextResponse.json({ error: data.error || 'Failed to get settings link' }, { status: backendRes.status });
+    }
+
+    return NextResponse.json({ url: data.settingsUrl });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Внутренняя ошибка сервера' },
+      { status: 500 }
+    );
   }
 }

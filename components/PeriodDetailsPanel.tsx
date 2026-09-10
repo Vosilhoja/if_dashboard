@@ -59,7 +59,7 @@ export const PeriodDetailsPanel: React.FC<Props> = ({
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
 
-    fetch(`/api/period-details?${params.toString()}`)
+    fetch(`/api/proxy/data/period?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

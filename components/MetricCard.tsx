@@ -14,6 +14,8 @@ interface MetricCardProps {
   sparklineData?: number[];
   trend?: 'up' | 'down' | 'flat';
   trendPercent?: number;
+  /** Optional stagger index for smooth sequential entrance animation */
+  delayIndex?: number;
 }
 
 /** Minimal inline SVG sparkline */
@@ -60,6 +62,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   sparklineData,
   trend,
   trendPercent,
+  delayIndex = 0,
 }) => {
   const isAlert = metric.isAlert;
   const isError = Boolean(metric.error);
@@ -83,10 +86,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   return (
     <div
-      className={`relative rounded-[10px] border p-4 transition-colors flex flex-col gap-2 ${
+      style={{
+        animationDelay: `${Math.min(delayIndex * 45, 450)}ms`,
+        willChange: 'transform, opacity',
+      }}
+      className={`relative rounded-[10px] border p-4 hover-lift animate-fade-in flex flex-col gap-2 ${
         isAlert
           ? 'bg-rose-500/5 border-rose-500/40 text-rose-600 dark:text-rose-400'
-          : 'bg-surface border-border hover:border-accent/40 hover:shadow-sm'
+          : 'bg-surface border-border hover:border-accent/40'
       }`}
     >
       {/* Top row: title + icon */}
@@ -94,7 +101,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <div className="flex items-center gap-1.5">
           {Icon && (
             <div
-              className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 ${
+              className={`w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0 transition-transform duration-200 hover:scale-110 ${
                 isAlert ? 'bg-rose-500/10' : 'bg-accent/10'
               }`}
             >

@@ -1,54 +1,28 @@
-import { NextResponse } from 'next/server';
-import { getSheetId } from '@/lib/google-sheets';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://if-dashboard-backend.fly.dev';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const mainId = getSheetId('main');
-    const numbersId = getSheetId('numbers');
-    const eskizId = getSheetId('eskiz');
-    const notCompletedId = getSheetId('not_completed');
+    const token = request.cookies.get('hurmo_jwt_token')?.value;
 
-    const statusSettingsUrl = `https://docs.google.com/spreadsheets/d/${numbersId}#gid=538596832`;
-
-    const sheets = [
-      {
-        key: 'main',
-        name: 'main_base',
-        title: 'Основная база респондентов',
-        url: `https://docs.google.com/spreadsheets/d/${mainId}`,
-        sheetId: mainId,
+    const backendRes = await fetch(`${BACKEND_URL}/api/data/settings-info`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      {
-        key: 'numbers',
-        name: 'numbers',
-        title: 'Звонки службы поддержки',
-        url: `https://docs.google.com/spreadsheets/d/${numbersId}`,
-        sheetId: numbersId,
-      },
-      {
-        key: 'eskiz',
-        name: 'eskiz',
-        title: 'SMS шлюз Eskiz',
-        url: `https://docs.google.com/spreadsheets/d/${eskizId}`,
-        sheetId: eskizId,
-      },
-      {
-        key: 'not_completed',
-        name: 'not_completed',
-        title: 'Не завершившие регистрацию',
-        url: `https://docs.google.com/spreadsheets/d/${notCompletedId}`,
-        sheetId: notCompletedId,
-      },
-    ];
-
-    return NextResponse.json({
-      settingsUrl: statusSettingsUrl,
-      sheets,
     });
+
+    const data = await backendRes.json().catch(() => ({}));
+    if (!backendRes.ok) {
+      return NextResponse.json({ error: data.error || 'Failed to get settings' }, { status: backendRes.status });
+    }
+
+    return NextResponse.json(data);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Внутренняя ошибка сервера' },
+      { status: 500 }
+    );
   }
 }

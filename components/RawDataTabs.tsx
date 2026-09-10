@@ -35,9 +35,9 @@ export const RawDataTabs: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-3">
-      {/* Tab headers */}
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-2.5">
+    <div className="space-y-4">
+      {/* Tab headers — Horizontal Scrollable Pills on Mobile */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-border/60 -mx-3 px-3 sm:mx-0 sm:px-0">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -45,13 +45,13 @@ export const RawDataTabs: React.FC = () => {
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] font-medium text-xs transition-colors cursor-pointer border ${
+              className={`active-press flex items-center gap-2 px-3.5 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
                 isActive
-                  ? 'bg-surface text-primary border-border shadow-xs'
-                  : 'bg-transparent text-secondary hover:text-primary border-transparent hover:bg-surface-2'
+                  ? 'bg-accent text-white border-accent shadow-xs'
+                  : 'bg-surface-2/70 text-secondary hover:text-primary border-border/60 hover:bg-surface-2'
               }`}
             >
-              <Icon className="w-3.5 h-3.5 text-secondary" />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-secondary'}`} />
               <span>{t.label}</span>
             </button>
           );

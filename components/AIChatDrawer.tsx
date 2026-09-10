@@ -64,7 +64,7 @@ export const AIChatDrawer: React.FC = () => {
   useEffect(() => {
     async function loadMetrics() {
       try {
-        const res = await fetch(`/api/metrics?startDate=${startDate}&endDate=${endDate}`);
+        const res = await fetch(`/api/proxy/data?startDate=${startDate}&endDate=${endDate}`);
         if (res.ok) {
           const json: DashboardMetrics = await res.json();
           setCachedMetrics(json);

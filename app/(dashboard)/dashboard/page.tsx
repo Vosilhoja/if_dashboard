@@ -15,6 +15,7 @@ import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { AlertCircle, Clock, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { getMetrics } from '@/lib/api-client';
 
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
@@ -49,19 +50,14 @@ export default function DashboardPage() {
     try {
       // Read custom anomaly threshold from localStorage if configured in settings
       const customThreshold = typeof window !== 'undefined' ? localStorage.getItem('hurmo_anomaly_threshold') : null;
-      const params = new URLSearchParams({
-        startDate: start,
-        endDate: end,
+      
+      const data = await getMetrics({
+        startDate: filterMode !== 'alltime' ? start : undefined,
+        endDate: filterMode !== 'alltime' ? end : undefined,
+        fresh,
+        anomalyThreshold: customThreshold || undefined,
       });
-      if (fresh) params.append('fresh', 'true');
-      if (customThreshold) params.append('anomalyThreshold', customThreshold);
 
-      const res = await fetch(`/api/metrics?${params.toString()}`);
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP ${res.status}`);
-      }
-      const data: DashboardMetrics = await res.json();
       setMetrics(data);
       setNeedsFreshData(false);
 
@@ -83,12 +79,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const cached = loadCachedDashboard();
-    if (cached) {
+    if (cached && !isCacheStale(cached.savedAt)) {
+      // Only restore metrics if cache is fresh; never override the date context
+      // (the date context already defaults to the current week)
       setMetrics(cached.metrics);
       setLastSavedAt(cached.savedAt);
-      if (cached.startDate && cached.endDate) {
-        setDateRange(cached.startDate, cached.endDate);
-      }
     } else {
       fetchMetrics(startDate, endDate, false);
     }
@@ -134,21 +129,21 @@ export default function DashboardPage() {
     <div className="space-y-6">
       {/* Header with period selector & refresh */}
       <section className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40 sm:border-0">
           <div>
-            <h1 className="text-base font-semibold text-primary">
-              Период операционной воронки
+            <h1 className="text-lg sm:text-xl font-bold text-primary tracking-tight">
+              Операционная воронка
             </h1>
             <p className="text-xs text-secondary">
               Фильтрация звонков поддержки, SMS и конверсий в регистрацию
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={handleRefresh}
               disabled={isRefreshing || loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-accent text-white hover:opacity-90 disabled:opacity-50 text-xs font-medium transition-all cursor-pointer shadow-xs"
+              className="active-press flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-90 disabled:opacity-50 text-xs font-semibold transition-all cursor-pointer shadow-xs shrink-0"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
               <span>{isRefreshing ? 'Загрузка...' : 'Обновить'}</span>
@@ -156,7 +151,7 @@ export default function DashboardPage() {
 
             <button
               onClick={() => setIsPeriodDetailsOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
+              className="active-press flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-semibold border border-border transition-colors cursor-pointer shrink-0"
               title="Показать строки звонков и недошедших за выбранный период"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-accent" />

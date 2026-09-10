@@ -22,7 +22,7 @@ import {
 import { ru } from 'date-fns/locale';
 import { formatDateToISO } from '@/lib/date-utils';
 
-export type FilterMode = 'week' | 'custom';
+export type FilterMode = 'week' | 'custom' | 'alltime';
 
 interface DateFilterProps {
   mode: FilterMode;
@@ -106,6 +106,11 @@ export const DateFilter: React.FC<DateFilterProps> = ({
     onCustomRangeChange(formatDateToISO(start), formatDateToISO(end), true);
   };
 
+  const applyPresetAllTime = () => {
+    onModeChange('alltime');
+    onCustomRangeChange('', '', true);
+  };
+
   return (
     <div className="bg-surface border border-border p-3 rounded-[8px] flex flex-col gap-2.5">
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
@@ -134,6 +139,14 @@ export const DateFilter: React.FC<DateFilterProps> = ({
             <span>Произвольный период</span>
           </button>
         </div>
+
+        {/* All-time label */}
+        {mode === 'alltime' && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 border border-accent/30 rounded-[6px] text-xs font-medium text-accent">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>За всё время</span>
+          </div>
+        )}
 
         {/* Week Selector */}
         {mode === 'week' && (
@@ -225,9 +238,24 @@ export const DateFilter: React.FC<DateFilterProps> = ({
         <button
           type="button"
           onClick={applyPresetThisMonth}
-          className="px-2 py-1 rounded-[4px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border border-border transition-colors cursor-pointer text-xs"
+          className={`px-2 py-1 rounded-[4px] border transition-colors cursor-pointer text-xs ${
+            mode === 'week' || mode === 'custom'
+              ? 'bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border-border'
+              : 'bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border-border'
+          }`}
         >
           Этот месяц
+        </button>
+        <button
+          type="button"
+          onClick={applyPresetAllTime}
+          className={`px-2 py-1 rounded-[4px] border transition-colors cursor-pointer text-xs ${
+            mode === 'alltime'
+              ? 'bg-accent/15 text-accent border-accent/40 font-semibold'
+              : 'bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary border-border'
+          }`}
+        >
+          Всё время
         </button>
       </div>
 

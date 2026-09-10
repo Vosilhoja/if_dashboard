@@ -7,18 +7,26 @@ export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get('hurmo_jwt_token')?.value;
 
+    if (!token) {
+      return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const backendUrl = `${BACKEND_URL}/api/data/analytics?${searchParams.toString()}`;
+    const backendUrl = `${BACKEND_URL}/api/data/period?${searchParams.toString()}`;
 
     const backendRes = await fetch(backendUrl, {
       headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${token}`,
       },
     });
 
     const data = await backendRes.json().catch(() => ({}));
+
     if (!backendRes.ok) {
-      return NextResponse.json({ error: data.error || 'Failed to get analytics' }, { status: backendRes.status });
+      return NextResponse.json(
+        { error: data.error || `Ошибка бэкенда: ${backendRes.status}` },
+        { status: backendRes.status }
+      );
     }
 
     return NextResponse.json(data);

@@ -118,7 +118,7 @@ export default function ChatPage() {
   const loadMetrics = async (start: string, end: string) => {
     setMetricsLoading(true);
     try {
-      const res = await fetch(`/api/metrics?startDate=${start}&endDate=${end}`);
+      const res = await fetch(`/api/proxy/data?startDate=${start}&endDate=${end}`);
       if (res.ok) {
         const json: DashboardMetrics = await res.json();
         setMetrics(json);

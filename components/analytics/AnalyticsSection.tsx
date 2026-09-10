@@ -8,15 +8,12 @@ import {
 import { GenderPieChart } from './GenderPieChart';
 import { AgePyramidChart } from './AgePyramidChart';
 import { CategoryBarChart } from './CategoryBarChart';
-import { RegionHierarchyTable } from './RegionHierarchyTable';
-import { RegionMap } from './RegionMap';
 import { DataQualityCard } from './DataQualityCard';
 import {
   BarChart3,
   Filter,
   RotateCcw,
   Download,
-  Calendar,
   Layers,
   Sparkles,
   TrendingUp,
@@ -27,18 +24,7 @@ import {
   aggregateByGender,
   aggregateByAge,
   aggregateByCategory,
-  aggregateByRegionHierarchy,
-  aggregateMonthlyDynamics,
-  aggregateTopCrossCombinations,
 } from '@/lib/analytics-aggregations';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from 'recharts';
 import { DateFilter } from '@/components/DateFilter';
 import { useTheme } from '@/lib/theme-context';
 import { DATA_PALETTE } from '@/lib/chart-colors';
@@ -116,10 +102,13 @@ function AnalyticsDashboardContent() {
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (startDate) params.set('startDate', startDate);
-    if (endDate) params.set('endDate', endDate);
+    // When filterMode is 'alltime', don't send date params
+    if (filterMode !== 'alltime') {
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+    }
 
-    fetch(`/api/analytics?${params.toString()}`)
+    fetch(`/api/proxy/data/analytics?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -131,7 +120,7 @@ function AnalyticsDashboardContent() {
         setError(err.message || 'Ошибка загрузки аналитики');
       })
       .finally(() => setLoading(false));
-  }, [startDate, endDate]);
+  }, [startDate, endDate, filterMode]);
 
   // Helper matching predicates
   const matchesRegion = (r: AnalyticsRow) => !selectedRegion || r.region === selectedRegion;
@@ -372,22 +361,7 @@ function AnalyticsDashboardContent() {
     return aggregateByCategory(rowsForSourceChart, 'source');
   }, [data, rowsForSourceChart]);
 
-  const regionHierarchyData = useMemo(() => {
-    if (!data?.rows) return data?.byRegionGender ?? null;
-    return aggregateByRegionHierarchy(rowsForRegionTable);
-  }, [data, rowsForRegionTable]);
-
-  const reactiveMonthlyDynamics = useMemo(() => {
-    if (!filteredRows.length) return [];
-    return aggregateMonthlyDynamics(filteredRows);
-  }, [filteredRows]);
-
-  const reactiveTopPairs = useMemo(() => {
-    if (!filteredRows.length) return [];
-    return aggregateTopCrossCombinations(filteredRows, 8);
-  }, [filteredRows]);
-
-  // KPI for last 7 and 30 days (Item VII.8)
+  // KPI for last 7 and 30 days
   const recentStats = useMemo(() => {
     if (!filteredRows.length) return { last7: 0, last30: 0 };
     let latestDateStr = '';
@@ -460,53 +434,31 @@ function AnalyticsDashboardContent() {
       selectedSource
   );
 
-  const axisTextColor = isDark ? '#7C8494' : '#6B7280';
-
-  // Compare regions calculation (Item VII.7)
-  const comparedRegionsData = useMemo(() => {
-    if (!selectedCompareRegions.length || !data?.rows) return [];
-    return selectedCompareRegions.map((regionName) => {
-      const regRows = rowsForRegionTable.filter((r) => r.region === regionName);
-      const male = regRows.filter((r) => r.gender === 'Мужской').length;
-      const female = regRows.filter((r) => r.gender === 'Женский').length;
-      const total = regRows.length;
-      let ageSum = 0;
-      let ageCount = 0;
-      for (const r of regRows) {
-        if (r.age && r.age > 0 && r.age < 120) {
-          ageSum += r.age;
-          ageCount++;
-        }
-      }
-      const avgAge = ageCount > 0 ? (ageSum / ageCount).toFixed(1) : '—';
-      return { regionName, total, male, female, avgAge };
-    });
-  }, [selectedCompareRegions, data?.rows, rowsForRegionTable]);
-
   return (
     <div className="space-y-4">
       {/* Header bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-border">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border/60">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-accent" />
-            <h3 className="text-sm font-semibold text-primary">
-              BI-аналитика базы респондентов (main_base)
+            <div className="w-7 h-7 rounded-xl bg-accent/15 text-accent flex items-center justify-center shrink-0">
+              <BarChart3 className="w-4 h-4" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-primary tracking-tight truncate">
+              BI-аналитика респондентов
             </h3>
           </div>
-          <p className="text-[11px] text-secondary mt-0.5">
-            Многомерный срез базы (<span className="tabular-nums font-medium text-primary">{data?.dataQuality?.totalRows?.toLocaleString() || '33 228'}</span> строк).
-            Клик по секторам и барам изолированно фильтрует соседние виджеты.
+          <p className="text-xs text-secondary mt-1 line-clamp-2 sm:line-clamp-1">
+            Срез базы (<span className="tabular-nums font-semibold text-primary">{data?.dataQuality?.totalRows?.toLocaleString() || '—'}</span> строк). Клик по секторам фильтрует соседние виджеты.
           </p>
         </div>
 
         {/* Action controls: Export + Reset */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-2 self-start sm:self-auto shrink-0">
           <button
             onClick={exportFilteredExcel}
             disabled={!filteredRows.length}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-medium transition-all shadow-xs cursor-pointer disabled:opacity-50"
-            title="Экспорт текущего среза в Excel (.xlsx/.xls)"
+            className="active-press flex items-center gap-1.5 px-3 h-9 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Экспорт текущего среза в Excel"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Excel</span>
@@ -515,7 +467,7 @@ function AnalyticsDashboardContent() {
           <button
             onClick={exportFilteredCSV}
             disabled={!filteredRows.length}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-surface hover:bg-surface-2 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer disabled:opacity-50"
+            className="active-press flex items-center gap-1.5 px-3 h-9 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-semibold border border-border transition-colors cursor-pointer disabled:opacity-50"
             title="Экспорт текущего среза в CSV"
           >
             <Download className="w-3.5 h-3.5 text-accent" />
@@ -525,10 +477,10 @@ function AnalyticsDashboardContent() {
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
+              className="active-press flex items-center gap-1 px-3 h-9 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold border border-amber-500/30 transition-colors cursor-pointer"
               title="Сбросить все срезы"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3.5 h-3.5" />
               <span>Сбросить</span>
             </button>
           )}
@@ -610,7 +562,7 @@ function AnalyticsDashboardContent() {
         </div>
       )}
 
-      {/* KPI Cards: Period Count + Rolling 7/30 days from today */}
+      {/* KPI Cards: Period Count + Rolling 7/30 days */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3 bg-surface border border-border rounded-[8px] flex items-center justify-between">
           <div>
@@ -664,19 +616,19 @@ function AnalyticsDashboardContent() {
         </div>
       )}
 
-      {/* Primary BI widgets grid */}
+      {/* Primary BI widgets grid — Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* Gender pie: fed by isolated slice rowsForGenderChart */}
+        {/* Gender pie */}
         <GenderPieChart genderCount={reactiveGenderCount} loading={loading} />
 
-        {/* Age pyramid: fed by isolated slice rowsForAgeChart */}
+        {/* Age pyramid */}
         <AgePyramidChart
           ageBins={reactiveAgeBins}
           averageAge={reactiveAverageAge}
           loading={loading}
         />
 
-        {/* Education bar: fed by isolated slice rowsForEducationChart */}
+        {/* Education bar */}
         <CategoryBarChart
           dataCounts={reactiveEducationCount}
           title="Уровень образования"
@@ -685,9 +637,9 @@ function AnalyticsDashboardContent() {
         />
       </div>
 
-      {/* Second row: Profession bar + Source bar + Region hierarchy */}
+      {/* Row 2: Profession bar + Source bar + DataQuality */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {/* Profession bar (Item VII.1): fed by isolated slice rowsForProfessionChart */}
+        {/* Profession bar */}
         <CategoryBarChart
           dataCounts={reactiveProfessionCount}
           title="Сфера занятости"
@@ -696,7 +648,7 @@ function AnalyticsDashboardContent() {
           loading={loading}
         />
 
-        {/* Source bar (Item VII.3): fed by isolated slice rowsForSourceChart */}
+        {/* Source bar */}
         <CategoryBarChart
           dataCounts={reactiveSourceCount}
           title="Откуда пришёл пользователь"
@@ -710,177 +662,6 @@ function AnalyticsDashboardContent() {
           quality={data?.dataQuality ?? null}
           loading={loading}
         />
-      </div>
-
-      {/* Region Hierarchy Table and Region Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2">
-          <RegionHierarchyTable
-            byRegionGender={regionHierarchyData}
-            loading={loading}
-          />
-        </div>
-        <RegionMap rows={rowsForRegionTable} loading={loading} />
-      </div>
-
-      {/* Region Side-by-Side Comparison Card (Item VII.7) */}
-      {comparedRegionsData.length > 0 && (
-        <div className="bg-surface border border-border rounded-[8px] p-3.5 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-accent" />
-              <h4 className="text-xs font-semibold text-primary">
-                Сравнение регионов бок о бок ({comparedRegionsData.length} из 3)
-              </h4>
-            </div>
-            <span className="text-[10px] text-secondary">
-              Выбрано чекбоксами в таблице иерархии
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {comparedRegionsData.map((reg) => (
-              <div
-                key={reg.regionName}
-                className="p-3 bg-surface-2 border border-border rounded-[6px] space-y-2 text-xs"
-              >
-                <div className="flex items-center justify-between font-semibold text-primary">
-                  <span className="truncate">{reg.regionName}</span>
-                  <button
-                    onClick={() => toggleCompareRegion(reg.regionName)}
-                    className="text-secondary hover:text-primary text-[10px]"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="space-y-1 text-[11px]">
-                  <div className="flex justify-between text-secondary">
-                    <span>Всего респондентов:</span>
-                    <strong className="text-primary tabular-nums">{reg.total.toLocaleString()}</strong>
-                  </div>
-                  <div className="flex justify-between text-secondary">
-                    <span>Мужчины:</span>
-                    <span style={{ color: DATA_PALETTE.data1 }} className="tabular-nums font-medium">
-                      {reg.male.toLocaleString()} ({reg.total ? ((reg.male / reg.total) * 100).toFixed(1) : 0}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-secondary">
-                    <span>Женщины:</span>
-                    <span style={{ color: DATA_PALETTE.data2 }} className="tabular-nums font-medium">
-                      {reg.female.toLocaleString()} ({reg.total ? ((reg.female / reg.total) * 100).toFixed(1) : 0}%)
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-secondary">
-                    <span>Ср. возраст:</span>
-                    <strong className="text-primary tabular-nums">{reg.avgAge} лет</strong>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Bottom widgets: Monthly Dynamics (VII.4) and Top Cross-Combinations (VII.6) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {/* Monthly dynamics chart */}
-        <div className="bg-surface border border-border rounded-[8px] p-3.5 flex flex-col justify-between h-72">
-          <div className="flex items-center justify-between mb-1">
-            <h4 className="text-xs font-semibold text-primary">
-              Динамика регистраций по месяцам (main_base)
-            </h4>
-            <span className="text-[10px] text-secondary">
-              За всё время ({reactiveMonthlyDynamics.length} мес.)
-            </span>
-          </div>
-
-          <div className="flex-1 w-full min-h-[190px]">
-            {reactiveMonthlyDynamics.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={reactiveMonthlyDynamics}
-                  margin={{ top: 10, right: 15, left: -20, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="monthGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={DATA_PALETTE.data1} stopOpacity={0.4} />
-                      <stop offset="95%" stopColor={DATA_PALETTE.data1} stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: axisTextColor, fontSize: 10 }}
-                  />
-                  <YAxis tick={{ fill: axisTextColor, fontSize: 10 }} />
-                  <Tooltip
-                    formatter={(val) =>
-                      val !== undefined && val !== null
-                        ? Number(val).toLocaleString('ru-RU')
-                        : '0'
-                    }
-                    contentStyle={{
-                      backgroundColor: isDark ? '#12161F' : '#FFFFFF',
-                      borderColor: isDark ? '#1E2430' : '#E7E5E0',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      color: isDark ? '#E4E7EC' : '#1C1E21',
-                      padding: '6px 10px',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke={DATA_PALETTE.data1}
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#monthGradient)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-secondary text-xs">
-                Нет данных с датами в текущем срезе
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Top combinations: Sphere x Education */}
-        <div className="bg-surface border border-border rounded-[8px] p-3.5 flex flex-col justify-between h-72">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-semibold text-primary">
-              Топ комбинаций: Сфера × Образование
-            </h4>
-            <span className="text-[10px] text-secondary">
-              Топ 8 пар в срезе
-            </span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 text-xs">
-            {reactiveTopPairs.length > 0 ? (
-              reactiveTopPairs.map(({ pair, count }, idx) => (
-                <div
-                  key={pair}
-                  className="flex items-center justify-between p-2 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 transition-colors text-[11px]"
-                >
-                  <div className="flex items-center gap-2 truncate pr-2">
-                    <span className="w-4 text-center text-secondary text-[10px] font-mono">
-                      #{idx + 1}
-                    </span>
-                    <span className="text-primary truncate font-medium">{pair}</span>
-                  </div>
-                  <strong className="text-primary tabular-nums shrink-0">
-                    {count.toLocaleString('ru-RU')}
-                  </strong>
-                </div>
-              ))
-            ) : (
-              <div className="h-full flex items-center justify-center text-secondary text-xs">
-                Нет комбинаций для отображения
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
