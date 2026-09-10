@@ -262,6 +262,9 @@ export async function GET(request: NextRequest) {
         weekCounts.reduce((acc, curr) => acc + curr.declined, 0) / (weekCounts.length || 1)
       );
 
+      const parsedThreshold = parseInt(searchParams.get('anomalyThreshold') || '30', 10);
+      const anomalyThreshold = isNaN(parsedThreshold) || parsedThreshold <= 0 ? 30 : parsedThreshold;
+
       const calcAnomaly = (current: number, baseline: number) => {
         if (baseline === 0) {
           const delta = current > 0 ? 100 : 0;
@@ -275,7 +278,7 @@ export async function GET(request: NextRequest) {
         }
         const deltaPercent = Math.round(((current - baseline) / baseline) * 100);
         const absDelta = Math.abs(deltaPercent);
-        const isAnomaly = absDelta >= 30;
+        const isAnomaly = absDelta >= anomalyThreshold;
         const direction: 'up' | 'down' | 'normal' =
           deltaPercent > 0 ? 'up' : deltaPercent < 0 ? 'down' : 'normal';
         return {
