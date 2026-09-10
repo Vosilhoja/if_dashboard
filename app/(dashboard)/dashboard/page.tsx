@@ -13,6 +13,7 @@ import {
 } from '@/lib/dashboard-cache';
 import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
+import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { AlertCircle, Clock, FileSpreadsheet, RefreshCw } from 'lucide-react';
 
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
@@ -213,6 +214,7 @@ export default function DashboardPage() {
       {/* Anomaly detection & metrics grid */}
       <section id="anomalies" className="space-y-4">
         <AnomalyWidget metrics={metrics} loading={loading} />
+        <AIInsightsWidget metrics={metrics} loading={loading} />
 
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-primary">
