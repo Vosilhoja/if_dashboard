@@ -1,25 +1,47 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
+
+    // Strict type checking
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": false,
+
+    // Module settings
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+
+    // JSX
     "jsx": "react-jsx",
+
+    // Build
     "incremental": true,
+
+    // Plugins
     "plugins": [
       {
         "name": "next"
       }
     ],
+
+    // Path aliases — clean imports
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/components": ["./components/index.ts"],
+      "@/components/layout": ["./components/layout/index.ts"],
+      "@/components/metrics": ["./components/metrics/index.ts"],
+      "@/components/ai": ["./components/ai/index.ts"],
+      "@/components/data-table": ["./components/data-table/index.ts"],
+      "@/lib/stores": ["./lib/stores/index.ts"],
+      "@/lib/schemas": ["./lib/schemas/index.ts"]
     }
   },
   "include": [
@@ -27,8 +49,10 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }
