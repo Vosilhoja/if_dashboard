@@ -31,6 +31,10 @@ const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
     title: 'Настройки',
     subtitle: 'Управление источниками данных, порогами аномалий и параметрами',
   },
+  '/chat': {
+    title: 'ИИ-Аналитик',
+    subtitle: 'Стратегический консультант и сквозной аудит данных платформы HURMO',
+  },
 };
 
 export const Breadcrumbs: React.FC = () => {
@@ -43,8 +47,8 @@ export const Breadcrumbs: React.FC = () => {
   };
 
   return (
-    <header className="border-b border-border/80 bg-surface/80 backdrop-blur-xs sticky top-0 z-20 px-4 sm:px-6 py-3">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <header className="border-b border-border/80 bg-surface/80 backdrop-blur-xs sticky top-0 z-20 px-4 sm:px-6 lg:px-8 py-3">
+      <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
         {/* Breadcrumb path */}
         <div className="flex flex-col">
           <nav className="flex items-center gap-1.5 text-xs text-secondary font-medium">

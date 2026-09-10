@@ -116,8 +116,8 @@ export const AIInsightsWidget: React.FC<AIInsightsWidgetProps> = ({ metrics, loa
           <div>
             <h3 className="text-xs font-semibold text-primary flex items-center gap-1.5">
               <span>ИИ-аналитик операционной воронки</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-surface-2 text-secondary border border-border font-medium">
-                Gemini 2.0 Flash
+              <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-accent/15 text-accent border border-accent/25 font-semibold">
+                Интеллект воронки
               </span>
             </h3>
             <p className="text-[10px] text-secondary">

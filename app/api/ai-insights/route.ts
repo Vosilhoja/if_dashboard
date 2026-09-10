@@ -52,9 +52,9 @@ export async function POST(req: NextRequest) {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error('[AI Insights] GEMINI_API_KEY is not configured in server environment');
+      console.error('[AI Insights] API key is not configured in server environment');
       return NextResponse.json(
-        { error: 'API-ключ Gemini не настроен на сервере' },
+        { error: 'API-ключ аналитического сервиса не настроен на сервере' },
         { status: 500 }
       );
     }
@@ -131,9 +131,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (!data) {
-      console.error('[AI Insights] All candidate Gemini models failed:', lastError?.error?.message || '');
+      console.error('[AI Insights] All candidate models failed:', lastError?.error?.message || '');
       return NextResponse.json(
-        { error: 'Ошибка сервиса аналитики Gemini API. Повторите попытку позже.' },
+        { error: 'Ошибка аналитического сервиса. Повторите попытку позже.' },
         { status: 502 }
       );
     }

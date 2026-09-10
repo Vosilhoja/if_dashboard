@@ -267,7 +267,7 @@ export const AIChatDrawer: React.FC = () => {
         <button
           onClick={() => setIsOpen(true)}
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-accent via-indigo-600 to-accent hover:opacity-95 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group hover:scale-[1.03] active:scale-[0.98]"
-          title="Открыть диалог с ИИ-аналитиком (Gemini)"
+          title="Открыть диалог с ИИ-аналитиком"
         >
           <div className="relative flex items-center justify-center">
             <Sparkles className="w-4 h-4 animate-pulse" />
@@ -275,7 +275,7 @@ export const AIChatDrawer: React.FC = () => {
           </div>
           <span className="text-xs font-semibold tracking-wide">Чат с ИИ-аналитиком</span>
           <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px] font-mono font-bold">
-            Gemini
+            PRO
           </span>
         </button>
       )}

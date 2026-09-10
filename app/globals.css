@@ -51,35 +51,75 @@ table,
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom thin scrollbar in project theme */
+/* Custom premium thin scrollbar */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background-color: var(--border-color);
-  border-radius: 8px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background-color: var(--text-secondary);
+}
+
+/* Custom styled inputs, selects & textareas */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+input[type="search"]:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.15);
+  outline: none;
+}
+
+/* Custom select dropdown styling */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748B'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 0.9em 0.9em;
+  padding-right: 2rem !important;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237C8494'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+}
+
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.15);
+  outline: none;
 }
 
 /* Controlled focus styles: clean outline only on keyboard navigation (:focus-visible) */
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg-page), 0 0 0 4px var(--accent);
@@ -88,8 +128,6 @@ textarea:focus-visible,
 
 button:focus,
 a:focus,
-select:focus,
-textarea:focus,
 [tabindex]:focus {
   outline: none;
 }
