@@ -391,7 +391,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       )}
 
       {/* Table Container */}
-      <div className="overflow-x-auto relative min-h-[320px] max-h-[500px]">
+      <div className="overflow-x-auto relative min-h-[400px] max-h-[calc(100vh-320px)]">
         {loading && !data ? (
           <div className="p-3 space-y-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -399,10 +399,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             ))}
           </div>
         ) : data && processedRows.length > 0 ? (
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="sticky top-0 bg-surface-2 text-secondary font-medium border-b border-border z-10 text-[11px]">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead className="sticky top-0 bg-surface-2 text-secondary font-semibold border-b border-border z-10 text-xs uppercase tracking-wide">
               <tr>
-                <th className="py-2 px-2.5 w-10 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">
+                <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">
                   #
                 </th>
                 {data.headers.map((header) => {
@@ -412,7 +412,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                     <th
                       key={header}
                       onClick={() => handleSort(header)}
-                      className={`py-2 px-2.5 whitespace-nowrap font-medium cursor-pointer select-none hover:bg-surface-2/80 hover:text-primary transition-colors group ${
+                      className={`py-3 px-3 whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-surface-2/80 hover:text-primary transition-colors group ${
                         !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                       }`}
                       title="Кликните для сортировки по этой колонке"
@@ -421,12 +421,12 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                         <span>{header}</span>
                         {isCurrentSort ? (
                           sortDirection === 'asc' ? (
-                            <ArrowUp className="w-3 h-3 text-accent shrink-0" />
+                            <ArrowUp className="w-3.5 h-3.5 text-accent shrink-0" />
                           ) : (
-                            <ArrowDown className="w-3 h-3 text-accent shrink-0" />
+                            <ArrowDown className="w-3.5 h-3.5 text-accent shrink-0" />
                           )
                         ) : (
-                          <ArrowUpDown className="w-2.5 h-2.5 text-secondary opacity-40 group-hover:opacity-100 shrink-0" />
+                          <ArrowUpDown className="w-3 h-3 text-secondary opacity-40 group-hover:opacity-100 shrink-0" />
                         )}
                       </div>
                     </th>
@@ -440,9 +440,9 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                 return (
                   <tr
                     key={idx}
-                    className="hover:bg-surface-2/60 transition-colors odd:bg-surface-2/20"
+                    className="hover:bg-surface-2/50 transition-colors odd:bg-surface-2/20 border-b border-border/40 last:border-0"
                   >
-                    <td className="py-1.5 px-2.5 text-center text-secondary font-mono text-[10px] sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)] tabular-nums">
+                    <td className="py-2.5 px-3 text-center text-secondary font-mono text-xs sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)] tabular-nums">
                       {rowIndex}
                     </td>
                     {data.headers.map((header) => {
@@ -456,27 +456,50 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                         phoneDiag = normalizePhoneWithDiagnostics(cellVal);
                       }
 
+                      // Use fuzzy semantic matching for status badge coloring (same logic as backend)
+                      let statusBadgeColor = '';
+                      if (isStatus && cellVal) {
+                        if (matchesCategory(cellVal, STATUS_CONFIG.declined) || matchesCategory(cellVal, STATUS_CONFIG.wrongPerson)) {
+                          statusBadgeColor = 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30';
+                        } else if (matchesCategory(cellVal, STATUS_CONFIG.alreadyRegistered)) {
+                          statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30';
+                        } else if (matchesCategory(cellVal, STATUS_CONFIG.linkSent)) {
+                          statusBadgeColor = 'bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30';
+                        } else if (matchesCategory(cellVal, STATUS_CONFIG.repeatSent)) {
+                          statusBadgeColor = 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30';
+                        } else {
+                          const s = cellVal.toLowerCase();
+                          if (s === 'delivered' || s === 'accepted') {
+                            statusBadgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30';
+                          } else if (s === 'rejected') {
+                            statusBadgeColor = 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30';
+                          } else {
+                            statusBadgeColor = 'bg-slate-100 text-slate-700 border-slate-200/80 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700/50';
+                          }
+                        }
+                      }
+
                       return (
                         <td
                           key={header}
-                          className={`py-1.5 px-2.5 whitespace-nowrap text-primary max-w-xs truncate ${
+                          className={`py-2.5 px-3 text-primary max-w-sm truncate text-xs ${
                             !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                           }`}
                           title={cellVal}
                         >
                           {isPhone && cellVal ? (
                             <div className="inline-flex items-center gap-1.5 group/phone">
-                              <span className="font-mono text-primary bg-surface-2 px-1.5 py-0.5 rounded-[4px] border border-border tabular-nums text-[11px]">
+                              <span className="font-mono text-primary bg-surface-2 px-2 py-1 rounded-[6px] border border-border tabular-nums text-xs">
                                 {formatPhoneDisplay(phoneDiag?.normalized || cellVal, phoneDiag?.country)}
                               </span>
                               {phoneDiag && phoneDiag.country !== 'UZ' && phoneDiag.country !== 'UNKNOWN' && (
-                                <span className="text-[10px] px-1 py-0.5 rounded-[4px] bg-surface-2 border border-border text-secondary font-medium">
+                                <span className="text-[11px] px-1.5 py-0.5 rounded-[4px] bg-surface-2 border border-border text-secondary font-medium">
                                   {phoneDiag.country}
                                 </span>
                               )}
                               {phoneDiag?.normalized && (phoneCounts.get(phoneDiag.normalized) || 0) > 1 && (
                                 <span
-                                  className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-medium"
+                                  className="text-[11px] px-1.5 py-0.5 rounded-[4px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 font-medium"
                                   title={`Номер встречается ${phoneCounts.get(phoneDiag.normalized)} раз в текущей выборке`}
                                 >
                                   Повтор ({phoneCounts.get(phoneDiag.normalized)}x)
@@ -485,69 +508,24 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                               <button
                                 type="button"
                                 onClick={() => handleCopyPhone(phoneDiag?.normalized || cellVal)}
-                                className="opacity-0 group-hover/phone:opacity-100 transition-opacity p-0.5 hover:bg-surface-2 text-secondary hover:text-primary rounded cursor-pointer"
+                                className="opacity-0 group-hover/phone:opacity-100 transition-opacity p-1 hover:bg-surface-2 text-secondary hover:text-primary rounded cursor-pointer"
                                 title="Скопировать номер в буфер обмена"
                               >
                                 {copiedPhone === (phoneDiag?.normalized || cellVal) ? (
-                                  <CopyCheck className="w-3 h-3 text-emerald-500" />
+                                  <CopyCheck className="w-3.5 h-3.5 text-emerald-500" />
                                 ) : (
-                                  <Copy className="w-3 h-3" />
+                                  <Copy className="w-3.5 h-3.5" />
                                 )}
                               </button>
                             </div>
                           ) : isStatus && cellVal ? (
-                            (() => {
-                              const s = cellVal.toLowerCase();
-                              let badgeColor =
-                                'bg-slate-100 text-slate-700 border-slate-200/80 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700/50';
-                              if (
-                                s.includes('отказ') ||
-                                s.includes('нет времени') ||
-                                s.includes('бросил') ||
-                                s.includes('ошибка') ||
-                                s.includes('не тот') ||
-                                s.includes('неправильн')
-                              ) {
-                                badgeColor =
-                                  'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30';
-                              } else if (
-                                s.includes('зарегистр') ||
-                                s.includes('успеш') ||
-                                s.includes('delivered') ||
-                                s.includes('accepted') ||
-                                s.includes('актив') ||
-                                s.includes('готов')
-                              ) {
-                                badgeColor =
-                                  'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30';
-                              } else if (
-                                s.includes('отправлен') ||
-                                s.includes('ссылк') ||
-                                s.includes('повтор') ||
-                                s.includes('смс') ||
-                                s.includes('sms')
-                              ) {
-                                badgeColor =
-                                  'bg-sky-50 text-sky-700 border-sky-200/80 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30';
-                              } else if (
-                                s.includes('ожидает') ||
-                                s.includes('в процессе') ||
-                                s.includes('не ответил') ||
-                                s.includes('перезвон')
-                              ) {
-                                badgeColor =
-                                  'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30';
-                              }
-                              return (
-                                <span
-                                  className={`inline-block font-medium px-2 py-0.5 rounded-[4px] border text-[11px] leading-tight ${badgeColor}`}
-                                >
-                                  {cellVal}
-                                </span>
-                              );
-                            })()
+                            <span
+                              className={`inline-block font-semibold px-2.5 py-1 rounded-[6px] border text-xs leading-tight ${statusBadgeColor}`}
+                            >
+                              {cellVal}
+                            </span>
                           ) : (
-                            <span className="tabular-nums">{cellVal || '—'}</span>
+                            <span className="tabular-nums text-xs">{cellVal || <span className="text-secondary/40">—</span>}</span>
                           )}
                         </td>
                       );

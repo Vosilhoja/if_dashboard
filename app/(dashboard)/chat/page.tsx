@@ -15,9 +15,8 @@ import {
   Database,
   ArrowRight,
   ExternalLink,
-  ShieldCheck,
-  FileText,
-  AlertTriangle,
+  Calendar,
+  RefreshCw,
 } from 'lucide-react';
 import { DashboardMetrics } from '@/lib/types';
 import { showToast } from '@/components/ui/Toast';
@@ -90,26 +89,34 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
 
-  const { startDate, endDate, selectedRegion } = useAnalyticsFilter();
+  const { startDate: ctxStart, endDate: ctxEnd, selectedRegion } = useAnalyticsFilter();
+  // Local overrides for AI context period — user can adjust independently
+  const [aiStartDate, setAiStartDate] = useState(ctxStart);
+  const [aiEndDate, setAiEndDate] = useState(ctxEnd);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load metrics context for the chat
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await fetch(`/api/metrics?startDate=${startDate}&endDate=${endDate}`);
-        if (res.ok) {
-          const json: DashboardMetrics = await res.json();
-          setMetrics(json);
-        }
-      } catch {
-        // ignore
+  // Load metrics context for the chat whenever AI date range changes
+  const loadMetrics = async (start: string, end: string) => {
+    setMetricsLoading(true);
+    try {
+      const res = await fetch(`/api/metrics?startDate=${start}&endDate=${end}`);
+      if (res.ok) {
+        const json: DashboardMetrics = await res.json();
+        setMetrics(json);
       }
+    } catch {
+      // ignore
+    } finally {
+      setMetricsLoading(false);
     }
-    loadData();
-  }, [startDate, endDate]);
+  };
+
+  useEffect(() => {
+    loadMetrics(aiStartDate, aiEndDate);
+  }, [aiStartDate, aiEndDate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -144,7 +151,7 @@ export default function ChatPage() {
           messages: apiMessages,
           metrics,
           selectedRegion,
-          period: { startDate, endDate },
+          period: { startDate: aiStartDate, endDate: aiEndDate },
         }),
       });
 
@@ -336,12 +343,12 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4" style={{ height: 'calc(100vh - 130px)' }}>
       {/* Top Header & Data Context Bar */}
-      <div className="p-4 rounded-[10px] bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+      <div className="p-4 rounded-[12px] bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[10px] bg-gradient-to-tr from-accent via-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
-            <Bot className="w-5 h-5" />
+          <div className="w-11 h-11 rounded-[10px] bg-gradient-to-tr from-accent via-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
+            <Bot className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -359,16 +366,48 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Data Badges & Action */}
+        {/* AI Period Selector + Actions */}
         <div className="flex items-center flex-wrap gap-2">
-          <div className="px-2.5 py-1 rounded-[6px] bg-surface-2 border border-border text-xs text-secondary flex items-center gap-1.5">
-            <Database className="w-3.5 h-3.5 text-accent" />
-            <span>Период: {startDate} — {endDate}</span>
+          {/* Date range control for AI context */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-surface-2 border border-border">
+            <Calendar className="w-3.5 h-3.5 text-accent shrink-0" />
+            <span className="text-xs text-secondary font-medium hidden sm:inline">Период:</span>
+            <input
+              type="date"
+              value={aiStartDate}
+              onChange={(e) => setAiStartDate(e.target.value)}
+              className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer w-[110px] tabular-nums"
+              title="Начало периода для контекста ИИ"
+            />
+            <span className="text-secondary text-xs">—</span>
+            <input
+              type="date"
+              value={aiEndDate}
+              onChange={(e) => setAiEndDate(e.target.value)}
+              className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer w-[110px] tabular-nums"
+              title="Конец периода для контекста ИИ"
+            />
+            <button
+              type="button"
+              onClick={() => loadMetrics(aiStartDate, aiEndDate)}
+              disabled={metricsLoading}
+              className="ml-1 p-1 rounded text-secondary hover:text-primary hover:bg-surface transition-colors cursor-pointer disabled:opacity-50"
+              title="Обновить данные для ИИ"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${metricsLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
+
+          {metrics && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-400">
+              <Database className="w-3.5 h-3.5" />
+              <span className="font-medium">Данные загружены</span>
+            </div>
+          )}
 
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-medium border border-border transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-medium border border-border transition-colors cursor-pointer"
             title="Перезапустить диалог"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -377,8 +416,8 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Main Chat Workspace */}
-      <div className="rounded-[10px] border border-border bg-surface flex flex-col h-[75vh] min-h-[550px] shadow-sm overflow-hidden">
+      {/* Main Chat Workspace — fills remaining viewport height */}
+      <div className="rounded-[12px] border border-border bg-surface flex flex-col flex-1 shadow-sm overflow-hidden">
         {/* Messages Scroll Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {messages.map((msg) => {

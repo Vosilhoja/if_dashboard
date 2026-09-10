@@ -18,12 +18,12 @@ export default function DashboardLayout({
         <Sidebar />
 
         {/* Content Container */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Breadcrumbs />
-          <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <main className="flex-1 flex flex-col max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 gap-6 overflow-y-auto">
             {children}
           </main>
-          <footer className="border-t border-border/80 py-3 px-4 text-center text-[11px] text-secondary mt-auto bg-surface/40">
+          <footer className="border-t border-border/80 py-3 px-4 text-center text-[11px] text-secondary mt-auto bg-surface/40 shrink-0">
             HURMO UZ Analytics Dashboard • Google Spreadsheet API • {new Date().getFullYear()}
           </footer>
         </div>
