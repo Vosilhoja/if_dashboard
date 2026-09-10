@@ -32,6 +32,7 @@ interface DateFilterProps {
   startDate: string;
   endDate: string;
   onCustomRangeChange: (start: string, end: string, autoFetch?: boolean) => void;
+  weekStartsOn?: 0 | 1;
 }
 
 export const DateFilter: React.FC<DateFilterProps> = ({
@@ -42,12 +43,13 @@ export const DateFilter: React.FC<DateFilterProps> = ({
   startDate,
   endDate,
   onCustomRangeChange,
+  weekStartsOn = 1,
 }) => {
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
 
-  // Helpers for week mode (Monday start)
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 });
+  // Helpers for week mode (configurable weekStartsOn)
+  const weekStart = startOfWeek(currentDate, { weekStartsOn });
+  const weekEnd = endOfWeek(currentDate, { weekStartsOn });
 
   const weekStartFormatted = format(weekStart, 'dd MMM yyyy', { locale: ru });
   const weekEndFormatted = format(weekEnd, 'dd MMM yyyy', { locale: ru });
@@ -55,24 +57,24 @@ export const DateFilter: React.FC<DateFilterProps> = ({
   const handlePrevWeek = () => {
     const prev = subWeeks(currentDate, 1);
     onCurrentDateChange(prev);
-    const start = startOfWeek(prev, { weekStartsOn: 1 });
-    const end = endOfWeek(prev, { weekStartsOn: 1 });
+    const start = startOfWeek(prev, { weekStartsOn });
+    const end = endOfWeek(prev, { weekStartsOn });
     onCustomRangeChange(formatDateToISO(start), formatDateToISO(end), true);
   };
 
   const handleNextWeek = () => {
     const next = addWeeks(currentDate, 1);
     onCurrentDateChange(next);
-    const start = startOfWeek(next, { weekStartsOn: 1 });
-    const end = endOfWeek(next, { weekStartsOn: 1 });
+    const start = startOfWeek(next, { weekStartsOn });
+    const end = endOfWeek(next, { weekStartsOn });
     onCustomRangeChange(formatDateToISO(start), formatDateToISO(end), true);
   };
 
   const handleModeSwitch = (newMode: FilterMode) => {
     onModeChange(newMode);
     if (newMode === 'week') {
-      const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-      const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+      const start = startOfWeek(currentDate, { weekStartsOn });
+      const end = endOfWeek(currentDate, { weekStartsOn });
       onCustomRangeChange(formatDateToISO(start), formatDateToISO(end), true);
     }
   };
@@ -82,8 +84,8 @@ export const DateFilter: React.FC<DateFilterProps> = ({
     onModeChange('week');
     const now = new Date();
     onCurrentDateChange(now);
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    const end = endOfWeek(now, { weekStartsOn: 1 });
+    const start = startOfWeek(now, { weekStartsOn });
+    const end = endOfWeek(now, { weekStartsOn });
     onCustomRangeChange(formatDateToISO(start), formatDateToISO(end), true);
   };
 
@@ -91,8 +93,8 @@ export const DateFilter: React.FC<DateFilterProps> = ({
     onModeChange('week');
     const lastWeek = subWeeks(new Date(), 1);
     onCurrentDateChange(lastWeek);
-    const start = startOfWeek(lastWeek, { weekStartsOn: 1 });
-    const end = endOfWeek(lastWeek, { weekStartsOn: 1 });
+    const start = startOfWeek(lastWeek, { weekStartsOn });
+    const end = endOfWeek(lastWeek, { weekStartsOn });
     onCustomRangeChange(formatDateToISO(start), formatDateToISO(end), true);
   };
 

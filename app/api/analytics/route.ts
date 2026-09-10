@@ -1,6 +1,6 @@
 // app/api/analytics/route.ts
-import { NextResponse } from 'next/server';
-import { fetchAllRowsForSheet } from '@/lib/google-sheets';
+import { NextRequest, NextResponse } from 'next/server';
+import { fetchAllRowsForSheet, clearSheetCache } from '@/lib/google-sheets';
 import {
   AnalyticsRow,
   aggregateByGender,
@@ -10,19 +10,39 @@ import {
   aggregateMonthlyDynamics,
   aggregateTopCrossCombinations,
 } from '@/lib/analytics-aggregations';
+import { formatDateToISO } from '@/lib/date-utils';
+import { subDays } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const mainRows = await fetchAllRowsForSheet('main');
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate') || '';
+    const endDate = searchParams.get('endDate') || '';
+    const refresh = searchParams.get('refresh') === 'true';
 
-    const rows: AnalyticsRow[] = new Array(mainRows.length);
+    if (refresh) {
+      clearSheetCache();
+    }
+
+    const mainRows = await fetchAllRowsForSheet('main', refresh);
+
+    const allRows: AnalyticsRow[] = new Array(mainRows.length);
     let emptyPhone = 0;
     let emptyRegion = 0;
     let emptyAge = 0;
     let emptyEducation = 0;
     let emptyProfession = 0;
+
+    // Rolling windows from today
+    const today = new Date();
+    const todayISO = formatDateToISO(today);
+    const date7DaysAgo = formatDateToISO(subDays(today, 7));
+    const date30DaysAgo = formatDateToISO(subDays(today, 30));
+
+    let rolling7DaysCount = 0;
+    let rolling30DaysCount = 0;
 
     for (let i = 0; i < mainRows.length; i++) {
       const r = mainRows[i];
@@ -58,7 +78,17 @@ export async function GET() {
       if (!r['Оброзование']) emptyEducation++;
       if (!r['Профессия']) emptyProfession++;
 
-      rows[i] = {
+      // Check rolling window
+      if (creationDate) {
+        if (creationDate >= date7DaysAgo && creationDate <= todayISO) {
+          rolling7DaysCount++;
+        }
+        if (creationDate >= date30DaysAgo && creationDate <= todayISO) {
+          rolling30DaysCount++;
+        }
+      }
+
+      allRows[i] = {
         region,
         district,
         gender,
@@ -69,6 +99,15 @@ export async function GET() {
         creationDate,
       };
     }
+
+    // Filter by period if startDate and endDate provided
+    const rows =
+      startDate && endDate
+        ? allRows.filter((r) => {
+            if (!r.creationDate) return true; // Keep if no date available or filter strictly
+            return r.creationDate >= startDate && r.creationDate <= endDate;
+          })
+        : allRows;
 
     const genderCount = aggregateByGender(rows);
     const { bins: ageBins, averageAge } = aggregateByAge(rows);
@@ -81,6 +120,10 @@ export async function GET() {
 
     return NextResponse.json({
       rows,
+      allRowsCount: allRows.length,
+      periodRowsCount: rows.length,
+      rolling7DaysCount,
+      rolling30DaysCount,
       byRegionGender,
       genderCount,
       educationCount,
@@ -97,6 +140,10 @@ export async function GET() {
         emptyEducation,
         emptyProfession,
         totalRows: mainRows.length,
+      },
+      period: {
+        startDate,
+        endDate,
       },
       cachedAt: new Date().toISOString(),
     });

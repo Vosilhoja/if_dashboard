@@ -39,12 +39,17 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
+import { DateFilter } from '@/components/DateFilter';
 import { useTheme } from '@/lib/theme-context';
 import { DATA_PALETTE } from '@/lib/chart-colors';
-import { exportRowsToCSV } from '@/lib/csv-utils';
+import { exportRowsToCSV, exportRowsToExcel } from '@/lib/csv-utils';
 
 interface AnalyticsPayload {
   rows?: AnalyticsRow[];
+  allRowsCount?: number;
+  periodRowsCount?: number;
+  rolling7DaysCount?: number;
+  rolling30DaysCount?: number;
   byRegionGender: Record<
     string,
     {
@@ -74,6 +79,14 @@ interface AnalyticsPayload {
 
 function AnalyticsDashboardContent() {
   const {
+    startDate,
+    endDate,
+    filterMode,
+    currentDate,
+    weekStartsOn,
+    setFilterMode,
+    setCurrentDate,
+    setDateRange,
     selectedRegion,
     setSelectedRegion,
     selectedDistrict,
@@ -100,13 +113,13 @@ function AnalyticsDashboardContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Separate BI date range filter (creationDate)
-  const [biStartDate, setBiStartDate] = useState('');
-  const [biEndDate, setBiEndDate] = useState('');
-
   useEffect(() => {
     setLoading(true);
-    fetch('/api/analytics')
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+
+    fetch(`/api/analytics?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -118,7 +131,7 @@ function AnalyticsDashboardContent() {
         setError(err.message || 'Ошибка загрузки аналитики');
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [startDate, endDate]);
 
   // Helper matching predicates
   const matchesRegion = (r: AnalyticsRow) => !selectedRegion || r.region === selectedRegion;
@@ -129,13 +142,6 @@ function AnalyticsDashboardContent() {
   const matchesAge = (r: AnalyticsRow) =>
     !selectedAgeBin || (r.age !== null && binAge(r.age) === selectedAgeBin);
   const matchesSource = (r: AnalyticsRow) => !selectedSource || r.source === selectedSource;
-  const matchesBiDate = (r: AnalyticsRow) => {
-    if (!r.creationDate) return true;
-    if (biStartDate && r.creationDate < biStartDate) return false;
-    if (biEndDate && r.creationDate > biEndDate) return false;
-    return true;
-  };
-
   // 1. Slice WITHOUT gender filter (for GenderPieChart)
   const rowsForGenderChart = useMemo(() => {
     if (!data?.rows) return [];
@@ -146,8 +152,7 @@ function AnalyticsDashboardContent() {
         matchesEducation(r) &&
         matchesProfession(r) &&
         matchesAge(r) &&
-        matchesSource(r) &&
-        matchesBiDate(r)
+        matchesSource(r)
     );
   }, [
     data?.rows,
@@ -157,8 +162,6 @@ function AnalyticsDashboardContent() {
     selectedProfession,
     selectedAgeBin,
     selectedSource,
-    biStartDate,
-    biEndDate,
   ]);
 
   // 2. Slice WITHOUT education filter (for Education CategoryBarChart)
@@ -171,8 +174,7 @@ function AnalyticsDashboardContent() {
         matchesGender(r) &&
         matchesProfession(r) &&
         matchesAge(r) &&
-        matchesSource(r) &&
-        matchesBiDate(r)
+        matchesSource(r)
     );
   }, [
     data?.rows,
@@ -182,8 +184,6 @@ function AnalyticsDashboardContent() {
     selectedProfession,
     selectedAgeBin,
     selectedSource,
-    biStartDate,
-    biEndDate,
   ]);
 
   // 3. Slice WITHOUT profession filter (for Profession CategoryBarChart)
@@ -196,8 +196,7 @@ function AnalyticsDashboardContent() {
         matchesGender(r) &&
         matchesEducation(r) &&
         matchesAge(r) &&
-        matchesSource(r) &&
-        matchesBiDate(r)
+        matchesSource(r)
     );
   }, [
     data?.rows,
@@ -207,8 +206,6 @@ function AnalyticsDashboardContent() {
     selectedEducation,
     selectedAgeBin,
     selectedSource,
-    biStartDate,
-    biEndDate,
   ]);
 
   // 4. Slice WITHOUT age filter (for AgePyramidChart)
@@ -221,8 +218,7 @@ function AnalyticsDashboardContent() {
         matchesGender(r) &&
         matchesEducation(r) &&
         matchesProfession(r) &&
-        matchesSource(r) &&
-        matchesBiDate(r)
+        matchesSource(r)
     );
   }, [
     data?.rows,
@@ -232,8 +228,6 @@ function AnalyticsDashboardContent() {
     selectedEducation,
     selectedProfession,
     selectedSource,
-    biStartDate,
-    biEndDate,
   ]);
 
   // 5. Slice WITHOUT source filter (for Source CategoryBarChart)
@@ -246,8 +240,7 @@ function AnalyticsDashboardContent() {
         matchesGender(r) &&
         matchesEducation(r) &&
         matchesProfession(r) &&
-        matchesAge(r) &&
-        matchesBiDate(r)
+        matchesAge(r)
     );
   }, [
     data?.rows,
@@ -257,8 +250,6 @@ function AnalyticsDashboardContent() {
     selectedEducation,
     selectedProfession,
     selectedAgeBin,
-    biStartDate,
-    biEndDate,
   ]);
 
   // 6. Slice for Region Table (cross-filtered by non-region dimensions)
@@ -270,8 +261,7 @@ function AnalyticsDashboardContent() {
         matchesEducation(r) &&
         matchesProfession(r) &&
         matchesAge(r) &&
-        matchesSource(r) &&
-        matchesBiDate(r)
+        matchesSource(r)
     );
   }, [
     data?.rows,
@@ -280,8 +270,6 @@ function AnalyticsDashboardContent() {
     selectedProfession,
     selectedAgeBin,
     selectedSource,
-    biStartDate,
-    biEndDate,
   ]);
 
   // 7. Full slice (ALL filters combined) — for CSV, counts, KPI, Dynamics, TopPairs
@@ -295,8 +283,7 @@ function AnalyticsDashboardContent() {
         matchesEducation(r) &&
         matchesProfession(r) &&
         matchesAge(r) &&
-        matchesSource(r) &&
-        matchesBiDate(r)
+        matchesSource(r)
     );
   }, [
     data?.rows,
@@ -307,8 +294,6 @@ function AnalyticsDashboardContent() {
     selectedProfession,
     selectedAgeBin,
     selectedSource,
-    biStartDate,
-    biEndDate,
   ]);
 
   // Step III: Debug log for verifying AND logic and isolated slices
@@ -323,7 +308,7 @@ function AnalyticsDashboardContent() {
           profession: selectedProfession,
           ageBin: selectedAgeBin,
           source: selectedSource,
-          dates: [biStartDate, biEndDate],
+          dates: [startDate, endDate],
         },
         counts: {
           total: data?.rows?.length || 0,
@@ -344,8 +329,8 @@ function AnalyticsDashboardContent() {
     selectedProfession,
     selectedAgeBin,
     selectedSource,
-    biStartDate,
-    biEndDate,
+    startDate,
+    endDate,
     data?.rows?.length,
     filteredRows.length,
     rowsForGenderChart.length,
@@ -432,7 +417,7 @@ function AnalyticsDashboardContent() {
     return { last7, last30 };
   }, [filteredRows]);
 
-  // CSV Export (Item VII.10)
+  // CSV & Excel Export
   const exportFilteredCSV = () => {
     if (!filteredRows || filteredRows.length === 0) return;
     const headers = [
@@ -449,6 +434,22 @@ function AnalyticsDashboardContent() {
     exportRowsToCSV(filteredRows, headers, filename);
   };
 
+  const exportFilteredExcel = () => {
+    if (!filteredRows || filteredRows.length === 0) return;
+    const headers = [
+      { key: 'region', label: 'Регион' },
+      { key: 'district', label: 'Район' },
+      { key: 'gender', label: 'Пол' },
+      { key: 'age', label: 'Возраст' },
+      { key: 'education', label: 'Образование' },
+      { key: 'profession', label: 'Сфера занятости' },
+      { key: 'source', label: 'Источник' },
+      { key: 'creationDate', label: 'Дата создания' },
+    ];
+    const filename = `bi_analytics_slice_${new Date().toISOString().slice(0, 10)}`;
+    exportRowsToExcel(filteredRows, headers, filename);
+  };
+
   const hasActiveFilters = Boolean(
     selectedRegion ||
       selectedDistrict ||
@@ -456,9 +457,7 @@ function AnalyticsDashboardContent() {
       selectedEducation ||
       selectedProfession ||
       selectedAgeBin ||
-      selectedSource ||
-      biStartDate ||
-      biEndDate
+      selectedSource
   );
 
   const axisTextColor = isDark ? '#7C8494' : '#6B7280';
@@ -501,59 +500,33 @@ function AnalyticsDashboardContent() {
           </p>
         </div>
 
-        {/* Action controls: Date range + Export + Reset */}
+        {/* Action controls: Export + Reset */}
         <div className="flex items-center flex-wrap gap-2">
-          {/* BI Registration Date Range */}
-          <div className="flex items-center gap-1 bg-surface border border-border rounded-[6px] px-2 py-1 text-xs">
-            <Calendar className="w-3.5 h-3.5 text-secondary" />
-            <input
-              type="date"
-              value={biStartDate}
-              onChange={(e) => setBiStartDate(e.target.value)}
-              className="bg-transparent text-primary text-[11px] border-none focus:outline-none"
-              title="Начальная дата регистрации"
-            />
-            <span className="text-secondary text-[11px]">—</span>
-            <input
-              type="date"
-              value={biEndDate}
-              onChange={(e) => setBiEndDate(e.target.value)}
-              className="bg-transparent text-primary text-[11px] border-none focus:outline-none"
-              title="Конечная дата регистрации"
-            />
-            {(biStartDate || biEndDate) && (
-              <button
-                onClick={() => {
-                  setBiStartDate('');
-                  setBiEndDate('');
-                }}
-                className="text-secondary hover:text-primary text-[10px] ml-1"
-                title="Сбросить даты"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <button
+            onClick={exportFilteredExcel}
+            disabled={!filteredRows.length}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-medium transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Экспорт текущего среза в Excel (.xlsx/.xls)"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Excel</span>
+          </button>
 
           <button
             onClick={exportFilteredCSV}
             disabled={!filteredRows.length}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-surface hover:bg-surface-2 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer disabled:opacity-50"
-            title="Экспорт текущего среза со всеми активными фильтрами"
+            title="Экспорт текущего среза в CSV"
           >
             <Download className="w-3.5 h-3.5 text-accent" />
-            <span>Экспорт среза</span>
+            <span>CSV</span>
           </button>
 
           {hasActiveFilters && (
             <button
-              onClick={() => {
-                resetFilters();
-                setBiStartDate('');
-                setBiEndDate('');
-              }}
+              onClick={resetFilters}
               className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs border border-border transition-colors cursor-pointer"
-              title="Сбросить все фильтры"
+              title="Сбросить все срезы"
             >
               <RotateCcw className="w-3 h-3" />
               <span>Сбросить</span>
@@ -561,6 +534,18 @@ function AnalyticsDashboardContent() {
           )}
         </div>
       </div>
+
+      {/* DateFilter unified component */}
+      <DateFilter
+        mode={filterMode}
+        onModeChange={setFilterMode}
+        currentDate={currentDate}
+        onCurrentDateChange={setCurrentDate}
+        startDate={startDate}
+        endDate={endDate}
+        onCustomRangeChange={(s, e) => setDateRange(s, e)}
+        weekStartsOn={weekStartsOn}
+      />
 
       {/* Active Filter Badges Bar */}
       {hasActiveFilters && (
@@ -619,29 +604,22 @@ function AnalyticsDashboardContent() {
             </span>
           )}
 
-          {(biStartDate || biEndDate) && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-accent/15 text-primary text-[11px] border border-accent/25">
-              Период: <strong>{biStartDate || '...'} — {biEndDate || '...'}</strong>
-              <button onClick={() => { setBiStartDate(''); setBiEndDate(''); }} className="hover:text-accent font-bold ml-0.5">✕</button>
-            </span>
-          )}
-
           <span className="text-secondary text-[11px] ml-auto tabular-nums">
             В срезе: <strong className="text-primary font-semibold">{filteredRows.length.toLocaleString('ru-RU')}</strong> респондентов
           </span>
         </div>
       )}
 
-      {/* KPI Cards: Dynamic Slice count + New registrations in 7/30 days (VII.8) */}
+      {/* KPI Cards: Period Count + Rolling 7/30 days from today */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3 bg-surface border border-border rounded-[8px] flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-secondary">Респондентов в срезе</div>
+            <div className="text-[11px] text-secondary">Респондентов за период</div>
             <div className="text-lg font-semibold text-primary tabular-nums mt-0.5">
               {filteredRows.length.toLocaleString('ru-RU')}
             </div>
             <div className="text-[10px] text-secondary mt-0.5">
-              {((filteredRows.length / (data?.dataQuality?.totalRows || 1)) * 100).toFixed(1)}% от всей базы
+              {((filteredRows.length / (data?.dataQuality?.totalRows || 1)) * 100).toFixed(1)}% от всей базы ({data?.dataQuality?.totalRows?.toLocaleString('ru-RU')})
             </div>
           </div>
           <div className="w-8 h-8 rounded-[6px] bg-accent/10 flex items-center justify-center text-accent">
@@ -651,12 +629,12 @@ function AnalyticsDashboardContent() {
 
         <div className="p-3 bg-surface border border-border rounded-[8px] flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-secondary">Новых за 7 дней (срез)</div>
+            <div className="text-[11px] text-secondary">Новых за 7 дней (от сегодня)</div>
             <div className="text-lg font-semibold text-primary tabular-nums mt-0.5">
-              {recentStats.last7.toLocaleString('ru-RU')}
+              {(data?.rolling7DaysCount ?? recentStats.last7).toLocaleString('ru-RU')}
             </div>
             <div className="text-[10px] text-secondary mt-0.5">
-              По дате создания в main_base
+              Скользящее окно 7 дней от сегодня
             </div>
           </div>
           <div className="w-8 h-8 rounded-[6px] bg-emerald-500/10 flex items-center justify-center text-emerald-500">
@@ -666,12 +644,12 @@ function AnalyticsDashboardContent() {
 
         <div className="p-3 bg-surface border border-border rounded-[8px] flex items-center justify-between">
           <div>
-            <div className="text-[11px] text-secondary">Новых за 30 дней (срез)</div>
+            <div className="text-[11px] text-secondary">Новых за 30 дней (от сегодня)</div>
             <div className="text-lg font-semibold text-primary tabular-nums mt-0.5">
-              {recentStats.last30.toLocaleString('ru-RU')}
+              {(data?.rolling30DaysCount ?? recentStats.last30).toLocaleString('ru-RU')}
             </div>
             <div className="text-[10px] text-secondary mt-0.5">
-              Месячный прирост респондентов
+              Скользящее окно 30 дней от сегодня
             </div>
           </div>
           <div className="w-8 h-8 rounded-[6px] bg-sky-500/10 flex items-center justify-center text-sky-500">

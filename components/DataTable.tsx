@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import {
   Search,
   ChevronLeft,
@@ -12,11 +12,25 @@ import {
   Download,
   Eye,
   EyeOff,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
 } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
-import { exportRowsToCSV } from '@/lib/csv-utils';
+import { exportRowsToCSV, exportRowsToExcel } from '@/lib/csv-utils';
+import { STATUS_CONFIG, StatusCategoryConfig } from '@/lib/status-config';
+import { matchesCategory } from '@/lib/status-matcher';
 import { Skeleton } from './ui/Skeleton';
+
+const STATUS_CATEGORY_OPTIONS: { id: string; name: string; config: StatusCategoryConfig }[] = [
+  { id: 'link_sent', name: 'Ссылка отправлена', config: STATUS_CONFIG.linkSent },
+  { id: 'repeat_sent', name: 'Повторная отправка', config: STATUS_CONFIG.repeatSent },
+  { id: 'declined', name: 'Отказ', config: STATUS_CONFIG.declined },
+  { id: 'already_registered', name: 'Уже зарегистрирован', config: STATUS_CONFIG.alreadyRegistered },
+  { id: 'wrong_person', name: 'Не тот человек', config: STATUS_CONFIG.wrongPerson },
+];
 
 interface DataTableProps {
   sheetType: 'main' | 'numbers' | 'eskiz' | 'not_completed';
@@ -33,7 +47,23 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [showAllColumnsMobile, setShowAllColumnsMobile] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedStatusCategory, setSelectedStatusCategory] = useState<string>('all');
   const [, startTransition] = useTransition();
+
+  const handleSort = (col: string) => {
+    if (sortColumn === col) {
+      if (sortDirection === 'asc') setSortDirection('desc');
+      else {
+        setSortColumn(null);
+        setSortDirection('asc');
+      }
+    } else {
+      setSortColumn(col);
+      setSortDirection('asc');
+    }
+  };
 
   const goToPage = () => {
     const n = parseInt(pageInput, 10);
@@ -109,10 +139,48 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     );
   };
 
+  const processedRows = useMemo(() => {
+    if (!data?.rows) return [];
+    let rows = [...data.rows];
+
+    if (selectedStatusCategory !== 'all') {
+      const catOption = STATUS_CATEGORY_OPTIONS.find((c) => c.id === selectedStatusCategory);
+      if (catOption) {
+        rows = rows.filter((r) => {
+          const statusVal = r['Статус'] || r['Status'] || r['Коментарий'] || r['комментарий'] || '';
+          return matchesCategory(statusVal, catOption.config);
+        });
+      }
+    }
+
+    if (sortColumn) {
+      rows.sort((a, b) => {
+        const valA = a[sortColumn] ?? '';
+        const valB = b[sortColumn] ?? '';
+        const numA = Number(valA);
+        const numB = Number(valB);
+        if (!isNaN(numA) && !isNaN(numB) && valA !== '' && valB !== '') {
+          return sortDirection === 'asc' ? numA - numB : numB - numA;
+        }
+        return sortDirection === 'asc'
+          ? String(valA).localeCompare(String(valB), 'ru')
+          : String(valB).localeCompare(String(valA), 'ru');
+      });
+    }
+
+    return rows;
+  }, [data?.rows, sortColumn, sortDirection, selectedStatusCategory]);
+
   const downloadCSV = () => {
-    if (!data || data.rows.length === 0) return;
+    if (!processedRows.length || !data) return;
     const filename = `${sheetType}_data_${new Date().toISOString().slice(0, 10)}.csv`;
-    exportRowsToCSV(data.rows, data.headers, filename);
+    exportRowsToCSV(processedRows, data.headers, filename);
+  };
+
+  const downloadExcel = () => {
+    if (!processedRows.length || !data) return;
+    const filename = `${sheetType}_data_${new Date().toISOString().slice(0, 10)}`;
+    exportRowsToExcel(processedRows, data.headers, filename);
   };
 
   return (
@@ -162,10 +230,51 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             )}
           </form>
 
+          {/* Status category filter */}
+          <div className="flex items-center gap-1 bg-surface-2 px-2 py-1 rounded-[6px] border border-border">
+            <Filter className="w-3 h-3 text-secondary shrink-0" />
+            <select
+              value={selectedStatusCategory}
+              onChange={(e) => setSelectedStatusCategory(e.target.value)}
+              className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer max-w-[140px] truncate"
+              title="Фильтр по категории статуса"
+            >
+              <option value="all">Все статусы</option>
+              {STATUS_CATEGORY_OPTIONS.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            {selectedStatusCategory !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setSelectedStatusCategory('all')}
+                className="text-[10px] text-secondary hover:text-primary ml-0.5"
+                title="Сбросить фильтр статуса"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Export Excel (.xlsx) */}
+          <button
+            type="button"
+            onClick={downloadExcel}
+            disabled={!processedRows || processedRows.length === 0}
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
+            title="Экспорт в Excel (.xlsx / XML)"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">Excel</span>
+          </button>
+
+          {/* Export CSV */}
           <button
             type="button"
             onClick={downloadCSV}
-            disabled={!data || data.rows.length === 0}
+            disabled={!processedRows || processedRows.length === 0}
             className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
             title="Скачать строки как CSV"
           >
@@ -207,7 +316,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               <Skeleton key={i} className="h-8 w-full rounded-[4px]" />
             ))}
           </div>
-        ) : data && data.rows.length > 0 ? (
+        ) : data && processedRows.length > 0 ? (
           <table className="w-full text-left text-xs border-collapse">
             <thead className="sticky top-0 bg-surface-2 text-secondary font-medium border-b border-border z-10 text-[11px]">
               <tr>
@@ -216,21 +325,35 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                 </th>
                 {data.headers.map((header) => {
                   const isPriority = isPriorityMobileColumn(header);
+                  const isCurrentSort = sortColumn === header;
                   return (
                     <th
                       key={header}
-                      className={`py-2 px-2.5 whitespace-nowrap font-medium ${
+                      onClick={() => handleSort(header)}
+                      className={`py-2 px-2.5 whitespace-nowrap font-medium cursor-pointer select-none hover:bg-surface-2/80 hover:text-primary transition-colors group ${
                         !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                       }`}
+                      title="Кликните для сортировки по этой колонке"
                     >
-                      {header}
+                      <div className="inline-flex items-center gap-1.5">
+                        <span>{header}</span>
+                        {isCurrentSort ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="w-3 h-3 text-accent shrink-0" />
+                          ) : (
+                            <ArrowDown className="w-3 h-3 text-accent shrink-0" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-2.5 h-2.5 text-secondary opacity-40 group-hover:opacity-100 shrink-0" />
+                        )}
+                      </div>
                     </th>
                   );
                 })}
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {data.rows.map((row, idx) => {
+              {processedRows.map((row, idx) => {
                 const rowIndex = (data.page - 1) * data.pageSize + idx + 1;
                 return (
                   <tr
@@ -334,9 +457,22 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           </table>
         ) : (
           !loading && (
-            <div className="flex flex-col items-center justify-center h-48 text-secondary text-xs">
-              <Database className="w-6 h-6 mb-1.5 opacity-40" />
-              <span>Данных не найдено</span>
+            <div className="flex flex-col items-center justify-center h-48 text-secondary text-xs gap-2">
+              <Database className="w-6 h-6 opacity-40" />
+              <span>
+                {selectedStatusCategory !== 'ALL'
+                  ? 'Нет строк с выбранным статусом на этой странице'
+                  : 'Данных не найдено'}
+              </span>
+              {selectedStatusCategory !== 'ALL' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedStatusCategory('ALL')}
+                  className="px-2.5 py-1 text-[11px] rounded-[4px] bg-surface-2 border border-border text-primary hover:bg-surface-2/80 transition-colors"
+                >
+                  Сбросить фильтр статуса
+                </button>
+              )}
             </div>
           )
         )}

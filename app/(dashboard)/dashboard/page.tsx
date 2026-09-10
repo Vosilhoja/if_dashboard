@@ -15,16 +15,19 @@ import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
 import { AlertCircle, Clock, FileSpreadsheet, RefreshCw } from 'lucide-react';
 
+import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
+
 export default function DashboardPage() {
-  const [filterMode, setFilterMode] = useState<FilterMode>('week');
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-
-  // Default to current week
-  const initialStart = formatDateToISO(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const initialEnd = formatDateToISO(endOfWeek(new Date(), { weekStartsOn: 1 }));
-
-  const [startDate, setStartDate] = useState<string>(initialStart);
-  const [endDate, setEndDate] = useState<string>(initialEnd);
+  const {
+    startDate,
+    endDate,
+    filterMode,
+    currentDate,
+    weekStartsOn,
+    setFilterMode,
+    setCurrentDate,
+    setDateRange,
+  } = useAnalyticsFilter();
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -82,8 +85,9 @@ export default function DashboardPage() {
     if (cached) {
       setMetrics(cached.metrics);
       setLastSavedAt(cached.savedAt);
-      setStartDate(cached.startDate);
-      setEndDate(cached.endDate);
+      if (cached.startDate && cached.endDate) {
+        setDateRange(cached.startDate, cached.endDate);
+      }
     } else {
       fetchMetrics(startDate, endDate, false);
     }
@@ -91,8 +95,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {
-    setStartDate(start);
-    setEndDate(end);
+    setDateRange(start, end);
     if (autoFetch) {
       fetchMetrics(start, end, true);
     } else {
@@ -149,6 +152,7 @@ export default function DashboardPage() {
           startDate={startDate}
           endDate={endDate}
           onCustomRangeChange={handleDateRangeChange}
+          weekStartsOn={weekStartsOn}
         />
       </section>
 

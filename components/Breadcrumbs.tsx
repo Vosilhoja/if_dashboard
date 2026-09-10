@@ -3,7 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronRight, Home, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Home, ShieldCheck, FilterX, RotateCcw } from 'lucide-react';
+import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
 const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
   '/overview': {
@@ -34,6 +35,8 @@ const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
 
 export const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
+  const { hasActiveFilters, resetAllFilters, selectedRegion, selectedDistrict } = useAnalyticsFilter();
+
   const current = ROUTE_LABELS[pathname] || {
     title: 'Раздел',
     subtitle: 'Аналитический дашборд',
@@ -60,8 +63,21 @@ export const Breadcrumbs: React.FC = () => {
           </p>
         </div>
 
-        {/* Status chip */}
-        <div className="flex items-center gap-2">
+        {/* Action / Status bar */}
+        <div className="flex items-center gap-2.5">
+          {/* Global filter reset action */}
+          {hasActiveFilters && (
+            <button
+              onClick={resetAllFilters}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium hover:bg-amber-500/20 transition-colors cursor-pointer"
+              title="Сбросить все активные фильтры (период, регион, демографию)"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span className="hidden sm:inline">Сбросить все фильтры</span>
+              <span className="sm:hidden">Сброс</span>
+            </button>
+          )}
+
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-medium">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Сессия защищена</span>

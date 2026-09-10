@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { UzbekistanMap } from '@/components/map/UzbekistanMap';
 import { RegionDetailPanel } from '@/components/map/RegionDetailPanel';
+import { DateFilter } from '@/components/DateFilter';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 import { AnalyticsRow } from '@/lib/analytics-aggregations';
 import { normalizeRegionName, REGION_RU_TO_EN } from '@/lib/region-name-map';
@@ -16,10 +17,19 @@ import {
   Building2,
   RefreshCw,
   AlertCircle,
+  Calendar,
 } from 'lucide-react';
 
 export default function MapPage() {
   const {
+    startDate,
+    endDate,
+    filterMode,
+    currentDate,
+    weekStartsOn,
+    setFilterMode,
+    setCurrentDate,
+    setDateRange,
     selectedRegion,
     setSelectedRegion,
     selectedDistrict,
@@ -27,6 +37,7 @@ export default function MapPage() {
   } = useAnalyticsFilter();
 
   const [rows, setRows] = useState<AnalyticsRow[]>([]);
+  const [totalCountryRows, setTotalCountryRows] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
@@ -35,11 +46,16 @@ export default function MapPage() {
     async function loadAnalyticsData() {
       try {
         setLoading(true);
-        const res = await fetch('/api/analytics');
+        const params = new URLSearchParams();
+        if (startDate) params.set('startDate', startDate);
+        if (endDate) params.set('endDate', endDate);
+
+        const res = await fetch(`/api/analytics?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.rows) {
           setRows(data.rows);
+          setTotalCountryRows(data.allRowsCount || data.rows.length);
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить данные карты');
@@ -49,7 +65,7 @@ export default function MapPage() {
     }
 
     loadAnalyticsData();
-  }, []);
+  }, [startDate, endDate]);
 
   // Compute aggregated count per canonical region
   const regionCounts = React.useMemo(() => {
@@ -140,6 +156,18 @@ export default function MapPage() {
           </Link>
         </div>
       </div>
+
+      {/* DateFilter unified component */}
+      <DateFilter
+        mode={filterMode}
+        onModeChange={setFilterMode}
+        currentDate={currentDate}
+        onCurrentDateChange={setCurrentDate}
+        startDate={startDate}
+        endDate={endDate}
+        onCustomRangeChange={(s, e) => setDateRange(s, e)}
+        weekStartsOn={weekStartsOn}
+      />
 
       {error && (
         <div className="p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
