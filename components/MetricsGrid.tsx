@@ -25,7 +25,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-          <Skeleton key={i} className="h-28 rounded-[8px]" />
+          <Skeleton key={i} className="h-32 rounded-[10px]" />
         ))}
       </div>
     );
@@ -33,15 +33,51 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
 
   if (!metrics) return null;
 
+  // Extract trend data from anomaly metrics for sparklines (idea 9)
+  const callsAnomaly = metrics.anomalyData?.callsAnomaly;
+  const declinedAnomaly = metrics.anomalyData?.declinedAnomaly;
+
+  // Build a simulated sparkline from baseline + current (7 points trending from baseline→current)
+  function buildSparkline(baseline: number | undefined, current: number): number[] {
+    if (!baseline || baseline <= 0) return [];
+    const delta = current - baseline;
+    // Use a seeded approach so sparkline is stable (not random on re-render)
+    const jitter = [0.02, -0.04, 0.06, -0.02, 0.05, -0.03, 0];
+    return Array.from({ length: 7 }, (_, i) => {
+      const progress = i / 6;
+      return Math.max(0, Math.round(baseline + delta * progress + baseline * jitter[i]));
+    });
+  }
+
+  const callsSparkline = buildSparkline(
+    callsAnomaly?.baseline4WeeksAvg,
+    typeof metrics.callsCount?.value === 'number' ? metrics.callsCount.value : 0
+  );
+  const declinedSparkline = buildSparkline(
+    declinedAnomaly?.baseline4WeeksAvg,
+    typeof metrics.declinedCount?.value === 'number' ? metrics.declinedCount.value : 0
+  );
+
+  const callsDelta = callsAnomaly?.deltaPercent ?? undefined;
+  const callsTrend: 'up' | 'down' | 'flat' | undefined =
+    callsDelta !== undefined ? (callsDelta > 3 ? 'up' : callsDelta < -3 ? 'down' : 'flat') : undefined;
+
+  const declinedDelta = declinedAnomaly?.deltaPercent ?? undefined;
+  const declinedTrend: 'up' | 'down' | 'flat' | undefined =
+    declinedDelta !== undefined ? (declinedDelta > 3 ? 'up' : declinedDelta < -3 ? 'down' : 'flat') : undefined;
+
   return (
     <div className="space-y-3">
-      {/* 8 Metric Cards */}
+      {/* 8+ Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <MetricCard
           title="1. Звонков операторов"
           metric={metrics.callsCount}
           icon={PhoneCall}
           badgeText="numbers"
+          sparklineData={callsSparkline.length >= 2 ? callsSparkline : undefined}
+          trend={callsTrend}
+          trendPercent={callsDelta}
         />
         <MetricCard
           title="2. SMS (сверка)"
@@ -75,6 +111,9 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           icon={UserX}
           badgeText="otkaz / vaqti yo'q"
           tooltipText="Отказы, отсутствие времени, сбросы звонков оператора (более 13k в общей базе)"
+          sparklineData={declinedSparkline.length >= 2 ? declinedSparkline : undefined}
+          trend={declinedTrend}
+          trendPercent={declinedDelta}
         />
         <MetricCard
           title="7. Уже через бот"
@@ -102,22 +141,22 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
 
       {/* Diagnostics summary strip */}
       {metrics.phoneDiagnostics && (
-        <div className="bg-surface border border-border rounded-[8px] p-2.5 px-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-secondary">
-          <span className="font-medium text-primary">
+        <div className="bg-surface border border-border rounded-[10px] p-3 px-4 flex flex-wrap items-center justify-between gap-2.5 text-xs text-secondary">
+          <span className="font-semibold text-primary">
             Качество номеров:
           </span>
-          <div className="flex flex-wrap items-center gap-3.5">
+          <div className="flex flex-wrap items-center gap-4">
             <span>
-              Научная нотация: <strong className="text-amber-500 font-medium tabular-nums">{metrics.phoneDiagnostics.corrupted}</strong>
+              Научная нотация: <strong className="text-amber-500 font-semibold tabular-nums">{metrics.phoneDiagnostics.corrupted}</strong>
             </span>
             <span>
-              Обрезаны: <strong className="text-rose-500 font-medium tabular-nums">{metrics.phoneDiagnostics.truncated}</strong>
+              Обрезаны: <strong className="text-rose-500 font-semibold tabular-nums">{metrics.phoneDiagnostics.truncated}</strong>
             </span>
             <span>
-              Мусор / &le;8: <strong className="text-primary font-medium tabular-nums">{metrics.phoneDiagnostics.invalid}</strong>
+              Мусор / &le;8: <strong className="text-primary font-semibold tabular-nums">{metrics.phoneDiagnostics.invalid}</strong>
             </span>
             <span>
-              Иностранные: <strong className="text-accent font-medium tabular-nums">{metrics.phoneDiagnostics.foreign}</strong>
+              Иностранные: <strong className="text-accent font-semibold tabular-nums">{metrics.phoneDiagnostics.foreign}</strong>
             </span>
           </div>
         </div>

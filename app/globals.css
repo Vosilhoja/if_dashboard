@@ -141,3 +141,52 @@ svg *:focus {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ============================================================
+   UTILITY: Hide scrollbar but keep scroll functionality
+   ============================================================ */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================
+   CONSISTENT INTERACTIVE ELEMENT HEIGHTS
+   Buttons, single-line inputs, and selects all share h-9 (36px)
+   ============================================================ */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+input[type="email"],
+input[type="date"],
+select:not([multiple]) {
+  height: 36px;
+  line-height: 1.5;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* Date input custom styling */
+input[type="date"] {
+  color-scheme: light dark;
+}
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Textarea keeps its auto height */
+textarea {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* Standard button base height for interactive elements */
+.btn,
+button.btn {
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+}
+
