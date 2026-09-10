@@ -4,6 +4,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { AnalyticsFilterProvider } from '@/lib/analytics-filter-context';
 import { CommandPalette } from '@/components/CommandPalette';
 import { ToastContainer } from '@/components/ui/Toast';
+import { AIChatDrawer } from '@/components/AIChatDrawer';
 
 export default function DashboardLayout({
   children,
@@ -27,9 +28,10 @@ export default function DashboardLayout({
           </footer>
         </div>
 
-        {/* Global Command Palette (Cmd+K) & Toast Notifications */}
+        {/* Global Command Palette (Cmd+K), Toast Notifications & AI Chat */}
         <CommandPalette />
         <ToastContainer />
+        <AIChatDrawer />
       </div>
     </AnalyticsFilterProvider>
   );
