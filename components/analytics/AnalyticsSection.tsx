@@ -41,6 +41,7 @@ import {
 } from 'recharts';
 import { useTheme } from '@/lib/theme-context';
 import { DATA_PALETTE } from '@/lib/chart-colors';
+import { exportRowsToCSV } from '@/lib/csv-utils';
 
 interface AnalyticsPayload {
   rows?: AnalyticsRow[];
@@ -435,41 +436,17 @@ function AnalyticsDashboardContent() {
   const exportFilteredCSV = () => {
     if (!filteredRows || filteredRows.length === 0) return;
     const headers = [
-      'Регион',
-      'Район',
-      'Пол',
-      'Возраст',
-      'Образование',
-      'Сфера занятости',
-      'Источник',
-      'Дата создания',
+      { key: 'region', label: 'Регион' },
+      { key: 'district', label: 'Район' },
+      { key: 'gender', label: 'Пол' },
+      { key: 'age', label: 'Возраст' },
+      { key: 'education', label: 'Образование' },
+      { key: 'profession', label: 'Сфера занятости' },
+      { key: 'source', label: 'Источник' },
+      { key: 'creationDate', label: 'Дата создания' },
     ];
-    const csvRows = [
-      headers.join(';'),
-      ...filteredRows.map((r) =>
-        [
-          `"${(r.region || '').replace(/"/g, '""')}"`,
-          `"${(r.district || '').replace(/"/g, '""')}"`,
-          `"${(r.gender || '').replace(/"/g, '""')}"`,
-          `"${r.age !== null ? r.age : ''}"`,
-          `"${(r.education || '').replace(/"/g, '""')}"`,
-          `"${(r.profession || '').replace(/"/g, '""')}"`,
-          `"${(r.source || '').replace(/"/g, '""')}"`,
-          `"${(r.creationDate || '').replace(/"/g, '""')}"`,
-        ].join(';')
-      ),
-    ];
-    const blob = new Blob(['\uFEFF' + csvRows.join('\r\n')], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bi_analytics_slice_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const filename = `bi_analytics_slice_${new Date().toISOString().slice(0, 10)}.csv`;
+    exportRowsToCSV(filteredRows, headers, filename);
   };
 
   const hasActiveFilters = Boolean(

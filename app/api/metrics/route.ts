@@ -216,6 +216,83 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Anomaly Detection: Compare Current Period (calls & declined) with Average of Previous 4 Weeks
+    let anomalyData: DashboardMetrics['anomalyData'] = undefined;
+    const pStart = parseSheetDate(startDate);
+    const pEnd = parseSheetDate(endDate);
+
+    if (pStart && pEnd && !numbersError) {
+      // Calculate active day of week indices in current period
+      const activeDaysOfWeek = new Set<number>();
+      const cur = new Date(pStart);
+      while (cur <= pEnd) {
+        activeDaysOfWeek.add(cur.getDay());
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      // Collect numbers per week for previous 4 weeks
+      const weekCounts: { calls: number; declined: number }[] = [];
+      for (let w = 1; w <= 4; w++) {
+        const wStart = new Date(pStart);
+        wStart.setDate(wStart.getDate() - w * 7);
+        const wEnd = new Date(pEnd);
+        wEnd.setDate(wEnd.getDate() - w * 7);
+
+        let wCalls = 0;
+        let wDeclined = 0;
+
+        for (const row of numbersRows) {
+          const dateStr = row['Дата (формат xx.xx.xxxx)'] || row['Дата'] || row['date'];
+          const d = parseSheetDate(dateStr);
+          if (d && d >= wStart && d <= wEnd && activeDaysOfWeek.has(d.getDay())) {
+            wCalls++;
+            const comment = (row['Коментарий'] || '').trim();
+            if (isDeclinedStatus(comment, statusConfig.declined)) {
+              wDeclined++;
+            }
+          }
+        }
+        weekCounts.push({ calls: wCalls, declined: wDeclined });
+      }
+
+      const avgCalls = Math.round(
+        weekCounts.reduce((acc, curr) => acc + curr.calls, 0) / (weekCounts.length || 1)
+      );
+      const avgDeclined = Math.round(
+        weekCounts.reduce((acc, curr) => acc + curr.declined, 0) / (weekCounts.length || 1)
+      );
+
+      const calcAnomaly = (current: number, baseline: number) => {
+        if (baseline === 0) {
+          const delta = current > 0 ? 100 : 0;
+          return {
+            current,
+            baseline4WeeksAvg: baseline,
+            deltaPercent: delta,
+            isAnomaly: current > 5,
+            direction: (current > 0 ? 'up' : 'normal') as 'up' | 'down' | 'normal',
+          };
+        }
+        const deltaPercent = Math.round(((current - baseline) / baseline) * 100);
+        const absDelta = Math.abs(deltaPercent);
+        const isAnomaly = absDelta >= 30;
+        const direction: 'up' | 'down' | 'normal' =
+          deltaPercent > 0 ? 'up' : deltaPercent < 0 ? 'down' : 'normal';
+        return {
+          current,
+          baseline4WeeksAvg: baseline,
+          deltaPercent,
+          isAnomaly,
+          direction,
+        };
+      };
+
+      anomalyData = {
+        callsAnomaly: calcAnomaly(callsCountVal, avgCalls),
+        declinedAnomaly: calcAnomaly(declinedVal, avgDeclined),
+      };
+    }
+
     const response: DashboardMetrics = {
       callsCount: {
         value: numbersError ? '—' : callsCountVal,
@@ -290,6 +367,7 @@ export async function GET(request: NextRequest) {
         eskiz: eskizRows.length,
         not_completed: notCompletedRows.length,
       },
+      anomalyData,
       cachedAt: new Date().toISOString(),
     };
 

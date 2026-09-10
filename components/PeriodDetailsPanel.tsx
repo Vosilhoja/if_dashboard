@@ -12,8 +12,10 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from 'lucide-react';
 import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
+import { exportRowsToCSV } from '@/lib/csv-utils';
 
 interface Props {
   startDate: string;
@@ -29,6 +31,7 @@ interface PeriodData {
   totalNotCompleted: number;
   calls: Record<string, string>[];
   notCompleted: Record<string, string>[];
+  cachedAt?: string;
 }
 
 export const PeriodDetailsPanel: React.FC<Props> = ({
@@ -96,40 +99,22 @@ export const PeriodDetailsPanel: React.FC<Props> = ({
     if (!filteredList.length) return;
     const sample = filteredList[0];
     const headers = Object.keys(sample);
-    const escapeCsv = (val: string) => `"${String(val ?? '').replace(/"/g, '""')}"`;
-
-    const lines = [
-      headers.map(escapeCsv).join(';'),
-      ...filteredList.map((row) =>
-        headers.map((h) => escapeCsv(row[h] || '')).join(';')
-      ),
-    ];
-
-    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${activeTab}_${startDate || 'all'}_${endDate || 'all'}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const filename = `${activeTab}_${startDate || 'all'}_${endDate || 'all'}.csv`;
+    exportRowsToCSV(filteredList, headers, filename);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end items-end sm:items-stretch">
       {/* Backdrop */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-in fade-in"
       />
 
-      {/* Drawer */}
-      <div className="relative w-full max-w-2xl bg-surface border-l border-border shadow-2xl h-full flex flex-col z-10 animate-in slide-in-from-right duration-200">
+      {/* Drawer: full width & height on mobile / bottom sheet, sidebar on desktop */}
+      <div className="relative w-full sm:max-w-2xl bg-surface border-t sm:border-t-0 sm:border-l border-border shadow-2xl h-[90vh] sm:h-full rounded-t-[16px] sm:rounded-t-none flex flex-col z-10 animate-in slide-in-from-bottom sm:slide-in-from-right duration-200">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between gap-2">
           <div>
@@ -139,12 +124,28 @@ export const PeriodDetailsPanel: React.FC<Props> = ({
                 Детали за период
               </h3>
             </div>
-            <p className="text-[11px] text-secondary mt-0.5 tabular-nums">
-              Период:{' '}
-              <strong className="text-primary">
-                {startDate || 'Начало'} — {endDate || 'Конец'}
-              </strong>
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+              <p className="text-[11px] text-secondary tabular-nums">
+                Период:{' '}
+                <strong className="text-primary">
+                  {startDate || 'Начало'} — {endDate || 'Конец'}
+                </strong>
+              </p>
+              {data?.cachedAt && (
+                <div className="flex items-center gap-1 text-[10px] text-secondary tabular-nums">
+                  <Clock className="w-3 h-3 text-secondary/70" />
+                  <span>
+                    Данные по состоянию на:{' '}
+                    <strong className="text-primary font-medium">
+                      {new Date(data.cachedAt).toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </strong>
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <button

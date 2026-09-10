@@ -47,6 +47,22 @@ export interface DashboardMetrics {
     eskiz: number;
     not_completed?: number;
   };
+  anomalyData?: {
+    callsAnomaly: {
+      current: number;
+      baseline4WeeksAvg: number;
+      deltaPercent: number;
+      isAnomaly: boolean;
+      direction: 'up' | 'down' | 'normal';
+    };
+    declinedAnomaly: {
+      current: number;
+      baseline4WeeksAvg: number;
+      deltaPercent: number;
+      isAnomaly: boolean;
+      direction: 'up' | 'down' | 'normal';
+    };
+  };
   cachedAt: string;
 }
 

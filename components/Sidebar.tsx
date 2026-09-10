@@ -12,6 +12,7 @@ import {
   ExternalLink,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 
@@ -163,13 +164,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </span>
 
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-[6px] hover:bg-surface-2 text-primary transition-colors cursor-pointer"
-            title={`Переключить на ${theme === 'dark' ? 'светлую' : 'тёмную'} тему`}
-          >
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-[6px] hover:bg-surface-2 text-primary transition-colors cursor-pointer"
+              title={`Переключить на ${theme === 'dark' ? 'светлую' : 'тёмную'} тему`}
+            >
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              onClick={async () => {
+                await fetch('/api/login', { method: 'DELETE' });
+                window.location.href = '/login';
+              }}
+              className="p-1.5 rounded-[6px] hover:bg-surface-2 text-rose-500 hover:text-rose-600 transition-colors cursor-pointer"
+              title="Выйти из системы"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

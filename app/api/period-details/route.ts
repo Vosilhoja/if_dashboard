@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
       totalNotCompleted: notCompleted.length,
       calls,
       notCompleted,
+      cachedAt: new Date().toISOString(),
     });
   } catch (err: unknown) {
     console.error('API /api/period-details error:', err);

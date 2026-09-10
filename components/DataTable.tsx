@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
+import { exportRowsToCSV } from '@/lib/csv-utils';
 import { Skeleton } from './ui/Skeleton';
 
 interface DataTableProps {
@@ -110,29 +111,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
   const downloadCSV = () => {
     if (!data || data.rows.length === 0) return;
-    const headers = data.headers;
-    const escapeCsv = (val: string) => {
-      const v = String(val ?? '').replace(/"/g, '""');
-      return `"${v}"`;
-    };
-
-    const csvLines: string[] = [];
-    csvLines.push(headers.map(escapeCsv).join(','));
-
-    data.rows.forEach((row) => {
-      const line = headers.map((h) => escapeCsv(row[h] || '')).join(',');
-      csvLines.push(line);
-    });
-
-    const csvContent = '\uFEFF' + csvLines.join('\n'); // BOM for Excel UTF-8
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${sheetType}_data_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const filename = `${sheetType}_data_${new Date().toISOString().slice(0, 10)}.csv`;
+    exportRowsToCSV(data.rows, data.headers, filename);
   };
 
   return (
@@ -317,15 +297,15 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
       {/* Pagination Footer */}
       {data && data.totalPages > 1 && (
-        <div className="p-2.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface text-xs text-secondary">
-          <div className="flex items-center gap-2 text-[11px] flex-wrap">
+        <div className="p-2.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-surface text-xs text-secondary">
+          <div className="w-full sm:w-auto flex flex-wrap items-center justify-between sm:justify-start gap-2 text-[11px]">
             <span>
               Всего строк:{' '}
               <strong className="text-primary tabular-nums">
                 {data.total.toLocaleString()}
               </strong>
             </span>
-            <span className="text-border">|</span>
+            <span className="hidden sm:inline text-border">|</span>
             <div className="flex items-center gap-1">
               <span>Стр.</span>
               <input

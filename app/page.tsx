@@ -15,6 +15,7 @@ import {
   isCacheStale,
 } from '@/lib/dashboard-cache';
 import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
+import { AnomalyWidget } from '@/components/AnomalyWidget';
 import { AlertCircle, Clock, TableProperties, FileSpreadsheet } from 'lucide-react';
 
 export default function Home() {
@@ -201,6 +202,8 @@ export default function Home() {
                     <span>Детали периода</span>
                   </button>
                 </div>
+
+                <AnomalyWidget metrics={metrics} loading={loading} />
 
                 <MetricsGrid metrics={metrics} loading={loading} />
               </section>
