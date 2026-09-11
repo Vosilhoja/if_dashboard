@@ -165,8 +165,9 @@ export default function OverviewPage() {
   const declinedVal = typeof metrics?.declinedCount.value === 'number' ? metrics.declinedCount.value : 0;
   const smsVerification = metrics?.smsSentVerification;
 
-  const hasAnomaly =
-    metrics?.anomalyData?.callsAnomaly.isAnomaly || metrics?.anomalyData?.declinedAnomaly.isAnomaly;
+  const hasAnomaly = Boolean(
+    metrics?.anomalyData?.callsAnomaly.isAnomaly || metrics?.anomalyData?.declinedAnomaly.isAnomaly
+  );
 
   const totalSheetsRows = metrics?.totalRows || {
     main: 14742,
