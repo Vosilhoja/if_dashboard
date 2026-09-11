@@ -85,3 +85,34 @@ export function hasMinRole(userRole: AuthUser['role'] | null, minRole: AuthUser[
   if (!userRole) return false;
   return (ROLE_HIERARCHY[userRole] ?? 0) >= (ROLE_HIERARCHY[minRole] ?? 0);
 }
+
+/**
+ * Проверяет, доступна ли страница пользователю.
+ * super_admin имеет доступ абсолютно ко всем страницам.
+ * Для остальных проверяются права в массиве user.permissions.
+ */
+export function canAccessPage(user: AuthUser | null, pathname: string): boolean {
+  if (!user) return false;
+  if (user.role === 'super_admin') return true;
+
+  // Settings доступен ТОЛЬКО super_admin
+  if (pathname.startsWith('/settings')) {
+    return false;
+  }
+
+  // Определение ключа страницы по URL
+  let pageKey = '';
+  if (pathname === '/' || pathname.startsWith('/overview')) pageKey = 'overview';
+  else if (pathname.startsWith('/dashboard')) pageKey = 'dashboard';
+  else if (pathname.startsWith('/analytics')) pageKey = 'analytics';
+  else if (pathname.startsWith('/map')) pageKey = 'map';
+  else if (pathname.startsWith('/raw')) pageKey = 'raw';
+  else if (pathname.startsWith('/chat')) pageKey = 'chat';
+
+  if (!pageKey) return true;
+
+  const perms = Array.isArray(user.permissions) ? user.permissions : [];
+  if (perms.includes('*')) return true;
+
+  return perms.includes(pageKey);
+}

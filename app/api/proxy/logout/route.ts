@@ -19,6 +19,14 @@ export async function POST() {
     maxAge: 0,
   });
 
+  response.cookies.set({
+    name: 'hurmo_user_permissions',
+    value: '',
+    httpOnly: false,
+    path: '/',
+    maxAge: 0,
+  });
+
   // Also clean old cookie if present
   response.cookies.set({
     name: 'hurmo_dashboard_auth',

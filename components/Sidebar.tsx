@@ -113,14 +113,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
   totalStats,
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const { role, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const pathname = usePathname();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  // Filter nav items based on current user role
+  // Lock body scroll when mobile burger menu is opened
+  useEffect(() => {
+    if (mobileDrawerOpen) {
+      const originalStyle = window.getComputedStyle(document.body).overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+  }, [mobileDrawerOpen]);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileDrawerOpen(false);
+  }, [pathname]);
+
+  // Filter nav items based on user role and granular page permissions
   const navItems = allNavItems.filter((item) => {
-    if (!item.minRole) return true;
-    return hasMinRole(role, item.minRole);
+    // 1. Settings strictly for super_admin
+    if (item.href === '/settings') {
+      return role === 'super_admin';
+    }
+
+    // 2. super_admin has access to everything
+    if (role === 'super_admin') {
+      return true;
+    }
+
+    // 3. Check granular page permissions
+    if (user && Array.isArray(user.permissions)) {
+      if (user.permissions.includes('*')) return true;
+
+      let pageKey = '';
+      if (item.href === '/overview') pageKey = 'overview';
+      else if (item.href === '/dashboard') pageKey = 'dashboard';
+      else if (item.href === '/analytics') pageKey = 'analytics';
+      else if (item.href === '/map') pageKey = 'map';
+      else if (item.href === '/raw') pageKey = 'raw';
+      else if (item.href === '/chat') pageKey = 'chat';
+
+      if (pageKey && !user.permissions.includes(pageKey)) {
+        return false;
+      }
+    }
+
+    // 4. Check minimum role if specified
+    if (item.minRole && !hasMinRole(role, item.minRole)) {
+      return false;
+    }
+
+    return true;
   });
 
   const totalRecords = totalStats
@@ -209,7 +256,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md lg:hidden"
             onClick={() => setMobileDrawerOpen(false)}
           >
             <motion.div
@@ -217,7 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full max-w-[360px] h-full bg-surface border-r border-border shadow-2xl flex flex-col justify-between overflow-y-auto"
+              className="w-full sm:max-w-[380px] h-full bg-surface border-r border-border shadow-2xl flex flex-col justify-between overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Верхняя часть меню: Логотип + Крестик */}

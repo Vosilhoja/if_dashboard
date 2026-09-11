@@ -49,19 +49,41 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Check role-based access for protected routes
+  // Check permissions:
   const userRole = request.cookies.get('hurmo_user_role')?.value || 'viewer';
-  const userLevel = getRoleLevel(userRole);
 
-  for (const route of PROTECTED_ROUTES) {
-    if (pathname.startsWith(route.prefix)) {
-      if (userLevel < route.minRole) {
-        // Redirect to overview with access denied message
-        const overviewUrl = new URL('/overview', request.url);
-        overviewUrl.searchParams.set('access_denied', '1');
-        return NextResponse.redirect(overviewUrl);
+  // 1. Settings is strictly for super_admin. Anyone else gets rewritten to 404
+  if (pathname.startsWith('/settings')) {
+    if (userRole !== 'super_admin') {
+      return NextResponse.rewrite(new URL('/404', request.url));
+    }
+  }
+
+  // 2. Fine-grained page access control based on permissions
+  if (userRole !== 'super_admin') {
+    let pageKey = '';
+    if (pathname.startsWith('/overview')) pageKey = 'overview';
+    else if (pathname.startsWith('/dashboard')) pageKey = 'dashboard';
+    else if (pathname.startsWith('/analytics')) pageKey = 'analytics';
+    else if (pathname.startsWith('/map')) pageKey = 'map';
+    else if (pathname.startsWith('/raw')) pageKey = 'raw';
+    else if (pathname.startsWith('/chat')) pageKey = 'chat';
+
+    if (pageKey) {
+      const permsCookie = request.cookies.get('hurmo_user_permissions')?.value;
+      let userPermissions: string[] = [];
+      try {
+        if (permsCookie) {
+          userPermissions = JSON.parse(decodeURIComponent(permsCookie));
+        }
+      } catch {
+        userPermissions = [];
       }
-      break;
+
+      // If user doesn't have wildcard '*' or specific pageKey, show 404 page
+      if (!userPermissions.includes('*') && !userPermissions.includes(pageKey)) {
+        return NextResponse.rewrite(new URL('/404', request.url));
+      }
     }
   }
 

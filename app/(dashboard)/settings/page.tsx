@@ -26,7 +26,11 @@ import {
   UserCheck,
   ChevronDown,
   Loader2,
+  Trash2,
+  KeyRound,
+  ShieldAlert,
 } from 'lucide-react';
+import { notFound } from 'next/navigation';
 import { useTheme } from '@/lib/theme-context';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 import { useAuth, hasMinRole } from '@/lib/auth-context';
@@ -57,11 +61,21 @@ interface SystemUser {
   username: string;
   full_name?: string;
   role: string;
+  permissions?: string[];
   is_active: boolean;
   telegram_id?: string | null;
   last_login?: string | null;
   created_at?: string;
 }
+
+const AVAILABLE_PAGES = [
+  { key: 'overview', label: 'Главная', desc: 'Сводный обзор' },
+  { key: 'dashboard', label: 'Операционная воронка', desc: 'Конверсии и звонки' },
+  { key: 'analytics', label: 'BI-аналитика', desc: 'Демография и образование' },
+  { key: 'map', label: 'Карта регионов', desc: 'География 14 областей' },
+  { key: 'raw', label: 'Сырые таблицы', desc: 'Просмотр 4 таблиц' },
+  { key: 'chat', label: 'ИИ-Аналитик', desc: 'Аудит и AI-чат' },
+];
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -104,18 +118,30 @@ export default function SettingsPage() {
   const [sessionStartTime] = useState<string>(() => new Date().toLocaleTimeString('ru-RU'));
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
 
-  // === User Management (admin+ only) ===
+  // === User Management (super_admin only) ===
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
-  const [createForm, setCreateForm] = useState({ username: '', password: '', fullName: '', role: 'operator' });
+  const [createForm, setCreateForm] = useState({
+    username: '',
+    password: '',
+    fullName: '',
+    role: 'operator',
+    selectedPages: ['overview', 'dashboard', 'analytics'] as string[],
+  });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [changingRoleId, setChangingRoleId] = useState<number | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
 
-  const canManageUsers = hasMinRole(currentUserRole, 'admin');
+  // Modal / drawer for editing permissions of existing user
+  const [editingPermissionsUser, setEditingPermissionsUser] = useState<SystemUser | null>(null);
+  const [editingPermissionsList, setEditingPermissionsList] = useState<string[]>([]);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+
+  const canManageUsers = currentUserRole === 'super_admin';
 
   const loadUsers = async () => {
     if (!canManageUsers) return;
@@ -142,17 +168,79 @@ export default function SettingsPage() {
       const res = await fetch('/api/proxy/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(createForm),
+        body: JSON.stringify({
+          username: createForm.username,
+          password: createForm.password,
+          fullName: createForm.fullName,
+          role: createForm.role,
+          permissions: createForm.selectedPages,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Ошибка создания');
       setCreateSuccess(`Пользователь "${createForm.username}" создан`);
-      setCreateForm({ username: '', password: '', fullName: '', role: 'operator' });
+      setCreateForm({
+        username: '',
+        password: '',
+        fullName: '',
+        role: 'operator',
+        selectedPages: ['overview', 'dashboard', 'analytics'],
+      });
       await loadUsers();
     } catch (e: unknown) {
       setCreateError(e instanceof Error ? e.message : 'Ошибка');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: SystemUser) => {
+    if (!confirm(`Вы действительно хотите удалить пользователя ${user.username}?`)) {
+      return;
+    }
+    setDeletingUserId(user.id);
+    try {
+      const res = await fetch(`/api/proxy/admin/users/${user.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка удаления');
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    } catch (e: unknown) {
+      setUsersError(e instanceof Error ? e.message : 'Ошибка удаления');
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
+  const handleOpenEditPermissions = (user: SystemUser) => {
+    setEditingPermissionsUser(user);
+    setEditingPermissionsList(user.permissions || []);
+  };
+
+  const handleSaveUserPermissions = async () => {
+    if (!editingPermissionsUser) return;
+    setSavingPermissions(true);
+    try {
+      const res = await fetch(`/api/proxy/admin/users/${editingPermissionsUser.id}/permissions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions: editingPermissionsList }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка сохранения прав');
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === editingPermissionsUser.id
+            ? { ...u, permissions: editingPermissionsList }
+            : u
+        )
+      );
+      setEditingPermissionsUser(null);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Ошибка сохранения прав');
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
@@ -380,6 +468,11 @@ export default function SettingsPage() {
       setIsLoggingOut(false);
     }
   };
+
+  // Only super_admin is allowed into SettingsPage
+  if (currentUserRole && currentUserRole !== 'super_admin') {
+    return notFound();
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
@@ -794,13 +887,18 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 9. User Management (admin+ only) */}
+      {/* 9. User Management (super_admin only) with Fine-Grained Page Permissions */}
       {canManageUsers && (
         <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-accent" />
-              <h2 className="text-sm font-semibold text-primary">Управление пользователями</h2>
+              <div>
+                <h2 className="text-sm font-semibold text-primary">Управление пользователями и правами страниц</h2>
+                <p className="text-[11px] text-secondary">
+                  Создание аккаунтов, удаление, выбор роли и точная настройка доступных вкладок (RBAC)
+                </p>
+              </div>
             </div>
             <button
               onClick={loadUsers}
@@ -808,7 +906,7 @@ export default function SettingsPage() {
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-surface-2 border border-border text-[11px] text-secondary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3 h-3 ${usersLoading ? 'animate-spin text-accent' : ''}`} />
-              <span>{usersLoading ? 'Загрузка...' : 'Загрузить список'}</span>
+              <span>{usersLoading ? 'Загрузка...' : 'Обновить список'}</span>
             </button>
           </div>
 
@@ -822,85 +920,243 @@ export default function SettingsPage() {
           {/* User List */}
           {users.length > 0 && (
             <div className="space-y-2">
-              {users.map((user) => (
-                <div key={user.id} className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                      user.is_active ? 'bg-accent/15 text-accent' : 'bg-surface border border-border text-secondary'
-                    }`}>
-                      {user.username[0]?.toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium text-primary truncate">
-                        {user.full_name || user.username}
-                        <span className="ml-1.5 text-secondary font-normal">@{user.username}</span>
+              {users.map((u) => {
+                const isSuperAdmin = u.role === 'super_admin';
+                const userPerms = Array.isArray(u.permissions) ? u.permissions : [];
+
+                return (
+                  <div
+                    key={u.id}
+                    className="p-3.5 rounded-[8px] bg-surface-2/60 border border-border/60 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
+                          u.is_active ? 'bg-accent/15 text-accent border border-accent/20' : 'bg-surface border border-border text-secondary'
+                        }`}
+                      >
+                        {u.username[0]?.toUpperCase()}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-[3px] font-medium ${
-                          user.is_active
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                        }`}>
-                          {user.is_active ? '● Активен' : '○ Заблокирован'}
-                        </span>
-                        {user.telegram_id && (
-                          <span className="text-[10px] text-blue-500">TG: {user.telegram_id}</span>
+                      <div className="min-w-0 space-y-1">
+                        <div className="text-xs font-semibold text-primary flex items-center gap-1.5 flex-wrap">
+                          <span>{u.full_name || u.username}</span>
+                          <span className="text-secondary font-mono text-[11px]">@{u.username}</span>
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
+                              isSuperAdmin
+                                ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+                                : 'bg-accent/15 text-accent border border-accent/20'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </div>
+
+                        {/* Badges of allowed pages */}
+                        <div className="flex items-center gap-1 flex-wrap pt-0.5">
+                          <span className="text-[10px] text-secondary">Доступ:</span>
+                          {isSuperAdmin || userPerms.includes('*') ? (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-[4px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-medium">
+                              Все страницы (Суперадмин)
+                            </span>
+                          ) : userPerms.length === 0 ? (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-[4px] bg-rose-500/15 text-rose-600 dark:text-rose-400 font-medium">
+                              Нет доступных страниц
+                            </span>
+                          ) : (
+                            userPerms.map((p) => {
+                              const found = AVAILABLE_PAGES.find((ap) => ap.key === p);
+                              return (
+                                <span
+                                  key={p}
+                                  className="text-[10px] px-1.5 py-0.2 rounded-[4px] bg-surface border border-border text-secondary font-medium"
+                                >
+                                  {found ? found.label : p}
+                                </span>
+                              );
+                            })
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-[3px] font-medium ${
+                              u.is_active
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                            }`}
+                          >
+                            {u.is_active ? '● Активен' : '○ Заблокирован'}
+                          </span>
+                          {u.telegram_id && (
+                            <span className="text-[10px] text-blue-500">TG: {u.telegram_id}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                      {/* Edit pages / permissions button */}
+                      {!isSuperAdmin && (
+                        <button
+                          onClick={() => handleOpenEditPermissions(u)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-surface hover:bg-surface-2 border border-border text-[11px] font-medium text-primary transition-colors cursor-pointer"
+                          title="Настроить доступ к страницам"
+                        >
+                          <KeyRound className="w-3 h-3 text-accent" />
+                          <span>Страницы ({userPerms.length})</span>
+                        </button>
+                      )}
+
+                      {/* Role selector */}
+                      <div className="relative">
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                          disabled={changingRoleId === u.id || isSuperAdmin}
+                          className="appearance-none pl-2.5 pr-6 py-1.5 bg-surface border border-border rounded-[6px] text-[11px] text-primary focus:outline-none focus:border-accent cursor-pointer transition-colors disabled:opacity-60"
+                        >
+                          <option value="viewer">viewer</option>
+                          <option value="operator">operator</option>
+                          <option value="manager">manager</option>
+                          <option value="admin">admin</option>
+                          <option value="super_admin">super_admin</option>
+                        </select>
+                        {changingRoleId === u.id ? (
+                          <Loader2 className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-accent" />
+                        ) : (
+                          <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-secondary pointer-events-none" />
                         )}
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Role selector */}
-                    <div className="relative">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                        disabled={changingRoleId === user.id}
-                        className="appearance-none pl-2.5 pr-6 py-1 bg-surface border border-border rounded-[6px] text-[11px] text-primary focus:outline-none focus:border-accent cursor-pointer transition-colors"
-                      >
-                        <option value="viewer">viewer</option>
-                        <option value="operator">operator</option>
-                        <option value="manager">manager</option>
-                        <option value="admin">admin</option>
-                        {currentUserRole === 'super_admin' && <option value="super_admin">super_admin</option>}
-                      </select>
-                      {changingRoleId === user.id ? (
-                        <Loader2 className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-accent" />
-                      ) : (
-                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-secondary pointer-events-none" />
+                      {/* Toggle active button */}
+                      {!isSuperAdmin && (
+                        <button
+                          onClick={() => handleToggleActive(u)}
+                          disabled={togglingId === u.id}
+                          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] text-[11px] font-medium transition-colors cursor-pointer disabled:opacity-50 border ${
+                            u.is_active
+                              ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+                              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                          }`}
+                        >
+                          {togglingId === u.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : u.is_active ? (
+                            <>
+                              <UserX className="w-3 h-3" />
+                              <span>Блок</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="w-3 h-3" />
+                              <span>Активировать</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {/* Delete user button */}
+                      {!isSuperAdmin && (
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          disabled={deletingUserId === u.id}
+                          className="p-1.5 rounded-[6px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Удалить пользователя"
+                        >
+                          {deletingUserId === u.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       )}
                     </div>
-
-                    {/* Toggle active button */}
-                    <button
-                      onClick={() => handleToggleActive(user)}
-                      disabled={togglingId === user.id}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-medium transition-colors cursor-pointer disabled:opacity-50 border ${
-                        user.is_active
-                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
-                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                      }`}
-                    >
-                      {togglingId === user.id ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : user.is_active ? (
-                        <><UserX className="w-3 h-3" /><span>Блок</span></>
-                      ) : (
-                        <><UserCheck className="w-3 h-3" /><span>Активировать</span></>
-                      )}
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
-          {/* Create User Form */}
+          {/* Modal / Drawer for editing permissions of existing user */}
+          {editingPermissionsUser && (
+            <div className="p-4 rounded-[8px] bg-accent/5 border border-accent/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-accent" />
+                  <span className="text-xs font-semibold text-primary">
+                    Доступные страницы для @{editingPermissionsUser.username}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setEditingPermissionsUser(null)}
+                  className="text-xs text-secondary hover:text-primary cursor-pointer"
+                >
+                  ✕ Закрыть
+                </button>
+              </div>
+
+              <p className="text-[11px] text-secondary">
+                Отметьте страницы, которые будут отображаться в бургер-меню и будут доступны по прямым ссылкам:
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                {AVAILABLE_PAGES.map((page) => {
+                  const isChecked = editingPermissionsList.includes(page.key);
+                  return (
+                    <label
+                      key={page.key}
+                      className={`flex items-start gap-2 p-2 rounded-[6px] border cursor-pointer transition-all ${
+                        isChecked
+                          ? 'bg-accent/10 border-accent text-primary'
+                          : 'bg-surface border-border text-secondary'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setEditingPermissionsList((prev) => [...prev, page.key]);
+                          } else {
+                            setEditingPermissionsList((prev) => prev.filter((k) => k !== page.key));
+                          }
+                        }}
+                        className="mt-0.5 accent-accent"
+                      />
+                      <div className="text-[11px] leading-tight">
+                        <div className="font-semibold">{page.label}</div>
+                        <div className="text-[10px] opacity-75">{page.desc}</div>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setEditingPermissionsUser(null)}
+                  className="px-3 py-1.5 rounded-[6px] bg-surface border border-border text-xs text-secondary hover:text-primary cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSaveUserPermissions}
+                  disabled={savingPermissions}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] bg-accent text-white hover:opacity-95 text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {savingPermissions ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>{savingPermissions ? 'Сохранение...' : 'Сохранить доступ'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Create User Form with Checkboxes */}
           <div className="pt-3 border-t border-border/60">
             <div className="flex items-center gap-2 mb-3">
               <UserPlus className="w-3.5 h-3.5 text-accent" />
-              <span className="text-xs font-medium text-primary">Создать нового пользователя</span>
+              <span className="text-xs font-semibold text-primary">Создать нового пользователя с доступом к страницам</span>
             </div>
 
             {createError && (
@@ -915,49 +1171,114 @@ export default function SettingsPage() {
               </div>
             )}
 
-            <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <input
-                type="text"
-                placeholder="Логин (username)*"
-                value={createForm.username}
-                onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
-                required
-                className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
-              />
-              <input
-                type="password"
-                placeholder="Пароль*"
-                value={createForm.password}
-                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
-                required
-                className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
-              />
-              <input
-                type="text"
-                placeholder="ФИО (необязательно)"
-                value={createForm.fullName}
-                onChange={(e) => setCreateForm((f) => ({ ...f, fullName: e.target.value }))}
-                className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
-              />
-              <div className="flex gap-2">
+            <form onSubmit={handleCreateUser} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+                <input
+                  type="text"
+                  placeholder="Логин (username)*"
+                  value={createForm.username}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
+                  required
+                  className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                />
+                <input
+                  type="password"
+                  placeholder="Пароль*"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                  required
+                  className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                />
+                <input
+                  type="text"
+                  placeholder="ФИО (необязательно)"
+                  value={createForm.fullName}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, fullName: e.target.value }))}
+                  className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                />
                 <select
                   value={createForm.role}
                   onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value }))}
-                  className="flex-1 px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                  className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
                 >
-                  <option value="viewer">viewer</option>
-                  <option value="operator">operator</option>
-                  <option value="manager">manager</option>
-                  <option value="admin">admin</option>
-                  {currentUserRole === 'super_admin' && <option value="super_admin">super_admin</option>}
+                  <option value="viewer">viewer (наблюдатель)</option>
+                  <option value="operator">operator (оператор)</option>
+                  <option value="manager">manager (менеджер)</option>
+                  <option value="admin">admin (администратор)</option>
+                  <option value="super_admin">super_admin (главный админ)</option>
                 </select>
+              </div>
+
+              {/* Page checkboxes for new user */}
+              <div className="p-3 rounded-[6px] bg-surface-2/40 border border-border/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-primary">
+                    Доступные страницы для этого пользователя:
+                  </span>
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setCreateForm((f) => ({ ...f, selectedPages: AVAILABLE_PAGES.map((p) => p.key) }))}
+                      className="text-accent hover:underline cursor-pointer"
+                    >
+                      Выбрать все
+                    </button>
+                    <span className="text-border">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setCreateForm((f) => ({ ...f, selectedPages: [] }))}
+                      className="text-secondary hover:underline cursor-pointer"
+                    >
+                      Снять все
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {AVAILABLE_PAGES.map((page) => {
+                    const isChecked = createForm.selectedPages.includes(page.key);
+                    return (
+                      <label
+                        key={page.key}
+                        className={`flex items-start gap-2 p-2 rounded-[6px] border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'bg-accent/10 border-accent text-primary'
+                            : 'bg-surface border-border text-secondary'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCreateForm((f) => ({ ...f, selectedPages: [...f.selectedPages, page.key] }));
+                            } else {
+                              setCreateForm((f) => ({
+                                ...f,
+                                selectedPages: f.selectedPages.filter((k) => k !== page.key),
+                              }));
+                            }
+                          }}
+                          className="mt-0.5 accent-accent"
+                        />
+                        <div className="text-[11px] leading-tight">
+                          <div className="font-semibold">{page.label}</div>
+                          <div className="text-[10px] opacity-70">{page.desc}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
                 <button
                   type="submit"
                   disabled={creating || !createForm.username || !createForm.password}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-accent text-white hover:opacity-95 text-xs font-medium transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-[6px] bg-accent text-white hover:opacity-95 text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
-                  <span>{creating ? 'Создание...' : 'Создать'}</span>
+                  <span>{creating ? 'Создание пользователя...' : 'Создать пользователя с выбранными правами'}</span>
                 </button>
               </div>
             </form>

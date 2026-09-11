@@ -47,10 +47,20 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60, // 7 days matching JWT
     });
 
-    // Also store minimal non-sensitive user role cookie for fast SSR/middleware checks
+    // Also store minimal non-sensitive user role and permissions cookies for fast SSR/middleware checks
     response.cookies.set({
       name: 'hurmo_user_role',
       value: data.user?.role || 'viewer',
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
+    response.cookies.set({
+      name: 'hurmo_user_permissions',
+      value: JSON.stringify(data.user?.permissions || []),
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
