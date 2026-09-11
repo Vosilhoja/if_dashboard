@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, ArrowRight, ShieldCheck, AlertCircle, Loader2, User } from 'lucide-react';
 import { login } from '@/lib/api-client';
 
-export default function LoginPage() {
+// Inner component that uses useSearchParams — must be wrapped in Suspense
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get('from') || '/dashboard';
@@ -24,7 +25,6 @@ export default function LoginPage() {
 
     try {
       await login(username.trim(), password);
-      // Redirect to target destination or main dashboard
       router.push(from);
       router.refresh();
     } catch (err: unknown) {
@@ -130,5 +130,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Page wrapper — Suspense required for useSearchParams() in Next.js App Router
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-page flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

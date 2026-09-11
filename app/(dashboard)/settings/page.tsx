@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Sliders,
   ExternalLink,
-  Table,
   Sun,
   Moon,
   LogOut,
@@ -12,7 +11,6 @@ import {
   AlertCircle,
   Database,
   SlidersHorizontal,
-  Info,
   RefreshCw,
   Bell,
   Calendar,
@@ -22,9 +20,16 @@ import {
   Send,
   History,
   Activity,
+  Users,
+  UserPlus,
+  UserX,
+  UserCheck,
+  ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
+import { useAuth, hasMinRole } from '@/lib/auth-context';
 
 interface SheetInfo {
   key: string;
@@ -47,9 +52,21 @@ interface ThresholdLogItem {
   threshold: number;
 }
 
+interface SystemUser {
+  id: number;
+  username: string;
+  full_name?: string;
+  role: string;
+  is_active: boolean;
+  telegram_id?: string | null;
+  last_login?: string | null;
+  created_at?: string;
+}
+
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { weekStartsOn, setWeekStartsOn } = useAnalyticsFilter();
+  const { role: currentUserRole } = useAuth();
 
   const [settingsUrl, setSettingsUrl] = useState<string>('');
   const [sheets, setSheets] = useState<SheetInfo[]>([]);
@@ -66,7 +83,7 @@ export default function SettingsPage() {
   const [thresholdHistory, setThresholdHistory] = useState<ThresholdLogItem[]>([]);
 
   // 2. Auto-refresh Interval
-  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(3); // in minutes, 0 = off
+  const [autoRefreshInterval, setAutoRefreshInterval] = useState<number>(3);
 
   // 3. Data Quality Thresholds
   const [qualityWarningThreshold, setQualityWarningThreshold] = useState<number>(10);
@@ -86,6 +103,98 @@ export default function SettingsPage() {
   // 6. Session Info
   const [sessionStartTime] = useState<string>(() => new Date().toLocaleTimeString('ru-RU'));
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+
+  // === User Management (admin+ only) ===
+  const [users, setUsers] = useState<SystemUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [createForm, setCreateForm] = useState({ username: '', password: '', fullName: '', role: 'operator' });
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [changingRoleId, setChangingRoleId] = useState<number | null>(null);
+
+  const canManageUsers = hasMinRole(currentUserRole, 'admin');
+
+  const loadUsers = async () => {
+    if (!canManageUsers) return;
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const res = await fetch('/api/proxy/admin/users');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка загрузки');
+      setUsers(data.users || []);
+    } catch (e: unknown) {
+      setUsersError(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    setCreateError(null);
+    setCreateSuccess(null);
+    try {
+      const res = await fetch('/api/proxy/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка создания');
+      setCreateSuccess(`Пользователь "${createForm.username}" создан`);
+      setCreateForm({ username: '', password: '', fullName: '', role: 'operator' });
+      await loadUsers();
+    } catch (e: unknown) {
+      setCreateError(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleToggleActive = async (user: SystemUser) => {
+    setTogglingId(user.id);
+    try {
+      const res = await fetch(`/api/proxy/admin/users/${user.id}/active`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !user.is_active }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || 'Ошибка');
+      }
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, is_active: !u.is_active } : u));
+    } catch (e: unknown) {
+      setUsersError(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleChangeRole = async (userId: number, newRole: string) => {
+    setChangingRoleId(userId);
+    try {
+      const res = await fetch(`/api/proxy/admin/users/${userId}/role`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(d.error || 'Ошибка');
+      }
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
+    } catch (e: unknown) {
+      setUsersError(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setChangingRoleId(null);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -685,7 +794,178 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 9. Theme & Session / Logout */}
+      {/* 9. User Management (admin+ only) */}
+      {canManageUsers && (
+        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-accent" />
+              <h2 className="text-sm font-semibold text-primary">Управление пользователями</h2>
+            </div>
+            <button
+              onClick={loadUsers}
+              disabled={usersLoading}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-surface-2 border border-border text-[11px] text-secondary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 ${usersLoading ? 'animate-spin text-accent' : ''}`} />
+              <span>{usersLoading ? 'Загрузка...' : 'Загрузить список'}</span>
+            </button>
+          </div>
+
+          {usersError && (
+            <div className="p-2 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>{usersError}</span>
+            </div>
+          )}
+
+          {/* User List */}
+          {users.length > 0 && (
+            <div className="space-y-2">
+              {users.map((user) => (
+                <div key={user.id} className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                      user.is_active ? 'bg-accent/15 text-accent' : 'bg-surface border border-border text-secondary'
+                    }`}>
+                      {user.username[0]?.toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-primary truncate">
+                        {user.full_name || user.username}
+                        <span className="ml-1.5 text-secondary font-normal">@{user.username}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-[3px] font-medium ${
+                          user.is_active
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                        }`}>
+                          {user.is_active ? '● Активен' : '○ Заблокирован'}
+                        </span>
+                        {user.telegram_id && (
+                          <span className="text-[10px] text-blue-500">TG: {user.telegram_id}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Role selector */}
+                    <div className="relative">
+                      <select
+                        value={user.role}
+                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                        disabled={changingRoleId === user.id}
+                        className="appearance-none pl-2.5 pr-6 py-1 bg-surface border border-border rounded-[6px] text-[11px] text-primary focus:outline-none focus:border-accent cursor-pointer transition-colors"
+                      >
+                        <option value="viewer">viewer</option>
+                        <option value="operator">operator</option>
+                        <option value="manager">manager</option>
+                        <option value="admin">admin</option>
+                        {currentUserRole === 'super_admin' && <option value="super_admin">super_admin</option>}
+                      </select>
+                      {changingRoleId === user.id ? (
+                        <Loader2 className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-accent" />
+                      ) : (
+                        <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-secondary pointer-events-none" />
+                      )}
+                    </div>
+
+                    {/* Toggle active button */}
+                    <button
+                      onClick={() => handleToggleActive(user)}
+                      disabled={togglingId === user.id}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-[6px] text-[11px] font-medium transition-colors cursor-pointer disabled:opacity-50 border ${
+                        user.is_active
+                          ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                      }`}
+                    >
+                      {togglingId === user.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : user.is_active ? (
+                        <><UserX className="w-3 h-3" /><span>Блок</span></>
+                      ) : (
+                        <><UserCheck className="w-3 h-3" /><span>Активировать</span></>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Create User Form */}
+          <div className="pt-3 border-t border-border/60">
+            <div className="flex items-center gap-2 mb-3">
+              <UserPlus className="w-3.5 h-3.5 text-accent" />
+              <span className="text-xs font-medium text-primary">Создать нового пользователя</span>
+            </div>
+
+            {createError && (
+              <div className="mb-2 p-2 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs">
+                {createError}
+              </div>
+            )}
+            {createSuccess && (
+              <div className="mb-2 p-2 rounded-[6px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {createSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <input
+                type="text"
+                placeholder="Логин (username)*"
+                value={createForm.username}
+                onChange={(e) => setCreateForm((f) => ({ ...f, username: e.target.value }))}
+                required
+                className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+              />
+              <input
+                type="password"
+                placeholder="Пароль*"
+                value={createForm.password}
+                onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+                required
+                className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+              />
+              <input
+                type="text"
+                placeholder="ФИО (необязательно)"
+                value={createForm.fullName}
+                onChange={(e) => setCreateForm((f) => ({ ...f, fullName: e.target.value }))}
+                className="px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+              />
+              <div className="flex gap-2">
+                <select
+                  value={createForm.role}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, role: e.target.value }))}
+                  className="flex-1 px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                >
+                  <option value="viewer">viewer</option>
+                  <option value="operator">operator</option>
+                  <option value="manager">manager</option>
+                  <option value="admin">admin</option>
+                  {currentUserRole === 'super_admin' && <option value="super_admin">super_admin</option>}
+                </select>
+                <button
+                  type="submit"
+                  disabled={creating || !createForm.username || !createForm.password}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-accent text-white hover:opacity-95 text-xs font-medium transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                  <span>{creating ? 'Создание...' : 'Создать'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      )}
+
+      {/* 10. Theme & Session / Logout */}
       <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
         <div>
           <h2 className="text-sm font-semibold text-primary">Внешний вид и сессия</h2>
