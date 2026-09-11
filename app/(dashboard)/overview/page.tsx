@@ -39,6 +39,9 @@ import { formatDateToISO } from '@/lib/date-utils';
 import { startOfWeek, endOfWeek, subDays, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { FunnelWidget } from '@/components/FunnelWidget';
+import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
+import { OdometerNumber } from '@/components/ui/OdometerNumber';
+import { motion } from 'framer-motion';
 
 interface SheetHealth {
   name: string;
@@ -208,14 +211,26 @@ export default function OverviewPage() {
       {/* ============================================================
           HERO СЕКЦИЯ В СТИЛЕ РЕФЕРЕНСА (Жирный заголовок + Поиск + Чипсы)
           ============================================================ */}
-      <section className="pt-2 pb-1 space-y-4 animate-fade-in">
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-4xl font-black text-primary tracking-tight leading-[1.15]">
-            Аналитика колл-центра и воронки в реальном времени
-          </h1>
-          <p className="text-xs sm:text-sm text-secondary leading-relaxed max-w-2xl">
-            Сквозной контроль 4 баз данных Google Sheets, операционная конверсия звонков операторов и статус респондентов по всему Узбекистану
-          </p>
+      {/* Header with Title and Sync Button */}
+      <section className="pt-1 pb-1 space-y-3 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-lg font-semibold text-primary tracking-tight">
+              Сводный обзор дашборда
+            </h1>
+            <p className="text-[11px] text-secondary leading-relaxed max-w-2xl">
+              Сквозной контроль 4 баз данных Google Sheets, операционная конверсия звонков операторов и статус респондентов по всему Узбекистану
+            </p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => loadOverviewData(true)}
+            disabled={refreshing}
+            className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-semibold border border-border transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-accent' : ''}`} />
+            <span>{refreshing ? 'Синхронизация...' : 'Синхронизировать'}</span>
+          </motion.button>
         </div>
 
         {/* Поисковый инпут в стиле референса */}
@@ -282,91 +297,122 @@ export default function OverviewPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.03 },
+            },
+          }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+        >
           {/* Card 1: Calls */}
-          <Link
-            href="/dashboard"
-            className="p-4 rounded-[8px] bg-surface border border-border/80 hover-lift group cursor-pointer block animate-fade-in delay-50"
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+            }}
           >
-            <div className="flex items-center justify-between text-secondary mb-2">
-              <span className="text-xs font-medium">Звонки поддержки</span>
-              <div className="p-1.5 rounded-[6px] bg-accent/10 text-accent group-hover:scale-110 transition-transform">
-                <PhoneCall className="w-4 h-4" />
+            <Link
+              href="/dashboard"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 hover-lift group cursor-pointer block transition-colors"
+            >
+              <div className="flex items-center justify-between text-secondary mb-2">
+                <span className="text-xs font-medium">Звонки поддержки</span>
+                <PhoneCall className="w-4 h-4 text-secondary group-hover:text-primary transition-colors" />
               </div>
-            </div>
-            <div className="text-2xl font-bold text-primary tabular-nums">
-              {loading ? '...' : callsVal.toLocaleString('ru-RU')}
-            </div>
-            <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
-              <span>За текущую неделю</span>
-              <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto" />
-            </div>
-          </Link>
+              <div className="text-2xl font-bold text-primary tabular-nums">
+                {loading ? '...' : <OdometerNumber value={callsVal} />}
+              </div>
+              <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
+                <span>За текущую неделю</span>
+                <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto" />
+              </div>
+            </Link>
+          </motion.div>
 
           {/* Card 2: Registrations */}
-          <Link
-            href="/dashboard"
-            className="p-4 rounded-[8px] bg-surface border border-border/80 hover-lift group cursor-pointer block animate-fade-in delay-100"
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+            }}
           >
-            <div className="flex items-center justify-between text-secondary mb-2">
-              <span className="text-xs font-medium">Новые регистрации</span>
-              <div className="p-1.5 rounded-[6px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
-                <UserCheck className="w-4 h-4" />
+            <Link
+              href="/dashboard"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 hover-lift group cursor-pointer block transition-colors"
+            >
+              <div className="flex items-center justify-between text-secondary mb-2">
+                <span className="text-xs font-medium">Новые регистрации</span>
+                <UserCheck className="w-4 h-4 text-secondary group-hover:text-primary transition-colors" />
               </div>
-            </div>
-            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-              {loading ? '...' : registeredVal.toLocaleString('ru-RU')}
-            </div>
-            <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
-              <span>Пользователей в базе</span>
-              <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto" />
-            </div>
-          </Link>
+              <div className="text-2xl font-bold text-primary tabular-nums">
+                {loading ? '...' : <OdometerNumber value={registeredVal} />}
+              </div>
+              <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
+                <span>Пользователей в базе</span>
+                <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto" />
+              </div>
+            </Link>
+          </motion.div>
 
           {/* Card 3: Declined */}
-          <Link
-            href="/dashboard"
-            className="p-4 rounded-[8px] bg-surface border border-border/80 hover-lift group cursor-pointer block animate-fade-in delay-150"
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+            }}
           >
-            <div className="flex items-center justify-between text-secondary mb-2">
-              <span className="text-xs font-medium">Отказы и сбросы</span>
-              <div className="p-1.5 rounded-[6px] bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform">
-                <UserX className="w-4 h-4" />
+            <Link
+              href="/dashboard"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 hover-lift group cursor-pointer block transition-colors"
+            >
+              <div className="flex items-center justify-between text-secondary mb-2">
+                <span className="text-xs font-medium">Отказы и сбросы</span>
+                <UserX className="w-4 h-4 text-secondary group-hover:text-primary transition-colors" />
               </div>
-            </div>
-            <div className="text-2xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">
-              {loading ? '...' : declinedVal.toLocaleString('ru-RU')}
-            </div>
-            <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
-              <span>Нет времени / отказ</span>
-              <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto" />
-            </div>
-          </Link>
+              <div className="text-2xl font-bold text-primary tabular-nums">
+                {loading ? '...' : <OdometerNumber value={declinedVal} />}
+              </div>
+              <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
+                <span>Нет времени / отказ</span>
+                <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto" />
+              </div>
+            </Link>
+          </motion.div>
 
           {/* Card 4: SMS Ratio */}
-          <Link
-            href="/dashboard"
-            className="p-4 rounded-[8px] bg-surface border border-border/80 hover-lift group cursor-pointer block animate-fade-in delay-200"
+          <motion.div
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+            }}
           >
-            <div className="flex items-center justify-between text-secondary mb-2">
-              <span className="text-xs font-medium">Соотношение SMS</span>
-              <div className="p-1.5 rounded-[6px] bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
-                <MessageSquare className="w-4 h-4" />
+            <Link
+              href="/dashboard"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 hover-lift group cursor-pointer block transition-colors"
+            >
+              <div className="flex items-center justify-between text-secondary mb-2">
+                <span className="text-xs font-medium">Соотношение SMS</span>
+                <MessageSquare className="w-4 h-4 text-secondary group-hover:text-primary transition-colors" />
               </div>
-            </div>
-            <div className="text-2xl font-bold text-primary tabular-nums">
-              {loading
-                ? '...'
-                : smsVerification?.ratio !== undefined
-                ? `${Math.round(smsVerification.ratio * 100)}%`
-                : '—'}
-            </div>
-            <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
-              <span className="truncate">{smsVerification?.statusText || 'numbers vs eskiz'}</span>
-              <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto shrink-0" />
-            </div>
-          </Link>
-        </div>
+              <div className="text-2xl font-bold text-primary tabular-nums">
+                {loading
+                  ? '...'
+                  : smsVerification?.ratio !== undefined
+                  ? `${Math.round(smsVerification.ratio * 100)}%`
+                  : '—'}
+              </div>
+              <div className="text-[11px] text-secondary mt-1 flex items-center gap-1">
+                <span className="truncate">{smsVerification?.statusText || 'numbers vs eskiz'}</span>
+                <ArrowRight className="w-3 h-3 text-secondary group-hover:translate-x-0.5 transition-transform ml-auto shrink-0" />
+              </div>
+            </Link>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* 2. Conversion Funnel */}
@@ -403,7 +449,12 @@ export default function OverviewPage() {
           </Link>
         </div>
 
-        <div className="h-56 w-full">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="h-56 w-full"
+        >
           {dynamicsChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dynamicsChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -451,7 +502,7 @@ export default function OverviewPage() {
               {loading ? 'Загрузка динамики...' : 'Нет данных динамики'}
             </div>
           )}
-        </div>
+        </motion.div>
       </section>
 
       {/* 4. Quick Links Showcase */}
@@ -465,134 +516,106 @@ export default function OverviewPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Card: Dashboard */}
-          <Link
-            href="/dashboard"
-            className="p-5 rounded-3xl bg-surface border border-border/80 hover-lift group flex flex-col justify-between space-y-4 animate-fade-in delay-100 active:scale-[0.99] transition-all"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-              <Activity className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-primary group-hover:text-accent transition-colors">
-                  Операционная воронка
-                </h3>
-                <ArrowRight className="w-4 h-4 text-secondary group-hover:text-accent group-hover:translate-x-1 transition-all shrink-0" />
+          <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.12 }}>
+            <Link
+              href="/dashboard"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 group flex items-start justify-between gap-3 block h-full transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <Activity className="w-5 h-5 text-secondary group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">
+                    Операционная воронка
+                  </h3>
+                  <p className="text-[11px] text-secondary leading-relaxed">
+                    Контроль звонков службы поддержки, верификация SMS-шлюза Eskiz и выявление аномалий
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Контроль звонков службы поддержки, верификация SMS-шлюза Eskiz и выявление аномалий по нормативам
-              </p>
-            </div>
-          </Link>
+              <ArrowRight className="w-3.5 h-3.5 text-secondary group-hover:text-accent group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            </Link>
+          </motion.div>
 
           {/* Card: BI Analytics */}
-          <Link
-            href="/analytics"
-            className="p-5 rounded-3xl bg-surface border border-border/80 hover-lift group flex flex-col justify-between space-y-4 animate-fade-in delay-150 active:scale-[0.99] transition-all"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-              <BarChart3 className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-primary group-hover:text-emerald-500 transition-colors">
-                  BI-аналитика
-                </h3>
-                <ArrowRight className="w-4 h-4 text-secondary group-hover:text-emerald-500 group-hover:translate-x-1 transition-all shrink-0" />
+          <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.12 }}>
+            <Link
+              href="/analytics"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 group flex items-start justify-between gap-3 block h-full transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <BarChart3 className="w-5 h-5 text-secondary group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">
+                    BI-аналитика
+                  </h3>
+                  <p className="text-[11px] text-secondary leading-relaxed">
+                    Интерактивная демография: половозрастная пирамида, уровень образования и источники
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Интерактивная демография: половозрастная пирамида, уровень образования и источники привлечения
-              </p>
-            </div>
-          </Link>
+              <ArrowRight className="w-3.5 h-3.5 text-secondary group-hover:text-accent group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            </Link>
+          </motion.div>
 
           {/* Card: Map */}
-          <Link
-            href="/map"
-            className="p-5 rounded-3xl bg-surface border border-border/80 hover-lift group flex flex-col justify-between space-y-4 animate-fade-in delay-200 active:scale-[0.99] transition-all"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-              <Map className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-primary group-hover:text-sky-500 transition-colors">
-                  Интерактивная карта регионов
-                </h3>
-                <ArrowRight className="w-4 h-4 text-secondary group-hover:text-sky-500 group-hover:translate-x-1 transition-all shrink-0" />
+          <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.12 }}>
+            <Link
+              href="/map"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 group flex items-start justify-between gap-3 block h-full transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <Map className="w-5 h-5 text-secondary group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">
+                    Интерактивная карта регионов
+                  </h3>
+                  <p className="text-[11px] text-secondary leading-relaxed">
+                    Географическое распределение по 14 областям Узбекистана с детализацией по районам
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Географическое распределение по 14 областям Узбекистана с детализацией по районам при клике
-              </p>
-            </div>
-          </Link>
+              <ArrowRight className="w-3.5 h-3.5 text-secondary group-hover:text-accent group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            </Link>
+          </motion.div>
 
           {/* Card: Raw Data */}
-          <Link
-            href="/raw"
-            className="p-5 rounded-3xl bg-surface border border-border/80 hover-lift group flex flex-col justify-between space-y-4 animate-fade-in delay-250 active:scale-[0.99] transition-all"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-              <Database className="w-6 h-6" />
-            </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-primary group-hover:text-purple-500 transition-colors">
-                  Сырые таблицы
-                </h3>
-                <ArrowRight className="w-4 h-4 text-secondary group-hover:text-purple-500 group-hover:translate-x-1 transition-all shrink-0" />
+          <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.12 }}>
+            <Link
+              href="/raw"
+              className="p-4 rounded-[8px] bg-surface border border-border hover:border-accent/40 group flex items-start justify-between gap-3 block h-full transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <Database className="w-5 h-5 text-secondary group-hover:text-primary transition-colors shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">
+                    Сырые таблицы
+                  </h3>
+                  <p className="text-[11px] text-secondary leading-relaxed">
+                    Прямой просмотр и поиск по строкам всех 4 подключённых Google Таблиц
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-secondary leading-relaxed">
-                Прямой просмотр и поиск по строкам всех 4 подключённых Google Таблиц с постраничной пагинацией
-              </p>
-            </div>
-          </Link>
+              <ArrowRight className="w-3.5 h-3.5 text-secondary group-hover:text-accent group-hover:translate-x-0.5 transition-all shrink-0 mt-0.5" />
+            </Link>
+          </motion.div>
         </div>
       </section>
 
-      {/* 4.5 System Anomaly Status Strip (Clean & Non-intrusive) */}
+      {/* 4.5 System Anomaly Status Strip */}
       {anomalyAlertsEnabled && (
         <section className="animate-fade-in delay-300">
-          {hasAnomaly ? (
-            <div className="p-3.5 rounded-[10px] bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 rounded-[6px] bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
-                  <AlertTriangle className="w-4 h-4" />
-                </div>
-                <div className="text-xs">
-                  <span className="font-semibold text-primary">Отклонение в показателях: </span>
-                  <span className="text-secondary">
-                    {metrics?.anomalyData?.callsAnomaly.isAnomaly
-                      ? `Звонков на ${Math.abs(metrics.anomalyData.callsAnomaly.deltaPercent)}% ${metrics.anomalyData.callsAnomaly.direction === 'up' ? 'больше' : 'меньше'} нормы.`
-                      : `Отказов на ${Math.abs(metrics?.anomalyData?.declinedAnomaly.deltaPercent || 0)}% ${metrics?.anomalyData?.declinedAnomaly.direction === 'up' ? 'больше' : 'меньше'} нормы.`}
-                  </span>
-                </div>
-              </div>
-              <Link
-                href="/dashboard#anomalies"
-                className="active-press self-start sm:self-auto px-3 py-1.5 rounded-[6px] bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs transition-colors flex items-center gap-1 shrink-0"
-              >
-                <span>Смотреть аномалии</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-          ) : (
-            <div className="px-3.5 py-2.5 rounded-[10px] bg-surface border border-border/80 flex items-center justify-between text-xs text-secondary">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span className="text-primary font-medium">Стабильность метрик:</span>
-                <span>Показатели находятся в пределах 4-недельной нормы</span>
-              </div>
-              <Link
-                href="/dashboard"
-                className="text-xs text-accent hover:underline font-medium hidden sm:inline-block"
-              >
-                Подробнее
-              </Link>
-            </div>
-          )}
+          <AnomalyBanner
+            hasAnomaly={hasAnomaly}
+            message={
+              metrics?.anomalyData?.callsAnomaly.isAnomaly
+                ? `Звонков на ${Math.abs(metrics.anomalyData.callsAnomaly.deltaPercent)}% ${metrics.anomalyData.callsAnomaly.direction === 'up' ? 'больше' : 'меньше'} нормы.`
+                : metrics?.anomalyData?.declinedAnomaly.isAnomaly
+                ? `Отказов на ${Math.abs(metrics?.anomalyData?.declinedAnomaly.deltaPercent || 0)}% ${metrics?.anomalyData?.declinedAnomaly.direction === 'up' ? 'больше' : 'меньше'} нормы.`
+                : undefined
+            }
+          />
         </section>
       )}
 
@@ -623,7 +646,13 @@ export default function OverviewPage() {
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-semibold text-primary">{sheet.name}</span>
                 <span className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      sheet.status === 'healthy'
+                        ? 'bg-emerald-500'
+                        : 'bg-rose-500 animate-pulse'
+                    }`}
+                  />
                   <span>{sheet.status === 'healthy' ? 'В норме' : 'Внимание'}</span>
                 </span>
               </div>

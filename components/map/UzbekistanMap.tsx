@@ -51,6 +51,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     x: number;
     y: number;
   } | null>(null);
+  const [flashRegion, setFlashRegion] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,24 +68,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
         if (!data || !Array.isArray(data.features) || data.features.length === 0) {
           throw new Error('Файл GeoJSON не содержит полигонов регионов');
         }
-
-        // Defensive rewind check: if any polygon has area > 2*PI, reverse its coordinates
-        data.features.forEach((f) => {
-          try {
-            const a = geoArea(f as any);
-            if (a > 2 * Math.PI) {
-              if (f.geometry.type === 'Polygon') {
-                f.geometry.coordinates.forEach((ring: any[]) => ring.reverse());
-              } else if (f.geometry.type === 'MultiPolygon') {
-                f.geometry.coordinates.forEach((poly: any[]) =>
-                  poly.forEach((ring: any[]) => ring.reverse())
-                );
-              }
-            }
-          } catch (e) {
-            console.warn('Could not check geoArea for feature', f.properties?.shapeName, e);
-          }
-        });
 
         setGeoData(data);
         setLoading(false);
@@ -176,18 +159,18 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const getRegionColor = useCallback(
     (count: number, isSelected: boolean) => {
       if (isSelected) {
-        return '#3B82F6'; // Highlighted selected region
+        return 'var(--color-accent, #4F46E5)'; // Highlighted selected region
       }
       if (count === 0) {
-        return 'var(--color-surface-2)';
+        return 'var(--color-surface-2, #F5F5F4)';
       }
 
       const ratio = Math.max(0, Math.min(1, (count - minCount) / (maxCount - minCount || 1)));
 
-      // Interpolation: Light sky-blue (#D9E4FF) -> Rich vibrant cobalt (#365EEA)
-      const r = Math.round(217 - ratio * 163);
-      const g = Math.round(228 - ratio * 134);
-      const b = Math.round(255 - ratio * 21);
+      // Interpolation: Light soft indigo (#EEF2FF) -> Rich vibrant indigo (#4F46E5)
+      const r = Math.round(238 - ratio * 159);
+      const g = Math.round(242 - ratio * 172);
+      const b = Math.round(255 - ratio * 26);
 
       return `rgb(${r}, ${g}, ${b})`;
     },
@@ -301,6 +284,8 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
       else onSelectRegion('');
       handleResetZoom();
     } else {
+      setFlashRegion(ruName);
+      setTimeout(() => setFlashRegion(null), 200);
       onSelectRegion(ruName);
       zoomToRegion(ruName);
     }
@@ -469,16 +454,24 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
                     selectedRegion.trim().toLowerCase() === enName.toLowerCase())
               );
 
-              const fillColor = getRegionColor(count, isSelected);
+              const isFlashing = Boolean(
+                flashRegion &&
+                  (normalizeRegionName(flashRegion) === normalizeRegionName(ruName) ||
+                    flashRegion.trim().toLowerCase() === enName.toLowerCase())
+              );
+
+              const fillColor = isFlashing
+                ? '#A5B4FC'
+                : getRegionColor(count, isSelected);
 
               return (
                 <g key={enName} className="group/region">
                   <path
                     d={pathString}
                     fill={fillColor}
-                    stroke={isSelected ? '#1D4ED8' : 'var(--color-surface)'}
+                    stroke={isSelected ? 'var(--color-accent, #4F46E5)' : 'var(--color-border)'}
                     strokeWidth={isSelected ? 2.5 / transform.k : 1.2 / transform.k}
-                    className="cursor-pointer transition-colors duration-150 hover:brightness-95 dark:hover:brightness-125 focus:outline-none"
+                    className="cursor-pointer transition-all duration-150 hover:stroke-[2px] hover:stroke-accent/80 hover:brightness-95 dark:hover:brightness-125 focus:outline-none"
                     onClick={(e) => handleRegionClick(e, ruName)}
                     onMouseMove={(e) => handleRegionHover(e, ruName, enName, count)}
                     onMouseLeave={() => setHoveredRegion(null)}

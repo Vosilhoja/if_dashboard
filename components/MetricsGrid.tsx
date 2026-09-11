@@ -148,28 +148,64 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
         )}
       </div>
 
-      {/* Diagnostics summary strip */}
-      {metrics.phoneDiagnostics && (
-        <div className="bg-surface border border-border rounded-[10px] p-3 px-4 flex flex-wrap items-center justify-between gap-2.5 text-xs text-secondary">
-          <span className="font-semibold text-primary">
-            Качество номеров:
-          </span>
-          <div className="flex flex-wrap items-center gap-4">
-            <span>
-              Научная нотация: <strong className="text-amber-500 font-semibold tabular-nums">{metrics.phoneDiagnostics.corrupted}</strong>
+      {/* Diagnostics summary strip with mini-horizontal bar indicators */}
+      {metrics.phoneDiagnostics && (() => {
+        const d = metrics.phoneDiagnostics;
+        const total = (d.corrupted || 0) + (d.truncated || 0) + (d.invalid || 0) + (d.foreign || 0) || 1;
+        const pCorrupted = Math.min(100, Math.round(((d.corrupted || 0) / total) * 100));
+        const pTruncated = Math.min(100, Math.round(((d.truncated || 0) / total) * 100));
+        const pInvalid = Math.min(100, Math.round(((d.invalid || 0) / total) * 100));
+        const pForeign = Math.min(100, Math.round(((d.foreign || 0) / total) * 100));
+
+        return (
+          <div className="bg-surface border border-border rounded-[8px] p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-secondary">
+            <span className="font-semibold text-primary shrink-0">
+              Качество номеров:
             </span>
-            <span>
-              Обрезаны: <strong className="text-rose-500 font-semibold tabular-nums">{metrics.phoneDiagnostics.truncated}</strong>
-            </span>
-            <span>
-              Мусор / &le;8: <strong className="text-primary font-semibold tabular-nums">{metrics.phoneDiagnostics.invalid}</strong>
-            </span>
-            <span>
-              Иностранные: <strong className="text-accent font-semibold tabular-nums">{metrics.phoneDiagnostics.foreign}</strong>
-            </span>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 flex-1 max-w-2xl">
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span>Научная нотация:</span>
+                  <strong className="text-amber-500 font-semibold tabular-nums">{d.corrupted}</strong>
+                </div>
+                <div className="h-1 w-full bg-surface-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-500 rounded-full transition-all duration-300" style={{ width: `${pCorrupted}%` }} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span>Обрезаны:</span>
+                  <strong className="text-rose-500 font-semibold tabular-nums">{d.truncated}</strong>
+                </div>
+                <div className="h-1 w-full bg-surface-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-rose-500 rounded-full transition-all duration-300" style={{ width: `${pTruncated}%` }} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span>Мусор / &le;8:</span>
+                  <strong className="text-primary font-semibold tabular-nums">{d.invalid}</strong>
+                </div>
+                <div className="h-1 w-full bg-surface-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-slate-400 dark:bg-slate-500 rounded-full transition-all duration-300" style={{ width: `${pInvalid}%` }} />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span>Иностранные:</span>
+                  <strong className="text-accent font-semibold tabular-nums">{d.foreign}</strong>
+                </div>
+                <div className="h-1 w-full bg-surface-2 rounded-full overflow-hidden">
+                  <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${pForeign}%` }} />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

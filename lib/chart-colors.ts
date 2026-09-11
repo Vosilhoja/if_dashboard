@@ -1,11 +1,11 @@
 // lib/chart-colors.ts
 
 export const DATA_PALETTE = {
-  data1: '#5B7FFF', // мягкий синий — основной
-  data2: '#E8A85C', // тёплый охра — контраст без кислотности
-  data3: '#6FCF97', // приглушённый зелёный
-  data4: '#B98CE8', // приглушённый лавандовый
-  data5: '#E86F6F', // приглушённый терракотовый
+  data1: '#4F46E5', // data-1
+  data2: '#F59E0B', // data-2
+  data3: '#10B981', // data-3
+  data4: '#EC4899', // data-4
+  data5: '#06B6D4', // data-5
 };
 
 export const DATA_COLORS_LIST = [

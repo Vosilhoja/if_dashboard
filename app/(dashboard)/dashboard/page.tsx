@@ -13,9 +13,11 @@ import {
 } from '@/lib/dashboard-cache';
 import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
+import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { AlertCircle, Clock, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { getMetrics } from '@/lib/api-client';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 

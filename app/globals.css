@@ -3,25 +3,27 @@
 :root {
   --bg-page: #FAFAFA;
   --bg-surface: #FFFFFF;
-  --bg-surface-2: #F4F4F6;
-  --border-color: #ECECEE;
-  --text-primary: #0F172A;
-  --text-secondary: #64748B;
-  --accent: #5B7FFF;
+  --bg-surface-2: #F5F5F4;
+  --border-color: #EAEAE8;
+  --text-primary: #18181B;
+  --text-secondary: #71717A;
+  --accent: #4F46E5;
+  --accent-soft: #EEF2FF;
   --accent-light: #EEF2FF;
-  --accent-border: #D0DBFF;
+  --accent-border: #C7D2FE;
 }
 
 .dark {
-  --bg-page: #0B0E14;
-  --bg-surface: #12161F;
-  --bg-surface-2: #191F2B;
-  --border-color: #1E2430;
-  --text-primary: #E4E7EC;
-  --text-secondary: #7C8494;
-  --accent: #5B7FFF;
-  --accent-light: #162038;
-  --accent-border: #283758;
+  --bg-page: #0A0E17;
+  --bg-surface: #10151F;
+  --bg-surface-2: #171D2A;
+  --border-color: #1F2733;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --accent: #6366F1;
+  --accent-soft: #1E1B4B;
+  --accent-light: #1E1B4B;
+  --accent-border: #312E81;
 }
 
 @theme inline {
@@ -32,6 +34,7 @@
   --color-primary: var(--text-primary);
   --color-secondary: var(--text-secondary);
   --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-accent-light: var(--accent-light);
   --color-accent-border: var(--accent-border);
 }
