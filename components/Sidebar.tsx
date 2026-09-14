@@ -11,6 +11,7 @@ import {
   Map,
   Database,
   Settings,
+  Users,
   RefreshCw,
   Sun,
   Moon,
@@ -93,10 +94,16 @@ const allNavItems: NavItem[] = [
   },
   {
     href: '/settings',
-    label: 'Настройки системы',
+    label: 'Настройки',
     subtitle: 'Интервалы, кэш и пороги',
     icon: Settings,
-    minRole: 'manager',
+  },
+  {
+    href: '/users',
+    label: 'Пользователи',
+    subtitle: 'Управление доступом и ролями',
+    icon: Users,
+    minRole: 'admin',
   },
 ];
 
@@ -135,17 +142,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Filter nav items based on user role and granular page permissions
   const navItems = allNavItems.filter((item) => {
-    // 1. Settings strictly for super_admin
-    if (item.href === '/settings') {
-      return role === 'super_admin';
-    }
-
-    // 2. super_admin has access to everything
+    // 1. super_admin has unconditional access to all 8 pages
     if (role === 'super_admin') {
       return true;
     }
 
-    // 3. Check granular page permissions
+    // 2. Settings is strictly for super_admin
+    if (item.href === '/settings') {
+      return false;
+    }
+
+    // 3. Users is strictly for super_admin and admin
+    if (item.href === '/users') {
+      return role === 'admin';
+    }
+
+    // 4. Check granular page permissions for specific roles
     if (user && Array.isArray(user.permissions)) {
       if (user.permissions.includes('*')) return true;
 
@@ -162,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
     }
 
-    // 4. Check minimum role if specified
+    // 5. Check minimum role if specified
     if (item.minRole && !hasMinRole(role, item.minRole)) {
       return false;
     }

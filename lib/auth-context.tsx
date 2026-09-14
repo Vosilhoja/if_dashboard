@@ -93,11 +93,17 @@ export function hasMinRole(userRole: AuthUser['role'] | null, minRole: AuthUser[
  */
 export function canAccessPage(user: AuthUser | null, pathname: string): boolean {
   if (!user) return false;
+  // super_admin always has access to all pages
   if (user.role === 'super_admin') return true;
 
   // Settings доступен ТОЛЬКО super_admin
   if (pathname.startsWith('/settings')) {
     return false;
+  }
+
+  // Users доступен super_admin и admin
+  if (pathname.startsWith('/users')) {
+    return user.role === 'admin';
   }
 
   // Определение ключа страницы по URL

@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
+      console.error(`[Proxy /api/data Error] Status ${backendRes.status}:`, data);
       return NextResponse.json(
         { error: data.error || `Ошибка бэкенда: ${backendRes.status}` },
         { status: backendRes.status }
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (err: unknown) {
+    console.error('[Proxy /api/data Exception]:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Внутренняя ошибка сервера' },
       { status: 500 }

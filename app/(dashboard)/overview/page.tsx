@@ -84,7 +84,7 @@ export default function OverviewPage() {
     setDataError(null);
 
     try {
-      const metricsUrl = `/api/proxy/data?startDate=${initialStart}&endDate=${initialEnd}${fresh ? '&fresh=true' : ''}`;
+      const metricsUrl = `/api/proxy/data?${fresh ? 'fresh=true' : ''}`;
       const [metricsRes, analyticsRes] = await Promise.all([
         fetch(metricsUrl, { cache: 'no-store' }),
         fetch('/api/proxy/data/analytics', { cache: 'no-store' }),

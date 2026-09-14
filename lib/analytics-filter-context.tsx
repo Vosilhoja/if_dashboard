@@ -69,15 +69,15 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Date range defaults to current week
+  // Date range defaults to alltime so initial dashboard load shows complete dataset
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [filterMode, setFilterMode] = useState<FilterMode>('week');
+  const [filterMode, setFilterMode] = useState<FilterMode>('alltime');
 
   const defaultStart = formatDateToISO(startOfWeek(new Date(), { weekStartsOn }));
   const defaultEnd = formatDateToISO(endOfWeek(new Date(), { weekStartsOn }));
 
-  const [startDate, setStartDate] = useState<string>(defaultStart);
-  const [endDate, setEndDate] = useState<string>(defaultEnd);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   // Demographic / Regional slices
   const [selectedRegion, setSelectedRegionState] = useState<string | null>(null);
