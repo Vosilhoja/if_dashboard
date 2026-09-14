@@ -359,16 +359,16 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4" style={{ height: 'calc(100vh - 130px)' }}>
+    <div className="flex flex-col gap-3 sm:gap-4 h-full min-h-0">
       {/* Top Header & Data Context Bar */}
-      <div className="p-4 rounded-[12px] bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm shrink-0">
+      <div className="p-3 sm:p-4 rounded-[12px] bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 shadow-sm shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-[10px] bg-gradient-to-tr from-accent via-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
             <Bot className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-bold text-primary">
+              <h1 className="text-sm sm:text-base font-bold text-primary">
                 ИИ-Аналитик и стратегический консультант
               </h1>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/30 flex items-center gap-1">
@@ -433,9 +433,9 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Workspace — fills remaining viewport height */}
-      <div className="rounded-[12px] border border-border bg-surface flex flex-col flex-1 shadow-sm overflow-hidden">
+      <div className="rounded-[12px] border border-border bg-surface flex flex-col flex-1 min-h-0 shadow-sm overflow-hidden">
         {/* Messages Scroll Area */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-5 overscroll-contain">
           {messages.map((msg) => {
             const isUser = msg.role === 'user';
             return (
@@ -450,7 +450,7 @@ export default function ChatPage() {
                 )}
 
                 <div
-                  className={`relative max-w-[85%] rounded-[12px] p-4 shadow-2xs group ${
+                  className={`relative max-w-[92%] sm:max-w-[85%] rounded-[12px] p-3 sm:p-4 shadow-2xs group ${
                     isUser
                       ? 'bg-accent text-white rounded-tr-none'
                       : 'bg-surface-2/70 text-primary border border-border/80 rounded-tl-none'
@@ -518,7 +518,7 @@ export default function ChatPage() {
         </div>
 
         {/* Quick Question Chips Bar */}
-        <div className="px-4 py-2.5 border-t border-border/80 bg-surface-2/40 space-y-2">
+        <div className="px-1 sm:px-4 py-2.5 border-t border-border/80 bg-surface-2/40 space-y-2">
           <div className="flex items-center gap-1.5 text-[11px] text-secondary font-medium">
             <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
             <span>Рекомендуемые вопросы по текущей воронке:</span>
@@ -540,13 +540,13 @@ export default function ChatPage() {
         </div>
 
         {/* Input Bar */}
-        <div className="p-4 border-t border-border bg-surface">
+        <div className="p-2 sm:p-4 border-t border-border bg-surface">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               handleSendMessage();
             }}
-            className="flex items-end gap-3"
+            className="flex items-end gap-2 sm:gap-3"
           >
             <div className="flex-1 relative">
               <textarea
@@ -569,7 +569,7 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={isLoading || !inputValue.trim()}
-              className="h-[48px] px-5 rounded-[10px] bg-accent text-white hover:opacity-95 disabled:opacity-40 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shrink-0"
+              className="h-[48px] px-3 sm:px-5 rounded-[10px] bg-accent text-white hover:opacity-95 disabled:opacity-40 font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm shrink-0"
               title="Отправить (Enter)"
             >
               {isLoading ? (
@@ -580,7 +580,7 @@ export default function ChatPage() {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>Спросить</span>
+                  <span className="hidden sm:inline">Спросить</span>
                 </>
               )}
             </button>
@@ -588,7 +588,8 @@ export default function ChatPage() {
 
           <div className="flex items-center justify-between text-[11px] text-secondary/70 mt-2 px-1">
             <span>
-              Нажмите <kbd className="px-1.5 py-0.2 bg-surface-2 rounded border border-border font-mono">Enter</kbd> для отправки, <kbd className="px-1.5 py-0.2 bg-surface-2 rounded border border-border font-mono">Shift+Enter</kbd> для переноса строки
+              <span className="hidden sm:inline">Нажмите <kbd className="px-1.5 py-0.2 bg-surface-2 rounded border border-border font-mono">Enter</kbd> для отправки, <kbd className="px-1.5 py-0.2 bg-surface-2 rounded border border-border font-mono">Shift+Enter</kbd> для переноса строки</span>
+              <span className="sm:hidden">Enter — отправить · Shift+Enter — новая строка</span>
             </span>
             <span className="hidden sm:inline">
               Прямой доступ к main_base, numbers, eskiz и not_completed

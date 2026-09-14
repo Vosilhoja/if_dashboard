@@ -7,7 +7,7 @@ import { DashboardMetrics } from './types';
 
 // Базовый URL бэкенда (по умолчанию Fly.io или localhost в dev)
 export const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://if-dashboard-backend.fly.dev';
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
 
 export interface AuthUser {
   id: number;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://if-dashboard-backend.fly.dev';
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const backendUrl = `${BACKEND_URL}/api/data/period?${searchParams.toString()}`;
 
     const backendRes = await fetch(backendUrl, {
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,
       },

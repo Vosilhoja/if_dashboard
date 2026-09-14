@@ -59,6 +59,7 @@ export default function OverviewPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [showAnomalyBanner, setShowAnomalyBanner] = useState<boolean>(true);
   const [anomalyAlertsEnabled, setAnomalyAlertsEnabled] = useState<boolean>(true);
 
@@ -80,18 +81,37 @@ export default function OverviewPage() {
   const loadOverviewData = async (fresh = false) => {
     if (fresh) setRefreshing(true);
     else setLoading(true);
+    setDataError(null);
 
     try {
       const metricsUrl = `/api/proxy/data?startDate=${initialStart}&endDate=${initialEnd}${fresh ? '&fresh=true' : ''}`;
       const [metricsRes, analyticsRes] = await Promise.all([
-        fetch(metricsUrl).then((r) => (r.ok ? r.json() : null)),
-        fetch('/api/proxy/data/analytics').then((r) => (r.ok ? r.json() : null)),
+        fetch(metricsUrl, { cache: 'no-store' }),
+        fetch('/api/proxy/data/analytics', { cache: 'no-store' }),
       ]);
 
-      if (metricsRes) setMetrics(metricsRes);
-      if (analyticsRes) setAnalyticsData(analyticsRes);
+      const [metricsPayload, analyticsPayload] = await Promise.all([
+        metricsRes.json().catch(() => ({})),
+        analyticsRes.json().catch(() => ({})),
+      ]);
+
+      const errors: string[] = [];
+      if (metricsRes.ok) {
+        setMetrics(metricsPayload);
+      } else {
+        errors.push(metricsPayload.error || `Метрики: HTTP ${metricsRes.status}`);
+      }
+      if (analyticsRes.ok) {
+        setAnalyticsData(analyticsPayload);
+      } else {
+        errors.push(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
+      }
+      if (errors.length > 0) {
+        setDataError(errors.join(' · '));
+      }
     } catch (e) {
       console.error('Error loading overview data:', e);
+      setDataError(e instanceof Error ? e.message : 'Не удалось загрузить данные');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -281,6 +301,12 @@ export default function OverviewPage() {
             <span>ИИ-Ассистент</span>
           </Link>
         </div>
+        {dataError && (
+          <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{dataError}. Проверьте соединение с backend и повторите синхронизацию.</span>
+          </div>
+        )}
       </section>
 
       {/* 1. Top KPI Metrics (Clickable to /dashboard) */}

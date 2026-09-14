@@ -290,7 +290,7 @@ export const AIChatDrawer: React.FC = () => {
 
       {/* Slide-over Chat Panel */}
       <div
-        className={`fixed top-0 right-0 bottom-0 z-50 bg-surface border-l border-border shadow-2xl flex flex-col transition-all duration-300 ease-in-out ${
+        className={`fixed inset-y-0 right-0 z-50 bg-surface border-l border-border shadow-2xl flex flex-col min-h-0 transition-all duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         } ${isExpanded ? 'w-full md:w-[720px]' : 'w-full md:w-[460px]'}`}
       >
@@ -359,7 +359,7 @@ export const AIChatDrawer: React.FC = () => {
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 overscroll-contain">
           {messages.map((msg) => {
             const isUser = msg.role === 'user';
             return (
@@ -374,7 +374,7 @@ export const AIChatDrawer: React.FC = () => {
                 )}
 
                 <div
-                  className={`relative max-w-[85%] rounded-[10px] px-3.5 py-2.5 shadow-2xs group ${
+                  className={`relative max-w-[92%] sm:max-w-[85%] rounded-[10px] px-3.5 py-2.5 shadow-2xs group ${
                     isUser
                       ? 'bg-accent text-white rounded-tr-none'
                       : 'bg-surface-2/80 text-primary border border-border/80 rounded-tl-none'

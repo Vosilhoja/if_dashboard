@@ -391,7 +391,9 @@ export default function SettingsPage() {
     setPingingSheet(sheetKey);
     const start = performance.now();
     try {
-      const res = await fetch(`/api/sheets/${sheetKey}?page=1&pageSize=1&fresh=true`);
+      const res = await fetch(`/api/proxy/data/sheets/${sheetKey}?page=1&pageSize=1&fresh=true`, {
+        cache: 'no-store',
+      });
       const duration = Math.round(performance.now() - start);
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -896,7 +898,7 @@ export default function SettingsPage() {
               <div>
                 <h2 className="text-sm font-semibold text-primary">Управление пользователями и правами страниц</h2>
                 <p className="text-[11px] text-secondary">
-                  Создание аккаунтов, удаление, выбор роли и точная настройка доступных вкладок (RBAC)
+                  Три системных аккаунта, выбор роли и точная настройка доступных вкладок (RBAC)
                 </p>
               </div>
             </div>
@@ -1020,7 +1022,6 @@ export default function SettingsPage() {
                           <option value="operator">operator</option>
                           <option value="manager">manager</option>
                           <option value="admin">admin</option>
-                          <option value="super_admin">super_admin</option>
                         </select>
                         {changingRoleId === u.id ? (
                           <Loader2 className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-accent" />
@@ -1205,7 +1206,6 @@ export default function SettingsPage() {
                   <option value="operator">operator (оператор)</option>
                   <option value="manager">manager (менеджер)</option>
                   <option value="admin">admin (администратор)</option>
-                  <option value="super_admin">super_admin (главный админ)</option>
                 </select>
               </div>
 
