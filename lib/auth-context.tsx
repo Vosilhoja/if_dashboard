@@ -34,7 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const me = await getMe();
-      setUser(me);
+      const normalizedRole = normalizeRole(me.role);
+      setUser(normalizedRole ? { ...me, role: normalizedRole } : me);
     } catch {
       setUser(null);
     } finally {
@@ -72,6 +73,21 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+/** Keep RBAC checks stable when a backend/database returns a differently-cased role. */
+export function normalizeRole(role: string | null | undefined): AuthUser['role'] | null {
+  const normalized = String(role ?? '').trim().toLowerCase();
+  if (
+    normalized === 'super_admin' ||
+    normalized === 'admin' ||
+    normalized === 'manager' ||
+    normalized === 'operator' ||
+    normalized === 'viewer'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
 /** Проверяет есть ли у пользователя достаточная роль */
 const ROLE_HIERARCHY: Record<AuthUser['role'], number> = {
   viewer: 1,
@@ -82,8 +98,10 @@ const ROLE_HIERARCHY: Record<AuthUser['role'], number> = {
 };
 
 export function hasMinRole(userRole: AuthUser['role'] | null, minRole: AuthUser['role']): boolean {
-  if (!userRole) return false;
-  return (ROLE_HIERARCHY[userRole] ?? 0) >= (ROLE_HIERARCHY[minRole] ?? 0);
+  const normalizedRole = normalizeRole(userRole);
+  return normalizedRole
+    ? (ROLE_HIERARCHY[normalizedRole] ?? 0) >= (ROLE_HIERARCHY[minRole] ?? 0)
+    : false;
 }
 
 /**
@@ -93,8 +111,9 @@ export function hasMinRole(userRole: AuthUser['role'] | null, minRole: AuthUser[
  */
 export function canAccessPage(user: AuthUser | null, pathname: string): boolean {
   if (!user) return false;
+  const normalizedRole = normalizeRole(user.role);
   // super_admin always has access to all pages
-  if (user.role === 'super_admin') return true;
+  if (normalizedRole === 'super_admin') return true;
 
   // Settings доступен ТОЛЬКО super_admin
   if (pathname.startsWith('/settings')) {
@@ -103,7 +122,7 @@ export function canAccessPage(user: AuthUser | null, pathname: string): boolean 
 
   // Users доступен super_admin и admin
   if (pathname.startsWith('/users')) {
-    return user.role === 'admin';
+    return normalizedRole === 'admin';
   }
 
   // Определение ключа страницы по URL

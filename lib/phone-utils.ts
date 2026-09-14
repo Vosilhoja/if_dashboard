@@ -54,7 +54,7 @@ export function normalizePhoneWithDiagnostics(
     return { normalized: '', status: 'corrupted_scientific', country: 'UNKNOWN', original };
   }
 
-  let digits = original.replace(/\D/g, '');
+  const digits = original.replace(/\D/g, '');
 
   if (!digits || digits.length <= 8 || isAllSameDigit(digits)) {
     return { normalized: '', status: 'invalid', country: 'UNKNOWN', original };

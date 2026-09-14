@@ -100,7 +100,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           metric={metrics.registeredFromSupport}
           icon={Headset}
           badgeText="numbers → base"
-          tooltipText="Уникальные абоненты из таблицы numbers, найденные среди зарегистрированных в main_base"
+          tooltipText="Уникальные абоненты, которым звонили из поддержки за выбранный период и которые зарегистрировались в main_base за этот же период"
           delayIndex={3}
         />
         <MetricCard
@@ -108,6 +108,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ metrics, loading }) =>
           metric={metrics.registeredAfterRepeat}
           icon={Repeat}
           badgeText="повторно"
+          tooltipText="Уникальные абоненты после повторной ссылки: повторный контакт и регистрация должны попасть в выбранный период"
           delayIndex={4}
         />
         <MetricCard

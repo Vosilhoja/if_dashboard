@@ -24,7 +24,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
-import { useAuth, hasMinRole } from '@/lib/auth-context';
+import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
 import { openCommandPalette } from '@/components/CommandPalette';
 
 interface SidebarProps {
@@ -122,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const { user, role, logout } = useAuth();
   const pathname = usePathname();
+  const normalizedRole = normalizeRole(role);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   // Lock body scroll when mobile burger menu is opened
@@ -143,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Filter nav items based on user role and granular page permissions
   const navItems = allNavItems.filter((item) => {
     // 1. super_admin has unconditional access to all 8 pages
-    if (role === 'super_admin') {
+    if (normalizedRole === 'super_admin') {
       return true;
     }
 
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     // 3. Users is strictly for super_admin and admin
     if (item.href === '/users') {
-      return role === 'admin';
+      return normalizedRole === 'admin';
     }
 
     // 4. Check granular page permissions for specific roles
@@ -175,7 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
 
     // 5. Check minimum role if specified
-    if (item.minRole && !hasMinRole(role, item.minRole)) {
+    if (item.minRole && !hasMinRole(normalizedRole, item.minRole)) {
       return false;
     }
 

@@ -137,7 +137,7 @@ export default function OverviewPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Compute 30-day registration dynamics if dates exist in analytics rows, or fall back to monthlyDynamics

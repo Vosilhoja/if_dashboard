@@ -70,7 +70,7 @@ export function middleware(request: NextRequest) {
 
   // 3. Users is strictly for super_admin and admin
   if (pathname.startsWith('/users')) {
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       return NextResponse.rewrite(new URL('/404', request.url));
     }
   }

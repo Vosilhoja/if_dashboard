@@ -27,6 +27,29 @@ interface UzbekistanMapProps {
   onDeselect?: () => void;
 }
 
+let geoJsonPromise: Promise<GeoJSONData> | null = null;
+
+function getGeoJSON(): Promise<GeoJSONData> {
+  if (!geoJsonPromise) {
+    geoJsonPromise = fetch('/geo/uzbekistan-regions.geojson', { cache: 'force-cache' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}: Ошибка загрузки географических данных`);
+        return res.json() as Promise<GeoJSONData>;
+      })
+      .then((data) => {
+        if (!data || !Array.isArray(data.features) || data.features.length === 0) {
+          throw new Error('Файл GeoJSON не содержит полигонов регионов');
+        }
+        return data;
+      })
+      .catch((error) => {
+        geoJsonPromise = null;
+        throw error;
+      });
+  }
+  return geoJsonPromise;
+}
+
 export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   regionCounts,
   totalRespondents,
@@ -41,7 +64,8 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   // Zoom & Pan state
   const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  const panPointerId = useRef<number | null>(null);
+  const startPan = useRef({ x: 0, y: 0 });
 
   const [hoveredRegion, setHoveredRegion] = useState<{
     ruName: string;
@@ -59,16 +83,8 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     setLoading(true);
     setError(null);
 
-    fetch('/geo/uzbekistan-regions.geojson')
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}: Ошибка загрузки географических данных`);
-        return res.json();
-      })
-      .then((data: GeoJSONData) => {
-        if (!data || !Array.isArray(data.features) || data.features.length === 0) {
-          throw new Error('Файл GeoJSON не содержит полигонов регионов');
-        }
-
+    getGeoJSON()
+      .then((data) => {
         setGeoData(data);
         setLoading(false);
       })
@@ -232,22 +248,29 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     }));
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    panPointerId.current = e.pointerId;
     setIsPanning(true);
-    setStartPan({ x: e.clientX - transform.x, y: e.clientY - transform.y });
+    startPan.current = { x: e.clientX - transform.x, y: e.clientY - transform.y };
   };
 
-  const handleMouseMoveMap = (e: React.MouseEvent) => {
-    if (!isPanning) return;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPanning || panPointerId.current !== e.pointerId) return;
     setTransform((prev) => ({
       ...prev,
-      x: e.clientX - startPan.x,
-      y: e.clientY - startPan.y,
+      x: e.clientX - startPan.current.x,
+      y: e.clientY - startPan.current.y,
     }));
   };
 
-  const handleMouseUp = () => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (panPointerId.current !== e.pointerId) return;
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    panPointerId.current = null;
     setIsPanning(false);
   };
 
@@ -408,10 +431,11 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
       <div
         className="w-full flex justify-center py-2 overflow-hidden cursor-grab active:cursor-grabbing"
         onWheel={handleWheel}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMoveMap}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        style={{ touchAction: 'none' }}
       >
         <svg
           viewBox={`0 0 ${width} ${height}`}

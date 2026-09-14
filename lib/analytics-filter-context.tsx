@@ -79,6 +79,42 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
+  // Restore the shared date view immediately so every page uses the same period.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hurmo-analytics-date-filter');
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as {
+        startDate?: string;
+        endDate?: string;
+        filterMode?: FilterMode;
+        currentDate?: string;
+      };
+      if (parsed.startDate) setStartDate(parsed.startDate);
+      if (parsed.endDate) setEndDate(parsed.endDate);
+      if (parsed.filterMode) setFilterMode(parsed.filterMode);
+      if (parsed.currentDate) setCurrentDate(new Date(parsed.currentDate));
+    } catch {
+      localStorage.removeItem('hurmo-analytics-date-filter');
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'hurmo-analytics-date-filter',
+        JSON.stringify({
+          startDate,
+          endDate,
+          filterMode,
+          currentDate: currentDate.toISOString(),
+        })
+      );
+    } catch {
+      // Storage is optional; in-memory filters remain fully functional.
+    }
+  }, [startDate, endDate, filterMode, currentDate]);
+
   // Demographic / Regional slices
   const [selectedRegion, setSelectedRegionState] = useState<string | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);

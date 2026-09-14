@@ -46,6 +46,16 @@ export const DateFilter: React.FC<DateFilterProps> = ({
   weekStartsOn = 1,
 }) => {
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
+  const [rangeError, setRangeError] = useState<string | null>(null);
+
+  const handleCustomRangeChange = (nextStart: string, nextEnd: string, autoFetch = false) => {
+    if (nextStart && nextEnd && nextStart > nextEnd) {
+      setRangeError('Дата начала не может быть позже даты окончания');
+    } else {
+      setRangeError(null);
+    }
+    onCustomRangeChange(nextStart, nextEnd, autoFetch);
+  };
 
   // Helpers for week mode (configurable weekStartsOn)
   const weekStart = startOfWeek(currentDate, { weekStartsOn });
@@ -206,7 +216,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => onCustomRangeChange(e.target.value, endDate, false)}
+                onChange={(e) => handleCustomRangeChange(e.target.value, endDate, false)}
                 className="bg-transparent text-primary focus:outline-none cursor-pointer tabular-nums"
               />
             </div>
@@ -216,7 +226,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => onCustomRangeChange(startDate, e.target.value, false)}
+                onChange={(e) => handleCustomRangeChange(startDate, e.target.value, false)}
                 className="bg-transparent text-primary focus:outline-none cursor-pointer tabular-nums"
               />
             </div>
@@ -230,7 +240,9 @@ export const DateFilter: React.FC<DateFilterProps> = ({
               onClick={() => setMobileModalOpen(true)}
               className="w-full flex items-center justify-between px-3 py-2 bg-surface border border-border rounded-[6px] text-xs text-primary"
             >
-              <span className="tabular-nums">{startDate} — {endDate}</span>
+              <span className="tabular-nums">
+                {startDate || 'Не выбрано'} — {endDate || 'Не выбрано'}
+              </span>
               <SlidersHorizontal className="w-3.5 h-3.5 text-secondary" />
             </button>
           </div>
@@ -301,7 +313,7 @@ export const DateFilter: React.FC<DateFilterProps> = ({
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => onCustomRangeChange(e.target.value, endDate, false)}
+                  onChange={(e) => handleCustomRangeChange(e.target.value, endDate, false)}
                   className="w-full bg-surface-2 border border-border px-3 py-2 rounded-[6px] text-primary text-xs focus:outline-none tabular-nums"
                 />
               </div>
@@ -310,14 +322,23 @@ export const DateFilter: React.FC<DateFilterProps> = ({
                 <input
                   type="date"
                   value={endDate}
-                  onChange={(e) => onCustomRangeChange(startDate, e.target.value, false)}
+                  onChange={(e) => handleCustomRangeChange(startDate, e.target.value, false)}
                   className="w-full bg-surface-2 border border-border px-3 py-2 rounded-[6px] text-primary text-xs focus:outline-none tabular-nums"
                 />
               </div>
             </div>
 
+            {rangeError && (
+              <p className="text-xs text-rose-500" role="alert">
+                {rangeError}
+              </p>
+            )}
+
             <button
-              onClick={() => setMobileModalOpen(false)}
+              onClick={() => {
+                if (!rangeError) setMobileModalOpen(false);
+              }}
+              disabled={Boolean(rangeError)}
               className="w-full py-2.5 rounded-[6px] bg-accent text-white font-medium text-xs"
             >
               Применить период
