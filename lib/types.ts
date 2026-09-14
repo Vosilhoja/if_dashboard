@@ -31,6 +31,20 @@ export interface DashboardMetrics {
   alreadyRegisteredCount: MetricValue;  // Уже зарегистрирован через бот
   wrongPersonCount: MetricValue;        // Не тот человек / номер
   notCompletedCount: MetricValue;       // 9-я метрика: не завершили регистрацию за период
+  surveyAttemptsPeople: MetricValue;
+  surveyAttemptsTotal: MetricValue;
+  surveyAttemptsRepeatPeople: MetricValue;
+  surveyAttemptDetails?: {
+    people: number;
+    attempts: number;
+    repeatPeople: number;
+    distribution: Record<'1' | '2' | '3' | '4+', number>;
+    regions: { region: string; people: number; attempts: number }[];
+    statuses: { status: string; count: number }[];
+    columns: string[];
+    selectedRegion?: string;
+    selectedStatus?: string;
+  } | null;
   phoneDiagnostics: {                   // Диагностика номеров
     corrupted: number;
     truncated: number;
@@ -46,6 +60,7 @@ export interface DashboardMetrics {
     numbers: number;
     eskiz: number;
     not_completed?: number;
+    survey_attempts?: number;
   };
   anomalyData?: {
     callsAnomaly: {

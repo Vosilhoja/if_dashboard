@@ -70,12 +70,18 @@ export async function getMetrics(params: {
   endDate?: string;
   fresh?: boolean;
   anomalyThreshold?: string | number;
+  attemptFilter?: string;
+  attemptRegion?: string;
+  attemptStatus?: string;
 } = {}): Promise<DashboardMetrics> {
   const query = new URLSearchParams();
   if (params.startDate) query.set('startDate', params.startDate);
   if (params.endDate) query.set('endDate', params.endDate);
   if (params.fresh) query.set('refresh', 'true');
   if (params.anomalyThreshold) query.set('anomalyThreshold', String(params.anomalyThreshold));
+  if (params.attemptFilter) query.set('attemptFilter', params.attemptFilter);
+  if (params.attemptRegion) query.set('attemptRegion', params.attemptRegion);
+  if (params.attemptStatus) query.set('attemptStatus', params.attemptStatus);
 
   const res = await fetch(`/api/proxy/data?${query.toString()}`);
   const data = await res.json().catch(() => ({}));

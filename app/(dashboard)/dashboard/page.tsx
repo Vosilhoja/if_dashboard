@@ -41,8 +41,18 @@ export default function DashboardPage() {
   const [needsFreshData, setNeedsFreshData] = useState<boolean>(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [isPeriodDetailsOpen, setIsPeriodDetailsOpen] = useState<boolean>(false);
+  const [attemptFilter, setAttemptFilter] = useState('all');
+  const [attemptRegion, setAttemptRegion] = useState('all');
+  const [attemptStatus, setAttemptStatus] = useState('all');
 
-  const fetchMetrics = async (start: string, end: string, fresh = false) => {
+  const fetchMetrics = async (
+    start: string,
+    end: string,
+    fresh = false,
+    selectedAttemptFilter = attemptFilter,
+    selectedAttemptRegion = attemptRegion,
+    selectedAttemptStatus = attemptStatus
+  ) => {
     if (fresh) {
       setIsRefreshing(true);
     } else {
@@ -53,12 +63,15 @@ export default function DashboardPage() {
     try {
       // Read custom anomaly threshold from localStorage if configured in settings
       const customThreshold = typeof window !== 'undefined' ? localStorage.getItem('hurmo_anomaly_threshold') : null;
-      
+
       const data = await getMetrics({
         startDate: filterMode !== 'alltime' ? start : undefined,
         endDate: filterMode !== 'alltime' ? end : undefined,
         fresh,
         anomalyThreshold: customThreshold || undefined,
+        attemptFilter: selectedAttemptFilter,
+        attemptRegion: selectedAttemptRegion,
+        attemptStatus: selectedAttemptStatus,
       });
 
       setMetrics(data);
@@ -87,7 +100,7 @@ export default function DashboardPage() {
       setLastSavedAt(cached.savedAt);
     }
     // Always hit the API — cache is only a placeholder, never a skip.
-    fetchMetrics(startDate, endDate, Boolean(cached));
+    fetchMetrics(startDate, endDate, Boolean(cached), attemptFilter, attemptRegion, attemptStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -99,7 +112,7 @@ export default function DashboardPage() {
       const minutes = saved !== null ? parseInt(saved, 10) : 3;
       if (minutes > 0) {
         intervalId = setInterval(() => {
-          fetchMetrics(startDate, endDate, true);
+          fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
         }, minutes * 60 * 1000);
       }
     } catch {
@@ -109,19 +122,19 @@ export default function DashboardPage() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [startDate, endDate]);
+  }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {
     setDateRange(start, end);
     if (autoFetch) {
-      fetchMetrics(start, end, true);
+      fetchMetrics(start, end, true, attemptFilter, attemptRegion, attemptStatus);
     } else {
       setNeedsFreshData(true);
     }
   };
 
   const handleRefresh = () => {
-    fetchMetrics(startDate, endDate, true);
+    fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
   };
 
   const stale = lastSavedAt ? isCacheStale(lastSavedAt) : false;
@@ -218,7 +231,25 @@ export default function DashboardPage() {
           </h2>
         </div>
 
-        <MetricsGrid metrics={metrics} loading={loading} />
+        <MetricsGrid
+          metrics={metrics}
+          loading={loading}
+          attemptFilter={attemptFilter}
+          onAttemptFilterChange={(value) => {
+            setAttemptFilter(value);
+            fetchMetrics(startDate, endDate, true, value, attemptRegion, attemptStatus);
+          }}
+          attemptRegion={attemptRegion}
+          attemptStatus={attemptStatus}
+          onAttemptRegionChange={(value) => {
+            setAttemptRegion(value);
+            fetchMetrics(startDate, endDate, true, attemptFilter, value, attemptStatus);
+          }}
+          onAttemptStatusChange={(value) => {
+            setAttemptStatus(value);
+            fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, value);
+          }}
+        />
       </section>
 
       {/* Period Details Drawer */}

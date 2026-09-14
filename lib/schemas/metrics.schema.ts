@@ -48,6 +48,27 @@ export const DashboardMetricsSchema = z.object({
   alreadyRegisteredCount: MetricValueSchema,
   wrongPersonCount: MetricValueSchema,
   notCompletedCount: MetricValueSchema.optional(),
+  surveyAttemptsPeople: MetricValueSchema.optional(),
+  surveyAttemptsTotal: MetricValueSchema.optional(),
+  surveyAttemptsRepeatPeople: MetricValueSchema.optional(),
+  surveyAttemptDetails: z
+    .object({
+      people: z.number(),
+      attempts: z.number(),
+      repeatPeople: z.number(),
+      distribution: z.record(z.string(), z.number()),
+      regions: z.array(z.object({
+        region: z.string(),
+        people: z.number(),
+        attempts: z.number(),
+      })),
+      statuses: z.array(z.object({ status: z.string(), count: z.number() })),
+      columns: z.array(z.string()),
+      selectedRegion: z.string().optional(),
+      selectedStatus: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
   phoneDiagnostics: PhoneDiagnosticsSchema,
   period: z.object({
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
@@ -58,6 +79,7 @@ export const DashboardMetricsSchema = z.object({
     numbers: z.number(),
     eskiz: z.number(),
     not_completed: z.number().optional(),
+    survey_attempts: z.number().optional(),
   }),
   anomalyData: z
     .object({
