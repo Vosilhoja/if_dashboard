@@ -718,7 +718,7 @@ export default function UsersManagementPage() {
               </button>
               <button
                 type="button"
-                onClick={handleSaveUserPermissions}
+                onClick={handleSavePermissions}
                 disabled={savingPermissions}
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-accent text-white hover:opacity-95 text-xs font-bold transition-all shadow-xs shadow-accent/25 disabled:opacity-50 cursor-pointer"
               >
