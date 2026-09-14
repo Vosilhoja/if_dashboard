@@ -10,6 +10,7 @@ import {
   saveCachedDashboard,
   loadCachedDashboard,
   isCacheStale,
+  isUnusableCache,
 } from '@/lib/dashboard-cache';
 import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
@@ -81,14 +82,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const cached = loadCachedDashboard();
-    if (cached && !isCacheStale(cached.savedAt)) {
-      // Only restore metrics if cache is fresh; never override the date context
-      // (the date context already defaults to the current week)
+    if (cached && !isUnusableCache(cached.metrics)) {
       setMetrics(cached.metrics);
       setLastSavedAt(cached.savedAt);
-    } else {
-      fetchMetrics(startDate, endDate, false);
     }
+    // Always hit the API — cache is only a placeholder, never a skip.
+    fetchMetrics(startDate, endDate, Boolean(cached));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
