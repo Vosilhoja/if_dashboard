@@ -114,30 +114,52 @@ export const DateFilter: React.FC<DateFilterProps> = ({
   return (
     <div className="bg-surface border border-border p-3 rounded-[8px] flex flex-col gap-2.5">
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Mode toggler */}
-        <div className="flex items-center bg-surface-2 p-0.5 rounded-[6px] border border-border self-start">
-          <button
-            onClick={() => handleModeSwitch('week')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium transition-all cursor-pointer ${
-              mode === 'week'
-                ? 'bg-surface text-primary border border-border shadow-xs'
-                : 'text-secondary hover:text-primary'
-            }`}
+        {/* Mode: dropdown on mobile, pills on desktop */}
+        <div className="w-full md:w-auto">
+          <label className="sr-only" htmlFor="period-mode">
+            Режим периода
+          </label>
+          <select
+            id="period-mode"
+            value={mode === 'alltime' ? 'alltime' : mode}
+            onChange={(e) => {
+              const next = e.target.value as FilterMode;
+              if (next === 'alltime') {
+                applyPresetAllTime();
+              } else {
+                handleModeSwitch(next);
+              }
+            }}
+            className="md:hidden w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-sm text-primary"
           >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>По неделям</span>
-          </button>
-          <button
-            onClick={() => handleModeSwitch('custom')}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium transition-all cursor-pointer ${
-              mode === 'custom'
-                ? 'bg-surface text-primary border border-border shadow-xs'
-                : 'text-secondary hover:text-primary'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Произвольный период</span>
-          </button>
+            <option value="alltime">За всё время</option>
+            <option value="week">По неделям</option>
+            <option value="custom">Произвольный период</option>
+          </select>
+          <div className="hidden md:flex items-center bg-surface-2 p-0.5 rounded-[6px] border border-border self-start">
+            <button
+              onClick={() => handleModeSwitch('week')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium transition-all cursor-pointer ${
+                mode === 'week'
+                  ? 'bg-surface text-primary border border-border shadow-xs'
+                  : 'text-secondary hover:text-primary'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>По неделям</span>
+            </button>
+            <button
+              onClick={() => handleModeSwitch('custom')}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[4px] text-xs font-medium transition-all cursor-pointer ${
+                mode === 'custom'
+                  ? 'bg-surface text-primary border border-border shadow-xs'
+                  : 'text-secondary hover:text-primary'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Произвольный период</span>
+            </button>
+          </div>
         </div>
 
         {/* All-time label */}

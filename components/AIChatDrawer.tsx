@@ -266,7 +266,7 @@ export const AIChatDrawer: React.FC = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-accent via-indigo-600 to-accent hover:opacity-95 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group hover:scale-[1.03] active:scale-[0.98]"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-accent hover:opacity-95 text-white shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group hover:scale-[1.03] active:scale-[0.98]"
           title="Открыть диалог с ИИ-аналитиком"
         >
           <div className="relative flex items-center justify-center">
@@ -290,14 +290,14 @@ export const AIChatDrawer: React.FC = () => {
 
       {/* Slide-over Chat Panel */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 bg-surface border-l border-border shadow-2xl flex flex-col min-h-0 transition-all duration-300 ease-in-out ${
+        className={`fixed z-50 bg-surface shadow-2xl flex flex-col min-h-0 transition-all duration-300 ease-in-out inset-0 h-[100dvh] w-full border-0 md:inset-y-0 md:right-0 md:left-auto md:h-auto md:border-l md:border-border ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        } ${isExpanded ? 'w-full md:w-[720px]' : 'w-full md:w-[460px]'}`}
+        } ${isExpanded ? 'md:w-[720px]' : 'md:w-[460px]'}`}
       >
         {/* Drawer Header */}
         <div className="p-3.5 border-b border-border bg-surface-2/60 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-[8px] bg-gradient-to-tr from-accent to-indigo-500 text-white flex items-center justify-center shadow-xs">
+            <div className="w-8 h-8 rounded-[8px] bg-accent text-white flex items-center justify-center shadow-xs">
               <Bot className="w-4 h-4" />
             </div>
             <div>

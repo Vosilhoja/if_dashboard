@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AuthProvider } from "@/lib/auth-context";
@@ -7,6 +7,12 @@ import { QueryProvider } from "@/lib/query-provider";
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin", "cyrillic"],
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--font-serif",
   subsets: ["latin", "cyrillic"],
   display: "swap",
 });
@@ -25,7 +31,7 @@ export default function RootLayout({
     <html
       lang="ru"
       suppressHydrationWarning
-      className={`${inter.variable} h-full antialiased dark`}
+      className={`${inter.variable} ${sourceSerif.variable} h-full antialiased dark`}
     >
       <head>
         <script

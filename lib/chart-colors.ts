@@ -1,7 +1,7 @@
 // lib/chart-colors.ts
 
 export const DATA_PALETTE = {
-  data1: '#4F46E5', // data-1
+  data1: '#0F766E', // teal accent, not indigo
   data2: '#F59E0B', // data-2
   data3: '#10B981', // data-3
   data4: '#EC4899', // data-4

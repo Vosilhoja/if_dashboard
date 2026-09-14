@@ -197,7 +197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           href="/overview"
           className="flex items-center gap-2.5 active:scale-95 transition-transform"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-accent via-indigo-600 to-violet-500 text-white flex items-center justify-center font-black text-sm shadow-md shadow-accent/25">
+          <div className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center font-black text-sm shadow-md shadow-accent/25">
             H
           </div>
           <div className="flex items-center gap-1.5">
@@ -447,7 +447,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.15 }}
-                  className="w-9 h-9 rounded-xl bg-gradient-to-tr from-accent via-indigo-600 to-violet-500 text-white flex items-center justify-center font-black text-base shadow-sm"
+                  className="w-9 h-9 rounded-xl bg-accent text-white flex items-center justify-center font-black text-base shadow-sm"
                 >
                   H
                 </motion.div>

@@ -359,11 +359,11 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col gap-3 sm:gap-4 h-full min-h-0">
+    <div className="flex flex-col h-full w-full min-h-0 bg-surface">
       {/* Top Header & Data Context Bar */}
-      <div className="p-3 sm:p-4 rounded-[12px] bg-surface border border-border flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 shadow-sm shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-[10px] bg-gradient-to-tr from-accent via-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
+      <div className="p-3 sm:px-4 sm:py-3 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-accent text-white flex items-center justify-center font-bold shrink-0">
             <Bot className="w-6 h-6" />
           </div>
           <div>
@@ -433,7 +433,7 @@ export default function ChatPage() {
       </div>
 
       {/* Main Chat Workspace — fills remaining viewport height */}
-      <div className="rounded-[12px] border border-border bg-surface flex flex-col flex-1 min-h-0 shadow-sm overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Messages Scroll Area */}
         <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-5 overscroll-contain">
           {messages.map((msg) => {
@@ -444,7 +444,7 @@ export default function ChatPage() {
                 className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                  <div className="w-8 h-8 rounded-[8px] bg-gradient-to-tr from-accent/20 to-indigo-500/20 text-accent flex items-center justify-center shrink-0 border border-accent/30 mt-0.5">
+                  <div className="w-8 h-8 rounded-[8px] bg-accent/15 text-accent flex items-center justify-center shrink-0 border border-accent/30 mt-0.5">
                     <Sparkles className="w-4 h-4" />
                   </div>
                 )}

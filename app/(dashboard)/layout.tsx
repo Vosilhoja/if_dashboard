@@ -35,7 +35,7 @@ export default function DashboardLayout({
 
         {/* Content Container */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-          <Breadcrumbs />
+          {pathname !== '/chat' && <Breadcrumbs />}
           <AnimatePresence mode="wait" initial={false}>
             <motion.main
               key={pathname}
@@ -44,7 +44,11 @@ export default function DashboardLayout({
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className="flex-1 min-h-0 flex flex-col max-w-[1440px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 gap-3 sm:gap-6 overflow-y-auto overflow-x-hidden"
+              className={
+                pathname === '/chat'
+                  ? 'flex-1 min-h-0 flex flex-col w-full overflow-hidden p-0'
+                  : 'flex-1 min-h-0 flex flex-col max-w-[1440px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 gap-3 sm:gap-6 overflow-y-auto overflow-x-hidden'
+              }
             >
               {children}
             </motion.main>
