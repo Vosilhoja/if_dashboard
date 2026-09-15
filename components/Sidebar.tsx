@@ -124,6 +124,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const pathname = usePathname();
   const normalizedRole = normalizeRole(role);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [refreshAnimationKey, setRefreshAnimationKey] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshAnimationKey((key) => key + 1);
+    onRefresh?.();
+    window.dispatchEvent(new CustomEvent('hurmo:sync'));
+  };
 
   // Lock body scroll when mobile burger menu is opened
   useEffect(() => {
@@ -405,13 +412,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setMobileDrawerOpen(false);
-                      onRefresh?.();
-                      window.dispatchEvent(new CustomEvent('hurmo:sync'));
+                        handleRefresh();
                       }}
                       disabled={isRefreshing}
                       className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-surface border border-border text-primary text-xs font-bold shadow-xs hover:bg-surface-2 transition-all"
                     >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-accent' : ''}`} />
+                      <motion.span
+                        key={refreshAnimationKey}
+                        initial={{ rotate: 0 }}
+                        animate={isRefreshing ? { rotate: 360 } : { rotate: 360 }}
+                        transition={
+                          isRefreshing
+                            ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
+                            : { duration: 0.65, ease: 'easeInOut' }
+                        }
+                        className="inline-flex"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-accent" />
+                      </motion.span>
                       <span>Синхронизация</span>
                     </motion.button>
                   )}
@@ -523,13 +541,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 whileHover={{ opacity: 0.9 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => {
-                  onRefresh?.();
-                  window.dispatchEvent(new CustomEvent('hurmo:sync'));
+                  handleRefresh();
                 }}
                 disabled={isRefreshing}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-95 disabled:opacity-50 text-xs font-medium transition-all cursor-pointer shadow-xs"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <motion.span
+                  key={refreshAnimationKey}
+                  initial={{ rotate: 0 }}
+                  animate={{ rotate: 360 }}
+                  transition={
+                    isRefreshing
+                      ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
+                      : { duration: 0.65, ease: 'easeInOut' }
+                  }
+                  className="inline-flex"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </motion.span>
                 <span>{isRefreshing ? 'Синхронизация...' : 'Обновить данные'}</span>
               </motion.button>
             )}
