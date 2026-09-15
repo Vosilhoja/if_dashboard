@@ -4,10 +4,62 @@
  */
 
 import { DashboardMetrics } from './types';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // Базовый URL бэкенда (по умолчанию Fly.io или localhost в dev)
 export const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
+
+const api = axios.create({
+  baseURL: '/api/proxy',
+  timeout: 25_000,
+  withCredentials: true,
+  headers: {
+    Accept: 'application/json',
+  },
+});
+
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const MAX_RETRIES = 3;
+
+function isRetryable(error: AxiosError, method: string) {
+  if (method.toUpperCase() !== 'GET') return false;
+  if (!error.response) return true;
+  return RETRYABLE_STATUS_CODES.has(error.response.status);
+}
+
+async function request<T>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  const method = config.method || 'GET';
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    try {
+      return await api.request<T>(config);
+    } catch (error) {
+      lastError = error;
+      if (!(error instanceof AxiosError) || !isRetryable(error, method) || attempt === MAX_RETRIES) {
+        throw error;
+      }
+
+      const retryAfter = Number(error.response?.headers?.['retry-after']);
+      const delay = Number.isFinite(retryAfter)
+        ? Math.min(retryAfter * 1000, 10_000)
+        : Math.min(8_000, 500 * 2 ** attempt) + Math.round(Math.random() * 250);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('Ошибка сетевого запроса');
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof AxiosError) {
+    const message = error.response?.data?.error || error.response?.data?.message;
+    if (typeof message === 'string' && message) return message;
+    if (error.code === 'ECONNABORTED') return 'Сервер отвечает слишком долго. Повторите попытку.';
+  }
+  return error instanceof Error ? error.message : fallback;
+}
 
 export interface AuthUser {
   id: number;
@@ -29,37 +81,35 @@ export interface LoginResponse {
  * JWT токен сохраняется на сервере в httpOnly cookie и никогда не попадает в localStorage.
  */
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  const res = await fetch('/api/proxy/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || 'Ошибка авторизации');
+  try {
+    const { data } = await request<LoginResponse>({
+      url: '/login',
+      method: 'POST',
+      data: { username, password },
+    });
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Ошибка авторизации'));
   }
-
-  return data;
 }
 
 /**
  * Получение профиля текущего пользователя через proxy
  */
 export async function getMe(): Promise<AuthUser> {
-  const res = await fetch('/api/proxy/me');
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || 'Не удалось получить данные профиля');
+  try {
+    const { data } = await request<{ user: AuthUser }>({ url: '/me' });
+    return data.user;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Не удалось получить данные профиля'));
   }
-  return data.user;
 }
 
 /**
  * Выход из системы (удаление httpOnly cookie)
  */
 export async function logout(): Promise<void> {
-  await fetch('/api/proxy/logout', { method: 'POST' });
+  await request({ url: '/logout', method: 'POST' });
 }
 
 /**
@@ -83,14 +133,14 @@ export async function getMetrics(params: {
   if (params.attemptRegion) query.set('attemptRegion', params.attemptRegion);
   if (params.attemptStatus) query.set('attemptStatus', params.attemptStatus);
 
-  const res = await fetch(`/api/proxy/data?${query.toString()}`);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+  try {
+    const { data } = await request<DashboardMetrics>({
+      url: `/data?${query.toString()}`,
+    });
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Не удалось загрузить метрики'));
   }
-
-  return data as DashboardMetrics;
 }
 
 /**
@@ -101,14 +151,14 @@ export async function getPeriodDetails(startDate: string, endDate: string) {
   if (startDate) query.set('start', startDate);
   if (endDate) query.set('end', endDate);
 
-  const res = await fetch(`/api/proxy/data/period?${query.toString()}`);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+  try {
+    const { data } = await request({
+      url: `/data/period?${query.toString()}`,
+    });
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Не удалось загрузить детали периода'));
   }
-
-  return data;
 }
 
 /**
@@ -121,12 +171,12 @@ export async function getSheetData(type: string, page = 1, pageSize = 25, search
   });
   if (search) query.set('search', search);
 
-  const res = await fetch(`/api/proxy/data/sheets/${type}?${query.toString()}`);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+  try {
+    const { data } = await request({
+      url: `/data/sheets/${encodeURIComponent(type)}?${query.toString()}`,
+    });
+    return data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error, 'Не удалось загрузить данные таблицы'));
   }
-
-  return data;
 }
