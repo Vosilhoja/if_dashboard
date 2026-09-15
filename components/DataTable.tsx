@@ -36,7 +36,7 @@ const STATUS_CATEGORY_OPTIONS: { id: string; name: string; config: StatusCategor
 ];
 
 interface DataTableProps {
-  sheetType: 'main' | 'numbers' | 'eskiz' | 'not_completed';
+  sheetType: 'main' | 'numbers' | 'eskiz' | 'not_completed' | 'survey_attempts';
   title: string;
 }
 

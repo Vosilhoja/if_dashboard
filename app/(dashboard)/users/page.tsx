@@ -38,7 +38,7 @@ const AVAILABLE_PAGES = [
   { key: 'dashboard', label: 'Операционная воронка', desc: 'Контроль звонков и конверсий' },
   { key: 'analytics', label: 'BI-аналитика', desc: 'Демография и образование' },
   { key: 'map', label: 'Карта регионов', desc: 'География 14 областей' },
-  { key: 'raw', label: 'Сырые таблицы', desc: 'Все 4 базы данных Google' },
+  { key: 'raw', label: 'Сырые таблицы', desc: 'Все 5 таблиц Google' },
   { key: 'chat', label: 'ИИ-Аналитик', desc: 'Аудит и нейросетевой чат' },
 ];
 

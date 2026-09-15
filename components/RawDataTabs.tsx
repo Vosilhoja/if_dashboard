@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, Phone, MessageSquare } from 'lucide-react';
+import { Users, Phone, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { DataTable } from './DataTable';
 
 export const RawDataTabs: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'main' | 'numbers' | 'eskiz' | 'not_completed'>('numbers');
+  const [activeTab, setActiveTab] = useState<'main' | 'numbers' | 'eskiz' | 'not_completed' | 'survey_attempts'>('numbers');
 
   const tabs = [
     {
@@ -31,6 +31,12 @@ export const RawDataTabs: React.FC = () => {
       label: 'Не завершили регистрацию (not_completed)',
       icon: Users,
       description: 'Пользователи, начавшие регистрацию, но не завершившие её',
+    },
+    {
+      id: 'survey_attempts' as const,
+      label: 'Попытки опроса (survey_attempts)',
+      icon: ClipboardCheck,
+      description: 'История попыток прохождения опроса по неделям и статусам',
     },
   ];
 

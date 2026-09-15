@@ -80,7 +80,7 @@ const allNavItems: NavItem[] = [
   {
     href: '/raw',
     label: 'Сырые таблицы',
-    subtitle: 'Все 4 базы данных Google',
+    subtitle: 'Все 5 таблиц Google',
     icon: Database,
     minRole: 'operator',
   },
@@ -185,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const totalRecords = totalStats
     ? totalStats.main + totalStats.numbers + totalStats.eskiz + (totalStats.not_completed ?? 0)
-    : 14742;
+    : 0;
 
   return (
     <>
@@ -400,12 +400,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Кнопка синхронизации и выхода */}
                 <div className="grid grid-cols-2 gap-2.5">
-                  {onRefresh && (
+                  {true && (
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         setMobileDrawerOpen(false);
-                        onRefresh();
+                      onRefresh?.();
+                      window.dispatchEvent(new CustomEvent('hurmo:sync'));
                       }}
                       disabled={isRefreshing}
                       className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-surface border border-border text-primary text-xs font-bold shadow-xs hover:bg-surface-2 transition-all"
@@ -517,11 +518,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Desktop Footer */}
           <div className="pt-3 border-t border-border/80 space-y-2.5">
-            {onRefresh && (
+            {true && (
               <motion.button
                 whileHover={{ opacity: 0.9 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={onRefresh}
+                onClick={() => {
+                  onRefresh?.();
+                  window.dispatchEvent(new CustomEvent('hurmo:sync'));
+                }}
                 disabled={isRefreshing}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-95 disabled:opacity-50 text-xs font-medium transition-all cursor-pointer shadow-xs"
               >

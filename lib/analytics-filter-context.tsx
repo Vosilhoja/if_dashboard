@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { startOfWeek, endOfWeek, format } from 'date-fns';
+import { startOfWeek, endOfWeek, format, subWeeks } from 'date-fns';
 import { formatDateToISO } from './date-utils';
 import { AgeBin } from './age-utils';
 import { FilterMode } from '@/components/DateFilter';
@@ -69,15 +69,16 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Date range defaults to alltime so initial dashboard load shows complete dataset
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [filterMode, setFilterMode] = useState<FilterMode>('alltime');
+  // The operational dashboard opens on the last completed week.
+  const initialDate = subWeeks(new Date(), 1);
+  const [currentDate, setCurrentDate] = useState<Date>(initialDate);
+  const [filterMode, setFilterMode] = useState<FilterMode>('week');
 
-  const defaultStart = formatDateToISO(startOfWeek(new Date(), { weekStartsOn }));
-  const defaultEnd = formatDateToISO(endOfWeek(new Date(), { weekStartsOn }));
+  const defaultStart = formatDateToISO(startOfWeek(initialDate, { weekStartsOn }));
+  const defaultEnd = formatDateToISO(endOfWeek(initialDate, { weekStartsOn }));
 
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>(defaultStart);
+  const [endDate, setEndDate] = useState<string>(defaultEnd);
 
   // Restore the shared date view immediately so every page uses the same period.
   useEffect(() => {
@@ -90,8 +91,10 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
         filterMode?: FilterMode;
         currentDate?: string;
       };
-      if (parsed.startDate) setStartDate(parsed.startDate);
-      if (parsed.endDate) setEndDate(parsed.endDate);
+      if (parsed.startDate && parsed.endDate) {
+        setStartDate(parsed.startDate);
+        setEndDate(parsed.endDate);
+      }
       if (parsed.filterMode) setFilterMode(parsed.filterMode);
       if (parsed.currentDate) setCurrentDate(new Date(parsed.currentDate));
     } catch {
@@ -163,14 +166,14 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
     setSelectedCompareRegions([]);
   };
 
-  // Reset ALL filters including date range back to current week
+  // Reset ALL filters including date range back to the last completed week
   const resetAllFilters = () => {
     resetFilters();
-    const now = new Date();
-    setCurrentDate(now);
+    const lastWeek = subWeeks(new Date(), 1);
+    setCurrentDate(lastWeek);
     setFilterMode('week');
-    setStartDate(formatDateToISO(startOfWeek(now, { weekStartsOn })));
-    setEndDate(formatDateToISO(endOfWeek(now, { weekStartsOn })));
+    setStartDate(formatDateToISO(startOfWeek(lastWeek, { weekStartsOn })));
+    setEndDate(formatDateToISO(endOfWeek(lastWeek, { weekStartsOn })));
   };
 
   const hasActiveFilters = Boolean(

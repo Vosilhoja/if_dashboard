@@ -73,7 +73,7 @@ const AVAILABLE_PAGES = [
   { key: 'dashboard', label: 'Операционная воронка', desc: 'Конверсии и звонки' },
   { key: 'analytics', label: 'BI-аналитика', desc: 'Демография и образование' },
   { key: 'map', label: 'Карта регионов', desc: 'География 14 областей' },
-  { key: 'raw', label: 'Сырые таблицы', desc: 'Просмотр 4 таблиц' },
+  { key: 'raw', label: 'Сырые таблицы', desc: 'Просмотр 5 таблиц' },
   { key: 'chat', label: 'ИИ-Аналитик', desc: 'Аудит и AI-чат' },
 ];
 
@@ -526,7 +526,7 @@ export default function SettingsPage() {
           </div>
           <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>4 таблицы подключено</span>
+            <span>5 таблиц подключено</span>
           </span>
         </div>
         <p className="text-xs text-secondary">

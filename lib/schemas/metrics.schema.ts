@@ -44,6 +44,7 @@ export const DashboardMetricsSchema = z.object({
   registeredMainBase: MetricValueSchema,
   registeredFromSupport: MetricValueSchema,
   registeredAfterRepeat: MetricValueSchema,
+  repeatContactsCount: MetricValueSchema,
   declinedCount: MetricValueSchema,
   alreadyRegisteredCount: MetricValueSchema,
   wrongPersonCount: MetricValueSchema,

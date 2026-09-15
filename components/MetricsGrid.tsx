@@ -10,8 +10,6 @@ import {
   UserX,
   Bot,
   UsersRound,
-  ClipboardCheck,
-  Repeat2,
 } from 'lucide-react';
 import {
   Bar,
@@ -161,15 +159,23 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           delayIndex={3}
         />
         <MetricCard
-          title="5. После повторной ссылки"
-          metric={metrics.registeredAfterRepeat}
+          title="5. Повторные звонки"
+          metric={metrics.repeatContactsCount}
           icon={Repeat}
           badgeText="повторно"
-          tooltipText="Уникальные абоненты после повторной ссылки: повторный контакт и регистрация должны попасть в выбранный период"
+          tooltipText="Количество звонков, отмеченных как повторный контакт, за выбранный период"
           delayIndex={4}
         />
         <MetricCard
-          title="6. Отказы респондентов"
+          title="6. Пользователи после повторного звонка"
+          metric={metrics.registeredAfterRepeat}
+          icon={UserCheck}
+          badgeText="повторно → регистрация"
+          tooltipText="Уникальные пользователи, зарегистрировавшиеся в день повторного звонка или позже, при повторном контакте за выбранный период"
+          delayIndex={5}
+        />
+        <MetricCard
+          title="7. Отказы респондентов"
           metric={metrics.declinedCount}
           icon={UserX}
           badgeText="otkaz / vaqti yo'q"
@@ -177,49 +183,33 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           sparklineData={declinedSparkline.length >= 2 ? declinedSparkline : undefined}
           trend={declinedTrend}
           trendPercent={declinedDelta}
-          delayIndex={5}
+          delayIndex={6}
         />
         <MetricCard
-          title="7. Уже через бот"
+          title="8. Уже через бот"
           metric={metrics.alreadyRegisteredCount}
           icon={Bot}
           badgeText="bot bor"
           tooltipText="Абоненты, которые сообщили, что уже зарегистрировались или пользуются Telegram-ботом"
-          delayIndex={6}
+          delayIndex={7}
         />
         <MetricCard
-          title="8. Не тот человек / номер"
+          title="9. Не тот человек / номер"
           metric={metrics.wrongPersonCount}
           icon={UsersRound}
           badgeText="boshqa odam"
           tooltipText="Зарегистрированы с другого номера, чужой номер, второй номер"
-          delayIndex={7}
+          delayIndex={8}
         />
         {metrics.notCompletedCount && (
           <MetricCard
-            title="9. Не завершили регистрацию"
+            title="10. Не завершили регистрацию"
             metric={metrics.notCompletedCount}
             badgeText="not_completed"
             tooltipText="Пользователи, начавшие регистрацию в период, но не завершившие её (Not completed)"
-            delayIndex={8}
+            delayIndex={9}
           />
         )}
-        <MetricCard
-          title="10. Пытались пройти опрос"
-          metric={metrics.surveyAttemptsPeople}
-          icon={ClipboardCheck}
-          badgeText="уникальные люди"
-          tooltipText="Уникальные номера или ID со статусом, отличным от created, в недельных колонках новой таблицы"
-          delayIndex={9}
-        />
-        <MetricCard
-          title="11. Всего попыток"
-          metric={metrics.surveyAttemptsTotal}
-          icon={Repeat2}
-          badgeText="все статусы"
-          tooltipText="Количество всех попыток по статусным ячейкам; created и пустые значения не считаются"
-          delayIndex={10}
-        />
       </div>
 
       {metrics.surveyAttemptDetails && (

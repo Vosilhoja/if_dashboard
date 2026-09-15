@@ -16,7 +16,7 @@ import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
 import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
-import { AlertCircle, Clock, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { AlertCircle, Clock, FileSpreadsheet } from 'lucide-react';
 import { getMetrics } from '@/lib/api-client';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -110,24 +110,10 @@ export default function DashboardPage() {
     void fetchMetrics(startDate, endDate, shouldUseCacheForThisLoad, attemptFilter, attemptRegion, attemptStatus);
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
-  // Background auto-refresh interval (configured in Settings)
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
-    try {
-      const saved = localStorage.getItem('hurmo_auto_refresh_interval');
-      const minutes = saved !== null ? parseInt(saved, 10) : 3;
-      if (minutes > 0) {
-        intervalId = setInterval(() => {
-          fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
-        }, minutes * 60 * 1000);
-      }
-    } catch {
-      // ignore in SSR
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+    const handleSync = () => void fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
+    window.addEventListener('hurmo:sync', handleSync);
+    return () => window.removeEventListener('hurmo:sync', handleSync);
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {
@@ -135,10 +121,6 @@ export default function DashboardPage() {
     if (!autoFetch) {
       setNeedsFreshData(true);
     }
-  };
-
-  const handleRefresh = () => {
-    fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
   };
 
   const handleAttemptFilterChange = (value: string) => {
@@ -171,15 +153,6 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
-              onClick={handleRefresh}
-              disabled={isRefreshing || loading}
-              className="active-press flex items-center gap-1.5 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-90 disabled:opacity-50 text-xs font-semibold transition-all cursor-pointer shadow-xs shrink-0"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing ? 'Загрузка...' : 'Обновить'}</span>
-            </button>
-
-            <button
               onClick={() => setIsPeriodDetailsOpen(true)}
               className="active-press flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-semibold border border-border transition-colors cursor-pointer shrink-0"
               title="Показать строки звонков и недошедших за выбранный период"
@@ -206,26 +179,14 @@ export default function DashboardPage() {
         <div className="p-3 rounded-[6px] bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span>Период изменён. Нажмите «Обновить», чтобы пересчитать метрики за новый диапазон.</span>
+            <span>Период изменён. Метрики пересчитаются после загрузки выбранного диапазона.</span>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="px-2.5 py-1 rounded-[4px] bg-amber-500 text-white font-medium text-xs whitespace-nowrap cursor-pointer"
-          >
-            Обновить
-          </button>
         </div>
       )}
 
       {stale && !needsFreshData && (
         <div className="p-2.5 rounded-[6px] bg-surface-2 border border-border text-secondary text-xs flex items-center justify-between gap-2">
           <span>Данные получены более 15 минут назад.</span>
-          <button
-            onClick={handleRefresh}
-            className="text-accent hover:underline font-medium text-xs cursor-pointer"
-          >
-            Синхронизировать сейчас
-          </button>
         </div>
       )}
 

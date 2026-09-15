@@ -16,7 +16,6 @@ import {
   ArrowRight,
   ExternalLink,
   Calendar,
-  RefreshCw,
 } from 'lucide-react';
 import { DashboardMetrics } from '@/lib/types';
 import { showToast } from '@/components/ui/Toast';
@@ -403,15 +402,6 @@ export default function ChatPage() {
               className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer w-[110px] tabular-nums"
               title="Конец периода для контекста ИИ"
             />
-            <button
-              type="button"
-              onClick={() => loadMetrics(aiStartDate, aiEndDate)}
-              disabled={metricsLoading}
-              className="ml-1 p-1 rounded text-secondary hover:text-primary hover:bg-surface transition-colors cursor-pointer disabled:opacity-50"
-              title="Обновить данные для ИИ"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${metricsLoading ? 'animate-spin' : ''}`} />
-            </button>
           </div>
 
           {metrics && (

@@ -18,7 +18,6 @@ import {
   TrendingDown,
   Layers,
   Clock,
-  RefreshCw,
   ExternalLink,
   X,
   Search,
@@ -35,8 +34,7 @@ import {
 } from 'recharts';
 import { DashboardMetrics } from '@/lib/types';
 import { DATA_PALETTE } from '@/lib/chart-colors';
-import { formatDateToISO } from '@/lib/date-utils';
-import { startOfWeek, endOfWeek, subDays, format } from 'date-fns';
+import { subDays, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { FunnelWidget } from '@/components/FunnelWidget';
 import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
@@ -79,10 +77,6 @@ export default function OverviewPage() {
     }
   }, []);
 
-  // Default week range for overview KPI
-  const initialStart = formatDateToISO(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const initialEnd = formatDateToISO(endOfWeek(new Date(), { weekStartsOn: 1 }));
-
   const loadOverviewData = async (fresh = false) => {
     if (fresh) setRefreshing(true);
     else setLoading(true);
@@ -114,22 +108,9 @@ export default function OverviewPage() {
   useEffect(() => {
     loadOverviewData(false);
 
-    let intervalId: NodeJS.Timeout | null = null;
-    try {
-      const saved = localStorage.getItem('hurmo_auto_refresh_interval');
-      const minutes = saved !== null ? parseInt(saved, 10) : 3;
-      if (minutes > 0) {
-        intervalId = setInterval(() => {
-          loadOverviewData(true);
-        }, minutes * 60 * 1000);
-      }
-    } catch {
-      // ignore in SSR
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
+    const handleSync = () => void loadOverviewData(true);
+    window.addEventListener('hurmo:sync', handleSync);
+    return () => window.removeEventListener('hurmo:sync', handleSync);
      
   }, [attemptFilter, attemptRegion, attemptStatus]);
 
@@ -182,40 +163,42 @@ export default function OverviewPage() {
     metrics?.anomalyData?.callsAnomaly.isAnomaly || metrics?.anomalyData?.declinedAnomaly.isAnomaly
   );
 
-  const totalSheetsRows = metrics?.totalRows || {
-    main: 14742,
-    numbers: 2840,
-    eskiz: 1205,
-    not_completed: 430,
-  };
+  const totalSheetsRows = metrics?.totalRows;
 
   const sheetsHealth: SheetHealth[] = [
     {
       name: 'main_base',
       title: 'База респондентов',
-      count: totalSheetsRows.main,
-      status: totalSheetsRows.main > 0 ? 'healthy' : 'warning',
+      count: totalSheetsRows?.main ?? 0,
+      status: (totalSheetsRows?.main ?? 0) > 0 ? 'healthy' : 'warning',
       lastSync: metrics?.cachedAt ? new Date(metrics.cachedAt).toLocaleTimeString('ru-RU') : 'Онлайн',
     },
     {
       name: 'numbers',
       title: 'Звонки службы поддержки',
-      count: totalSheetsRows.numbers,
-      status: totalSheetsRows.numbers > 0 ? 'healthy' : 'warning',
+      count: totalSheetsRows?.numbers ?? 0,
+      status: (totalSheetsRows?.numbers ?? 0) > 0 ? 'healthy' : 'warning',
       lastSync: metrics?.cachedAt ? new Date(metrics.cachedAt).toLocaleTimeString('ru-RU') : 'Онлайн',
     },
     {
       name: 'eskiz',
       title: 'SMS шлюз Eskiz',
-      count: totalSheetsRows.eskiz,
-      status: totalSheetsRows.eskiz > 0 ? 'healthy' : 'warning',
+      count: totalSheetsRows?.eskiz ?? 0,
+      status: (totalSheetsRows?.eskiz ?? 0) > 0 ? 'healthy' : 'warning',
       lastSync: metrics?.cachedAt ? new Date(metrics.cachedAt).toLocaleTimeString('ru-RU') : 'Онлайн',
     },
     {
       name: 'not_completed',
       title: 'Не завершившие опрос',
-      count: totalSheetsRows.not_completed ?? 0,
-      status: (totalSheetsRows.not_completed ?? 0) > 0 ? 'healthy' : 'warning',
+      count: totalSheetsRows?.not_completed ?? 0,
+      status: (totalSheetsRows?.not_completed ?? 0) > 0 ? 'healthy' : 'warning',
+      lastSync: metrics?.cachedAt ? new Date(metrics.cachedAt).toLocaleTimeString('ru-RU') : 'Онлайн',
+    },
+    {
+      name: 'survey_attempts',
+      title: 'Попытки прохождения опроса',
+      count: totalSheetsRows?.survey_attempts ?? 0,
+      status: (totalSheetsRows?.survey_attempts ?? 0) > 0 ? 'healthy' : 'warning',
       lastSync: metrics?.cachedAt ? new Date(metrics.cachedAt).toLocaleTimeString('ru-RU') : 'Онлайн',
     },
   ];
@@ -233,18 +216,9 @@ export default function OverviewPage() {
               Сводный обзор дашборда
             </h1>
             <p className="text-[11px] text-secondary leading-relaxed max-w-2xl">
-              Сквозной контроль 4 баз данных Google Sheets, операционная конверсия звонков операторов и статус респондентов по всему Узбекистану
+              Сквозной контроль 5 таблиц Google Sheets, операционная конверсия звонков операторов и статус респондентов по всему Узбекистану
             </p>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => loadOverviewData(true)}
-            disabled={refreshing}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 text-secondary hover:text-primary text-xs font-semibold border border-border transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-accent' : ''}`} />
-            <span>{refreshing ? 'Синхронизация...' : 'Синхронизировать'}</span>
-          </motion.button>
         </div>
 
         {/* Поисковый инпут в стиле референса */}
@@ -538,7 +512,7 @@ export default function OverviewPage() {
       </section>
 
       {/* 4. Quick Links Showcase */}
-      <section className="space-y-4 animate-fade-in delay-300 pt-2">
+      <section className="hidden" aria-hidden="true">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-primary tracking-tight">
             Почему выбирают hurmouz
@@ -625,7 +599,7 @@ export default function OverviewPage() {
                     Сырые таблицы
                   </h3>
                   <p className="text-[11px] text-secondary leading-relaxed">
-                    Прямой просмотр и поиск по строкам всех 4 подключённых Google Таблиц
+                    Прямой просмотр и поиск по строкам всех 5 подключённых Google Таблиц
                   </p>
                 </div>
               </div>

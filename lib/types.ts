@@ -27,6 +27,7 @@ export interface DashboardMetrics {
   registeredMainBase: MetricValue;
   registeredFromSupport: MetricValue;
   registeredAfterRepeat: MetricValue;
+  repeatContactsCount: MetricValue;
   declinedCount: MetricValue;           // Отказы (13k+ записей)
   alreadyRegisteredCount: MetricValue;  // Уже зарегистрирован через бот
   wrongPersonCount: MetricValue;        // Не тот человек / номер
