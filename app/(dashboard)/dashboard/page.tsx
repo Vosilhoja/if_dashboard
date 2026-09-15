@@ -93,16 +93,22 @@ export default function DashboardPage() {
     }
   };
 
+  const hasInitialLoadRef = React.useRef(false);
+
   useEffect(() => {
     const cached = loadCachedDashboard();
+    const hasUsableCache = Boolean(cached && !isUnusableCache(cached.metrics));
+
     if (cached && !isUnusableCache(cached.metrics)) {
       setMetrics(cached.metrics);
       setLastSavedAt(cached.savedAt);
     }
-    // Always hit the API — cache is only a placeholder, never a skip.
-    fetchMetrics(startDate, endDate, Boolean(cached), attemptFilter, attemptRegion, attemptStatus);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    const shouldUseCacheForThisLoad = hasUsableCache && !hasInitialLoadRef.current;
+    hasInitialLoadRef.current = true;
+
+    void fetchMetrics(startDate, endDate, shouldUseCacheForThisLoad, attemptFilter, attemptRegion, attemptStatus);
+  }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
   // Background auto-refresh interval (configured in Settings)
   useEffect(() => {
@@ -126,15 +132,25 @@ export default function DashboardPage() {
 
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {
     setDateRange(start, end);
-    if (autoFetch) {
-      fetchMetrics(start, end, true, attemptFilter, attemptRegion, attemptStatus);
-    } else {
+    if (!autoFetch) {
       setNeedsFreshData(true);
     }
   };
 
   const handleRefresh = () => {
     fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
+  };
+
+  const handleAttemptFilterChange = (value: string) => {
+    setAttemptFilter(value);
+  };
+
+  const handleAttemptRegionChange = (value: string) => {
+    setAttemptRegion(value);
+  };
+
+  const handleAttemptStatusChange = (value: string) => {
+    setAttemptStatus(value);
   };
 
   const stale = lastSavedAt ? isCacheStale(lastSavedAt) : false;
@@ -237,17 +253,14 @@ export default function DashboardPage() {
           attemptFilter={attemptFilter}
           onAttemptFilterChange={(value) => {
             setAttemptFilter(value);
-            fetchMetrics(startDate, endDate, true, value, attemptRegion, attemptStatus);
           }}
           attemptRegion={attemptRegion}
           attemptStatus={attemptStatus}
           onAttemptRegionChange={(value) => {
             setAttemptRegion(value);
-            fetchMetrics(startDate, endDate, true, attemptFilter, value, attemptStatus);
           }}
           onAttemptStatusChange={(value) => {
             setAttemptStatus(value);
-            fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, value);
           }}
         />
       </section>
