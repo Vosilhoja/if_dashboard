@@ -141,7 +141,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
               <Icon className="w-4 h-4" />
             </div>
           )}
-          <span className="text-xs font-semibold text-secondary leading-tight truncate">
+          <span className="text-xs font-semibold text-secondary leading-tight break-words [overflow-wrap:anywhere]">
             {title}
           </span>
           {tooltipText && (
