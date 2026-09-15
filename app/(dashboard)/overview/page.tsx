@@ -42,6 +42,8 @@ import { FunnelWidget } from '@/components/FunnelWidget';
 import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
 import { OdometerNumber } from '@/components/ui/OdometerNumber';
 import { motion } from 'framer-motion';
+import { getMetrics } from '@/lib/api-client';
+import { SurveyAttemptsPanel } from '@/components/SurveyAttemptsPanel';
 
 interface SheetHealth {
   name: string;
@@ -62,6 +64,9 @@ export default function OverviewPage() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [showAnomalyBanner, setShowAnomalyBanner] = useState<boolean>(true);
   const [anomalyAlertsEnabled, setAnomalyAlertsEnabled] = useState<boolean>(true);
+  const [attemptFilter, setAttemptFilter] = useState('all');
+  const [attemptRegion, setAttemptRegion] = useState('all');
+  const [attemptStatus, setAttemptStatus] = useState('all');
 
   useEffect(() => {
     try {
@@ -84,31 +89,19 @@ export default function OverviewPage() {
     setDataError(null);
 
     try {
-      const metricsUrl = `/api/proxy/data?${fresh ? 'fresh=true' : ''}`;
-      const [metricsRes, analyticsRes] = await Promise.all([
-        fetch(metricsUrl, { cache: 'no-store' }),
+      const [metricsPayload, analyticsRes] = await Promise.all([
+        getMetrics({
+          fresh,
+          attemptFilter,
+          attemptRegion,
+          attemptStatus,
+        }),
         fetch('/api/proxy/data/analytics', { cache: 'no-store' }),
       ]);
-
-      const [metricsPayload, analyticsPayload] = await Promise.all([
-        metricsRes.json().catch(() => ({})),
-        analyticsRes.json().catch(() => ({})),
-      ]);
-
-      const errors: string[] = [];
-      if (metricsRes.ok) {
-        setMetrics(metricsPayload);
-      } else {
-        errors.push(metricsPayload.error || `Метрики: HTTP ${metricsRes.status}`);
-      }
-      if (analyticsRes.ok) {
-        setAnalyticsData(analyticsPayload);
-      } else {
-        errors.push(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
-      }
-      if (errors.length > 0) {
-        setDataError(errors.join(' · '));
-      }
+      setMetrics(metricsPayload);
+      const analyticsPayload = await analyticsRes.json().catch(() => ({}));
+      if (analyticsRes.ok) setAnalyticsData(analyticsPayload);
+      else setDataError(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
     } catch (e) {
       console.error('Error loading overview data:', e);
       setDataError(e instanceof Error ? e.message : 'Не удалось загрузить данные');
@@ -138,7 +131,7 @@ export default function OverviewPage() {
       if (intervalId) clearInterval(intervalId);
     };
      
-  }, []);
+  }, [attemptFilter, attemptRegion, attemptStatus]);
 
   // Compute 30-day registration dynamics if dates exist in analytics rows, or fall back to monthlyDynamics
   const dynamicsChartData = React.useMemo(() => {
@@ -455,6 +448,18 @@ export default function OverviewPage() {
           loading={loading}
         />
       </section>
+
+      {metrics && (
+        <SurveyAttemptsPanel
+          metrics={metrics}
+          attemptFilter={attemptFilter}
+          attemptRegion={attemptRegion}
+          attemptStatus={attemptStatus}
+          onAttemptFilterChange={setAttemptFilter}
+          onAttemptRegionChange={setAttemptRegion}
+          onAttemptStatusChange={setAttemptStatus}
+        />
+      )}
 
       {/* 3. Dynamics Chart */}
       <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 hover-lift animate-fade-in delay-250">

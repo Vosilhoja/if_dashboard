@@ -93,17 +93,17 @@ const allNavItems: NavItem[] = [
     isAi: true,
   },
   {
-    href: '/settings',
-    label: 'Настройки',
-    subtitle: 'Интервалы, кэш и пороги',
-    icon: Settings,
-  },
-  {
     href: '/users',
     label: 'Пользователи',
     subtitle: 'Управление доступом и ролями',
     icon: Users,
     minRole: 'admin',
+  },
+  {
+    href: '/settings',
+    label: 'Настройки',
+    subtitle: 'Интервалы, кэш и пороги',
+    icon: Settings,
   },
 ];
 
