@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
 
-async function proxy(request: NextRequest, method: 'GET' | 'POST' | 'DELETE') {
+async function proxy(request: NextRequest, method: 'GET' | 'POST' | 'PUT' | 'DELETE') {
   try {
     const token = request.cookies.get('hurmo_jwt_token')?.value;
     if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
@@ -38,4 +38,8 @@ export function POST(request: NextRequest) {
 
 export function DELETE(request: NextRequest) {
   return proxy(request, 'DELETE');
+}
+
+export function PUT(request: NextRequest) {
+  return proxy(request, 'PUT');
 }

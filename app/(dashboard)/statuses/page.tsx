@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
+  Check,
+  Edit3,
   Hash,
   Info,
   Loader2,
@@ -32,6 +34,8 @@ export default function StatusesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [editingPhrase, setEditingPhrase] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
 
   const selected = categories.find((category) => category.id === selectedId);
   const customPhraseCount = useMemo(
@@ -85,6 +89,32 @@ export default function StatusesPage() {
       setNotice(action === 'add' ? 'Фраза добавлена и будет учитываться в классификации.' : 'Пользовательская фраза удалена.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Ошибка сохранения');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renamePhrase = async (oldPhrase: string) => {
+    if (!selected || !editingValue.trim() || saving) return;
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await fetch('/api/proxy/admin/statuses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId: selected.id, oldPhrase, newPhrase: editingValue }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось изменить фразу');
+      setCategories((current) => current.map((category) => (
+        category.id === selected.id ? data.category : category
+      )));
+      setEditingPhrase(null);
+      setEditingValue('');
+      setNotice('Фраза изменена и сохранена.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Ошибка изменения фразы');
     } finally {
       setSaving(false);
     }
@@ -225,16 +255,44 @@ export default function StatusesPage() {
                 <div className="flex flex-wrap gap-2">
                   {selected.phrases.map((phrase) => {
                     const editable = selected.editablePhrases.includes(phrase);
-                    return (
+                    return editingPhrase === phrase ? (
+                      <div key={phrase} className="flex w-full sm:w-auto items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 p-2">
+                        <input
+                          autoFocus
+                          value={editingValue}
+                          onChange={(event) => setEditingValue(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              event.preventDefault();
+                              void renamePhrase(phrase);
+                            }
+                            if (event.key === 'Escape') {
+                              setEditingPhrase(null);
+                              setEditingValue('');
+                            }
+                          }}
+                          maxLength={120}
+                          className="min-w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-xs text-primary outline-none focus:border-accent"
+                        />
+                        <button type="button" onClick={() => void renamePhrase(phrase)} disabled={saving || !editingValue.trim()} className="text-emerald-400 disabled:opacity-50" title="Сохранить">
+                          <Check className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
                       <div key={phrase} className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
                         editable ? 'border-accent/30 bg-accent/10 text-primary' : 'border-border bg-surface-2 text-secondary'
                       }`}>
                         {editable && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
                         <span>{phrase}</span>
                         {editable ? (
-                          <button type="button" onClick={() => void savePhrase(phrase, 'remove')} disabled={saving} className="text-secondary hover:text-rose-500 disabled:opacity-50" title="Удалить фразу">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <>
+                            <button type="button" onClick={() => { setEditingPhrase(phrase); setEditingValue(phrase); setNotice(null); }} disabled={saving} className="text-secondary hover:text-accent disabled:opacity-50" title="Изменить фразу">
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button type="button" onClick={() => void savePhrase(phrase, 'remove')} disabled={saving} className="text-secondary hover:text-rose-500 disabled:opacity-50" title="Удалить фразу">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
                         ) : (
                           <span title="Системный вариант" className="text-[10px] text-secondary/60">система</span>
                         )}
