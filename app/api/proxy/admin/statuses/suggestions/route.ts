@@ -8,8 +8,12 @@ async function proxy(request: NextRequest, method: 'GET' | 'POST') {
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   try {
     const body = method === 'POST' ? JSON.stringify(await request.json()) : undefined;
+    const queryString = request.nextUrl.searchParams.toString();
+    const endpointPath = method === 'POST'
+      ? `${BACKEND_URL}/api/admin/statuses/suggestions/${request.nextUrl.searchParams.get('id') || ''}/assign`
+      : `${BACKEND_URL}/api/admin/statuses/suggestions${queryString ? `?${queryString}` : ''}`;
     const response = await fetch(
-      `${BACKEND_URL}/api/admin/statuses/suggestions${method === 'POST' ? `/${request.nextUrl.searchParams.get('id') || ''}/assign` : ''}`,
+      endpointPath,
       {
         method,
         headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
