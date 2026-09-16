@@ -250,11 +250,11 @@ export default function StatusesPage() {
                     <h3 className="text-sm font-semibold text-primary">Варианты распознавания</h3>
                     <p className="text-xs text-secondary mt-1">Наведите порядок в словаре категории.</p>
                   </div>
-                  <span className="text-xs text-secondary">{selected.editablePhrases.length} пользовательских</span>
+                  <span className="text-xs text-secondary">{selected.phrases.length} доступно для изменения</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {selected.phrases.map((phrase) => {
-                    const editable = selected.editablePhrases.includes(phrase);
+                    const editable = selected.phrases.includes(phrase);
                     return editingPhrase === phrase ? (
                       <div key={phrase} className="flex w-full sm:w-auto items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 p-2">
                         <input
@@ -293,9 +293,7 @@ export default function StatusesPage() {
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </>
-                        ) : (
-                          <span title="Системный вариант" className="text-[10px] text-secondary/60">система</span>
-                        )}
+                        ) : null}
                       </div>
                     );
                   })}
@@ -304,8 +302,8 @@ export default function StatusesPage() {
               <div className="mx-5 mb-5 sm:mx-6 sm:mb-6 flex items-start gap-3 rounded-xl border border-border/70 bg-surface-2/60 p-4">
                 <Info className="w-4 h-4 text-accent mt-0.5 shrink-0" />
                 <p className="text-xs leading-5 text-secondary">
-                  Системные варианты нельзя удалить — они являются частью базовой логики классификатора.
-                  Пользовательские фразы отмечены цветной точкой и сохраняются на сервере.
+                  Все варианты можно изменять и удалять. Для системных фраз сервер сохраняет переопределение,
+                  поэтому изменения не пропадут после обновления и сразу участвуют в классификации.
                 </p>
               </div>
             </>
