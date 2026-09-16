@@ -155,7 +155,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           metric={metrics.registeredFromSupport}
           icon={Headset}
           badgeText="numbers → base"
-          tooltipText="Уникальные абоненты, которым звонили из поддержки за выбранный период и которые зарегистрировались в main_base за этот же период"
+          tooltipText="Уникальные пользователи из main_base, которым звонили из поддержки за выбранный период. Дата исторической регистрации не отбрасывает совпадение, потому что main_base содержит регистрации за прошлые годы."
           delayIndex={3}
         />
         <MetricCard
