@@ -235,6 +235,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Бренд */}
         <Link
           href="/overview"
+          prefetch={false}
           className="flex items-center gap-2.5 active:scale-95 transition-transform"
         >
           <div className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center font-black text-sm shadow-md shadow-accent/25">
@@ -324,6 +325,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex items-center justify-between">
                   <Link
                     href="/overview"
+                    prefetch={false}
                     onClick={() => setMobileDrawerOpen(false)}
                     className="flex items-center gap-2"
                   >
@@ -373,6 +375,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         <Link
                           href={item.href}
+                          prefetch={false}
                           onClick={() => setMobileDrawerOpen(false)}
                           className={`flex items-center justify-between py-3.5 px-2 transition-all active:bg-surface-2/80 group ${
                             isActive ? 'text-accent font-bold' : 'text-primary font-medium'
@@ -496,7 +499,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-5">
             {/* Brand Header */}
             <div className="flex items-center justify-between pb-3.5 border-b border-border/80">
-              <Link href="/overview" className="flex items-center gap-3 group">
+              <Link href="/overview" prefetch={false} className="flex items-center gap-3 group">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.15 }}
@@ -539,6 +542,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <Link
                       href={item.href}
+                      prefetch={false}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
                         isActive
                           ? 'bg-accent text-white font-semibold shadow-xs'
