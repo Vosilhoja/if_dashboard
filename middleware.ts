@@ -1,26 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Role hierarchy for numeric comparison
-const ROLE_HIERARCHY: Record<string, number> = {
-  viewer: 1,
-  operator: 2,
-  manager: 3,
-  admin: 4,
-  super_admin: 5,
-};
-
-// Route access requirements: [path prefix, minimum role level]
-const PROTECTED_ROUTES: Array<{ prefix: string; minRole: number }> = [
-  { prefix: '/settings', minRole: ROLE_HIERARCHY.manager },
-  { prefix: '/map', minRole: ROLE_HIERARCHY.operator },
-  { prefix: '/raw', minRole: ROLE_HIERARCHY.operator },
-];
-
-function getRoleLevel(role: string | undefined): number {
-  if (!role) return 0;
-  return ROLE_HIERARCHY[role] ?? 0;
-}
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -49,67 +28,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Check permissions:
-  const userRole = request.cookies.get('hurmo_user_role')?.value || 'viewer';
-
-  // 1. super_admin has UNCONDITIONAL access to ALL pages without exceptions
-  if (userRole === 'super_admin') {
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('x-user-role', userRole);
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
-  }
-
-  // 2. Settings is strictly for super_admin
-  if (pathname.startsWith('/settings')) {
-    return NextResponse.rewrite(new URL('/404', request.url));
-  }
-
-  // 3. Users is strictly for super_admin and admin
-  if (pathname.startsWith('/users')) {
-    if (userRole !== 'admin' && userRole !== 'super_admin') {
-      return NextResponse.rewrite(new URL('/404', request.url));
-    }
-  }
-
-  // 4. Fine-grained page access control based on permissions
-  let pageKey = '';
-  if (pathname.startsWith('/overview')) pageKey = 'overview';
-  else if (pathname.startsWith('/dashboard')) pageKey = 'dashboard';
-  else if (pathname.startsWith('/analytics')) pageKey = 'analytics';
-  else if (pathname.startsWith('/map')) pageKey = 'map';
-  else if (pathname.startsWith('/raw')) pageKey = 'raw';
-  else if (pathname.startsWith('/chat')) pageKey = 'chat';
-
-  if (pageKey) {
-    const permsCookie = request.cookies.get('hurmo_user_permissions')?.value;
-    let userPermissions: string[] = [];
-    try {
-      if (permsCookie) {
-        userPermissions = JSON.parse(decodeURIComponent(permsCookie));
-      }
-    } catch {
-      userPermissions = [];
-    }
-
-    // If user doesn't have wildcard '*' or specific pageKey, show 404 page
-    if (!userPermissions.includes('*') && !userPermissions.includes(pageKey)) {
-      return NextResponse.rewrite(new URL('/404', request.url));
-    }
-  }
-
-  // Forward user role in header for server components if needed
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-user-role', userRole);
-
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  // The JWT is the only trusted client credential. Page-level authorization is
+  // enforced by the backend; role/permission cookies are intentionally ignored.
+  return NextResponse.next();
 }
 
 export const config = {

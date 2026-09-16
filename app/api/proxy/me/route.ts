@@ -28,28 +28,6 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json(data);
 
-    if (data.user) {
-      response.cookies.set({
-        name: 'hurmo_user_role',
-        value: data.user.role || 'viewer',
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-
-      response.cookies.set({
-        name: 'hurmo_user_permissions',
-        value: JSON.stringify(data.user.permissions || []),
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-    }
-
     return response;
   } catch (err: unknown) {
     return NextResponse.json(
