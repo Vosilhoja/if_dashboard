@@ -8,7 +8,7 @@ export async function POST() {
   const token = (await cookies()).get('hurmo_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   try {
-    const response = await fetch(`${BACKEND_URL}/api/admin/statuses/classify-unmatched`, {
+    const response = await fetch(`${BACKEND_URL}/api/admin/classify-unmatched`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
