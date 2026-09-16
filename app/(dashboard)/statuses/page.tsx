@@ -126,7 +126,9 @@ export default function StatusesPage() {
     const refreshSuggestions = (event: Event) => {
       const jobId = (event as CustomEvent<{ classificationJobId?: string | null }>).detail?.classificationJobId;
       if (!jobId) {
-        void loadSuggestions();
+        // The sync just replaced the backend snapshot. Bypass the cooldown so
+        // the list reflects column D from that synchronization immediately.
+        void loadSuggestions(true);
         return;
       }
 
