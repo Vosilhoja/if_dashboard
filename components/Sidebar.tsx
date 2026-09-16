@@ -320,16 +320,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md xl:hidden"
+            transition={{ duration: 0.12 }}
+            className="fixed inset-0 z-50 bg-black/70 xl:hidden"
             onClick={() => setMobileDrawerOpen(false)}
           >
             <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full h-full bg-surface border-r border-border shadow-2xl flex flex-col"
+              transition={{ duration: 0.16, ease: 'easeOut' }}
+              className="w-full md:w-[40vw] md:max-w-none h-full bg-surface border-r border-border shadow-2xl flex flex-col transform-gpu will-change-transform"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Верхняя часть меню: Логотип + Крестик */}
@@ -374,18 +374,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Список навигации */}
               <nav className="flex-1 overflow-y-auto flex flex-col divide-y divide-border/40 px-5">
-                  {navItems.map((item, index) => {
+                  {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive =
                       pathname === item.href.split('#')[0] ||
                       (item.href !== '/overview' && pathname.startsWith(item.href.split('#')[0]));
 
                     return (
-                      <motion.div
+                      <div
                         key={item.href}
-                        initial={{ opacity: 0, x: -16 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.04, duration: 0.2 }}
                       >
                         <Link
                           href={item.href}
@@ -429,7 +426,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <ChevronRight className="w-4 h-4 text-secondary/50 group-hover:translate-x-0.5 transition-transform" />
                           </div>
                         </Link>
-                      </motion.div>
+                      </div>
                     );
                   })}
               </nav>
