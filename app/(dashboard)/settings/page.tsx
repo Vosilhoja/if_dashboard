@@ -336,20 +336,15 @@ export default function SettingsPage() {
     async function loadSettingsData() {
       try {
         setLoading(true);
-        const [settingsRes, metricsRes] = await Promise.all([
-          fetch('/api/settings').then((r) => (r.ok ? r.json() : null)),
-          fetch('/api/proxy/data').then((r) => (r.ok ? r.json() : null)),
-        ]);
+        const settingsRes = await fetch('/api/settings').then((r) => (r.ok ? r.json() : null));
 
         if (settingsRes?.settingsUrl) {
           setSettingsUrl(settingsRes.settingsUrl);
         }
 
-        const totalRows = metricsRes?.totalRows || {};
         if (settingsRes?.sheets) {
           const mappedSheets = settingsRes.sheets.map((s: SheetInfo) => ({
             ...s,
-            rowsCount: totalRows[s.key] ?? undefined,
           }));
           setSheets(mappedSheets);
         }
@@ -547,7 +542,7 @@ export default function SettingsPage() {
                     className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-surface hover:bg-surface-2 border border-border text-[11px] text-secondary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Activity className={`w-3 h-3 ${isPinging ? 'animate-spin text-accent' : ''}`} />
-                    <span>{isPinging ? 'Проверка...' : 'Проверить связь'}</span>
+                    <span>{isPinging ? 'Загрузка...' : 'Загрузить полностью'}</span>
                   </button>
 
                   <a
