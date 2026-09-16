@@ -25,6 +25,13 @@ interface StatusCategory {
   editablePhrases: string[];
 }
 
+interface StatusSuggestion {
+  id: number;
+  phrase: string;
+  occurrences: number;
+  created_at?: string;
+}
+
 function normalizePhraseKey(phrase: string): string {
   return phrase
     .toLowerCase()
@@ -56,6 +63,9 @@ export default function StatusesPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [editingPhrase, setEditingPhrase] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  const [suggestions, setSuggestions] = useState<StatusSuggestion[]>([]);
+  const [checkingSuggestions, setCheckingSuggestions] = useState(false);
+  const [assigningSuggestion, setAssigningSuggestion] = useState<number | null>(null);
 
   const selected = categories.find((category) => category.id === selectedId);
   const customPhraseCount = useMemo(
@@ -84,10 +94,61 @@ export default function StatusesPage() {
     }
   };
 
+  const loadSuggestions = async () => {
+    try {
+      const response = await fetch('/api/proxy/admin/statuses/suggestions', { cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось загрузить новые статусы');
+      setSuggestions(data.suggestions || []);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Ошибка загрузки новых статусов');
+    }
+  };
+
   useEffect(() => {
     if (role && !['admin', 'super_admin'].includes(role)) return;
     void loadCategories();
+    void loadSuggestions();
+    const refreshTimer = window.setInterval(() => void loadSuggestions(), 30_000);
+    return () => window.clearInterval(refreshTimer);
   }, [role]);
+
+  const checkForSuggestions = async () => {
+    setCheckingSuggestions(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось запустить проверку');
+      setNotice('Проверка новых вариантов запущена. Обновите список через несколько секунд.');
+      window.setTimeout(() => void loadSuggestions(), 4000);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Ошибка запуска проверки');
+    } finally {
+      setCheckingSuggestions(false);
+    }
+  };
+
+  const assignSuggestion = async (suggestion: StatusSuggestion, categoryId: string) => {
+    setAssigningSuggestion(suggestion.id);
+    setError(null);
+    try {
+      const response = await fetch(`/api/proxy/admin/statuses/suggestions?id=${suggestion.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: categoryId }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось назначить статус');
+      setSuggestions((current) => current.filter((item) => item.id !== suggestion.id));
+      await loadCategories();
+      setNotice(`Фраза «${suggestion.phrase}» добавлена в выбранную категорию.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Ошибка назначения статуса');
+    } finally {
+      setAssigningSuggestion(null);
+    }
+  };
 
   const savePhrase = async (phrase: string, action: 'add' | 'remove') => {
     if (!selected || !phrase.trim() || saving) return;
@@ -177,6 +238,47 @@ export default function StatusesPage() {
           <CheckCircle2 className="w-4 h-4 shrink-0" /> {notice}
         </div>
       )}
+
+      <section className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-primary">
+              Новые нераспознанные статусы {suggestions.length > 0 && `(${suggestions.length})`}
+            </p>
+            <p className="text-xs text-secondary mt-1">
+              Если в таблице появилась новая формулировка, выберите категорию — она сохранится на backend.
+            </p>
+          </div>
+          <button type="button" onClick={() => void checkForSuggestions()} disabled={checkingSuggestions || loading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/40 px-3 py-2 text-xs font-semibold text-primary hover:bg-amber-400/10 disabled:opacity-50">
+            {checkingSuggestions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            Проверить новые варианты
+          </button>
+        </div>
+        {suggestions.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {suggestions.map((suggestion) => (
+              <div key={suggestion.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-surface px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-primary break-words">«{suggestion.phrase}»</p>
+                  <p className="text-xs text-secondary mt-1">Встречается: {suggestion.occurrences}</p>
+                </div>
+                <select
+                  defaultValue=""
+                  disabled={assigningSuggestion === suggestion.id}
+                  onChange={(event) => {
+                    if (event.target.value) void assignSuggestion(suggestion, event.target.value);
+                  }}
+                  className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-primary"
+                >
+                  <option value="" disabled>Выберите категорию</option>
+                  {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
