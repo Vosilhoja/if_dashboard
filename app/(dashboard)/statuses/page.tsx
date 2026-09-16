@@ -109,8 +109,6 @@ export default function StatusesPage() {
     if (role && !['admin', 'super_admin'].includes(role)) return;
     void loadCategories();
     void loadSuggestions();
-    const refreshTimer = window.setInterval(() => void loadSuggestions(), 30_000);
-    return () => window.clearInterval(refreshTimer);
   }, [role]);
 
   const checkForSuggestions = async () => {
@@ -120,8 +118,7 @@ export default function StatusesPage() {
       const response = await fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось запустить проверку');
-      setNotice('Проверка новых вариантов запущена. Обновите список через несколько секунд.');
-      window.setTimeout(() => void loadSuggestions(), 4000);
+      setNotice('Проверка новых вариантов запущена. После завершения нажмите «Обновить список».');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Ошибка запуска проверки');
     } finally {
