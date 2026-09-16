@@ -86,7 +86,6 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
       setIsRefreshing(false);
-      window.dispatchEvent(new CustomEvent('hurmo:sync-complete'));
     }
   };
 
@@ -108,7 +107,7 @@ export default function DashboardPage() {
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
   useEffect(() => {
-    const handleSync = () => void fetchMetrics(startDate, endDate, true, attemptFilter, attemptRegion, attemptStatus);
+    const handleSync = () => void fetchMetrics(startDate, endDate, false, attemptFilter, attemptRegion, attemptStatus);
     window.addEventListener('hurmo:sync', handleSync);
     return () => window.removeEventListener('hurmo:sync', handleSync);
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);

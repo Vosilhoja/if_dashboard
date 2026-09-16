@@ -101,7 +101,7 @@ export default function OverviewPage() {
   useEffect(() => {
     loadOverviewData(false);
 
-    const handleSync = () => void loadOverviewData(true);
+    const handleSync = () => void loadOverviewData(false);
     window.addEventListener('hurmo:sync', handleSync);
     return () => window.removeEventListener('hurmo:sync', handleSync);
      

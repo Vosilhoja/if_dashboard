@@ -28,7 +28,6 @@ import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
 import { openCommandPalette } from '@/components/CommandPalette';
 
 interface SidebarProps {
-  onRefresh?: () => void;
   isRefreshing?: boolean;
   lastUpdated?: string;
   isStale?: boolean;
@@ -122,7 +121,6 @@ const navItemVariants = {
 };
 
 export const Sidebar: React.FC<SidebarProps> = ({
-  onRefresh,
   isRefreshing = false,
   totalStats,
 }) => {
@@ -133,36 +131,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [refreshAnimationKey, setRefreshAnimationKey] = useState(0);
   const [localRefreshInProgress, setLocalRefreshInProgress] = useState(false);
-  const refreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshInProgress = isRefreshing || localRefreshInProgress;
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     if (refreshInProgress) return;
     setLocalRefreshInProgress(true);
-    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-    refreshTimeoutRef.current = setTimeout(() => {
-      setLocalRefreshInProgress(false);
-      refreshTimeoutRef.current = null;
-    }, 120_000);
     setRefreshAnimationKey((key) => key + 1);
-    onRefresh?.();
-    window.dispatchEvent(new CustomEvent('hurmo:sync'));
-  };
-
-  useEffect(() => {
-    const handleSyncComplete = () => {
+    try {
+      const response = await fetch('/api/proxy/data?fresh=true', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Sync failed: ${response.status}`);
+      window.dispatchEvent(new CustomEvent('hurmo:sync'));
+    } catch (error) {
+      console.error('[Sidebar] sync failed', error);
+    } finally {
       setLocalRefreshInProgress(false);
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-        refreshTimeoutRef.current = null;
-      }
-    };
-    window.addEventListener('hurmo:sync-complete', handleSyncComplete);
-    return () => {
-      window.removeEventListener('hurmo:sync-complete', handleSyncComplete);
-      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
-    };
-  }, []);
+    }
+  };
 
   // Lock body scroll when mobile burger menu is opened
   useEffect(() => {
