@@ -301,11 +301,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full sm:max-w-[380px] h-full bg-surface border-r border-border shadow-2xl flex flex-col justify-between overflow-y-auto"
+              className="w-full h-full bg-surface border-r border-border shadow-2xl flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Верхняя часть меню: Логотип + Крестик */}
-              <div className="p-5 space-y-5">
+              <div className="p-5 space-y-5 shrink-0">
                 <div className="flex items-center justify-between">
                   <Link
                     href="/overview"
@@ -342,8 +342,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                 </div>
 
-                {/* Список навигации */}
-                <nav className="flex flex-col divide-y divide-border/40 pt-1">
+              </div>
+
+              {/* Список навигации */}
+              <nav className="flex-1 overflow-y-auto flex flex-col divide-y divide-border/40 px-5">
                   {navItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive =
@@ -402,11 +404,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </motion.div>
                     );
                   })}
-                </nav>
-              </div>
+              </nav>
 
               {/* Нижний подвал меню */}
-              <div className="p-5 border-t border-border/80 space-y-4 bg-surface-2/30">
+              <div className="p-5 border-t border-border/80 space-y-4 bg-surface-2/30 shrink-0">
                 {/* Язык и переключатель темы */}
                 <div className="flex items-center justify-between text-xs text-secondary">
                   <span className="font-medium text-secondary">Язык и тема</span>
