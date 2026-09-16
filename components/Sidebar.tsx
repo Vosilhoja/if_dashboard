@@ -140,7 +140,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
     try {
-      const response = await fetch('/api/proxy/data?fresh=true', {
+      // Synchronize the source sheet used by statuses without recalculating
+      // all five dashboard datasets in one memory-heavy request.
+      const response = await fetch('/api/proxy/data/sheets/numbers?summary=true&fresh=true', {
         cache: 'no-store',
         signal: controller.signal,
       });
