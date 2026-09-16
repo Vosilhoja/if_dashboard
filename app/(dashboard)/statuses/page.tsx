@@ -25,6 +25,26 @@ interface StatusCategory {
   editablePhrases: string[];
 }
 
+function normalizePhraseKey(phrase: string): string {
+  return phrase
+    .toLowerCase()
+    .replace(/[`'’ʻʽ_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeCategories(categories: StatusCategory[]): StatusCategory[] {
+  return categories.map((category) => {
+    const unique = new Map<string, string>();
+    for (const phrase of category.phrases || []) {
+      const key = normalizePhraseKey(phrase);
+      if (key && !unique.has(key)) unique.set(key, phrase.trim());
+    }
+    const phrases = [...unique.values()];
+    return { ...category, phrases, editablePhrases: phrases };
+  });
+}
+
 export default function StatusesPage() {
   const { role } = useAuth();
   const [categories, setCategories] = useState<StatusCategory[]>([]);
@@ -54,7 +74,7 @@ export default function StatusesPage() {
       const response = await fetch('/api/proxy/admin/statuses', { cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить статусы');
-      const nextCategories = data.categories || [];
+      const nextCategories = normalizeCategories(data.categories || []);
       setCategories(nextCategories);
       setSelectedId((current) => current || nextCategories[0]?.id || '');
     } catch (cause) {
