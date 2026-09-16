@@ -126,20 +126,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [refreshAnimationKey, setRefreshAnimationKey] = useState(0);
   const [localRefreshInProgress, setLocalRefreshInProgress] = useState(false);
+  const refreshTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const refreshInProgress = isRefreshing || localRefreshInProgress;
 
   const handleRefresh = () => {
     if (refreshInProgress) return;
     setLocalRefreshInProgress(true);
+    if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    refreshTimeoutRef.current = setTimeout(() => {
+      setLocalRefreshInProgress(false);
+      refreshTimeoutRef.current = null;
+    }, 120_000);
     setRefreshAnimationKey((key) => key + 1);
     onRefresh?.();
     window.dispatchEvent(new CustomEvent('hurmo:sync'));
   };
 
   useEffect(() => {
-    const handleSyncComplete = () => setLocalRefreshInProgress(false);
+    const handleSyncComplete = () => {
+      setLocalRefreshInProgress(false);
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+        refreshTimeoutRef.current = null;
+      }
+    };
     window.addEventListener('hurmo:sync-complete', handleSyncComplete);
-    return () => window.removeEventListener('hurmo:sync-complete', handleSyncComplete);
+    return () => {
+      window.removeEventListener('hurmo:sync-complete', handleSyncComplete);
+      if (refreshTimeoutRef.current) clearTimeout(refreshTimeoutRef.current);
+    };
   }, []);
 
   // Lock body scroll when mobile burger menu is opened
@@ -431,7 +446,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <motion.span
                         key={refreshAnimationKey}
                         initial={{ rotate: 0 }}
-                        animate={refreshInProgress ? { rotate: 360 } : { rotate: 360 }}
+                        animate={refreshInProgress ? { rotate: 360 } : { rotate: 0 }}
                         transition={
                           refreshInProgress
                             ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
@@ -561,7 +576,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <motion.span
                   key={refreshAnimationKey}
                   initial={{ rotate: 0 }}
-                  animate={{ rotate: 360 }}
+                  animate={refreshInProgress ? { rotate: 360 } : { rotate: 0 }}
                   transition={
                     refreshInProgress
                       ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
