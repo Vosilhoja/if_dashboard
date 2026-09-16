@@ -107,6 +107,20 @@ export default function StatusesPage() {
     if (role && !['admin', 'super_admin'].includes(role)) return;
     void loadCategories();
     void loadSuggestions();
+
+    // Classification is queued after synchronization and may finish after
+    // this page mounts. Poll briefly so newly created suggestions appear
+    // without a manual refresh or a second navigation.
+    const refreshSuggestions = () => void loadSuggestions();
+    window.addEventListener('hurmo:sync', refreshSuggestions);
+    const intervalId = window.setInterval(refreshSuggestions, 3000);
+    const stopPollingId = window.setTimeout(() => window.clearInterval(intervalId), 30000);
+
+    return () => {
+      window.removeEventListener('hurmo:sync', refreshSuggestions);
+      window.clearInterval(intervalId);
+      window.clearTimeout(stopPollingId);
+    };
   }, [role]);
 
   const assignSuggestion = async (suggestion: StatusSuggestion, categoryId: string) => {
