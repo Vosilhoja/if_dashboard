@@ -125,12 +125,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const normalizedRole = normalizeRole(role);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [refreshAnimationKey, setRefreshAnimationKey] = useState(0);
+  const [localRefreshInProgress, setLocalRefreshInProgress] = useState(false);
+  const refreshInProgress = isRefreshing || localRefreshInProgress;
 
   const handleRefresh = () => {
+    if (refreshInProgress) return;
+    setLocalRefreshInProgress(true);
     setRefreshAnimationKey((key) => key + 1);
     onRefresh?.();
     window.dispatchEvent(new CustomEvent('hurmo:sync'));
   };
+
+  useEffect(() => {
+    const handleSyncComplete = () => setLocalRefreshInProgress(false);
+    window.addEventListener('hurmo:sync-complete', handleSyncComplete);
+    return () => window.removeEventListener('hurmo:sync-complete', handleSyncComplete);
+  }, []);
 
   // Lock body scroll when mobile burger menu is opened
   useEffect(() => {
@@ -414,15 +424,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         setMobileDrawerOpen(false);
                         handleRefresh();
                       }}
-                      disabled={isRefreshing}
-                      className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-surface border border-border text-primary text-xs font-bold shadow-xs hover:bg-surface-2 transition-all"
+                      disabled={refreshInProgress}
+                      aria-busy={refreshInProgress}
+                      className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-surface border border-border text-primary text-xs font-bold shadow-xs hover:bg-surface-2 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                     >
                       <motion.span
                         key={refreshAnimationKey}
                         initial={{ rotate: 0 }}
-                        animate={isRefreshing ? { rotate: 360 } : { rotate: 360 }}
+                        animate={refreshInProgress ? { rotate: 360 } : { rotate: 360 }}
                         transition={
-                          isRefreshing
+                          refreshInProgress
                             ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
                             : { duration: 0.65, ease: 'easeInOut' }
                         }
@@ -543,15 +554,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => {
                   handleRefresh();
                 }}
-                disabled={isRefreshing}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-95 disabled:opacity-50 text-xs font-medium transition-all cursor-pointer shadow-xs"
+                disabled={refreshInProgress}
+                aria-busy={refreshInProgress}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed text-xs font-medium transition-all cursor-pointer shadow-xs"
               >
                 <motion.span
                   key={refreshAnimationKey}
                   initial={{ rotate: 0 }}
                   animate={{ rotate: 360 }}
                   transition={
-                    isRefreshing
+                    refreshInProgress
                       ? { duration: 0.8, repeat: Infinity, ease: 'linear' }
                       : { duration: 0.65, ease: 'easeInOut' }
                   }
@@ -559,7 +571,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </motion.span>
-                <span>{isRefreshing ? 'Синхронизация...' : 'Обновить данные'}</span>
+                <span>{refreshInProgress ? 'Синхронизация...' : 'Обновить данные'}</span>
               </motion.button>
             )}
 

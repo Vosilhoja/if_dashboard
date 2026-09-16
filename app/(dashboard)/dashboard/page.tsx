@@ -90,6 +90,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
       setIsRefreshing(false);
+      window.dispatchEvent(new CustomEvent('hurmo:sync-complete'));
     }
   };
 
