@@ -93,11 +93,14 @@ export default function StatusesPage() {
     }
   };
 
-  const loadSuggestions = async () => {
+  const loadSuggestions = async (forceRefresh = false) => {
     if (suggestionsRequestRef.current) return suggestionsRequestRef.current;
     const request = (async () => {
     try {
-      const response = await fetch('/api/proxy/admin/statuses/suggestions', { cache: 'no-store' });
+      const response = await fetch(
+        `/api/proxy/admin/statuses/suggestions${forceRefresh ? '?fresh=true' : ''}`,
+        { cache: 'no-store' },
+      );
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить новые статусы');
       setSuggestions(data.suggestions || []);
@@ -138,7 +141,7 @@ export default function StatusesPage() {
           );
           const data = await response.json().catch(() => ({}));
           if (response.ok && (data.state === 'completed' || data.state === 'failed')) {
-            await loadSuggestions();
+            await loadSuggestions(true);
             return;
           }
         } catch (cause) {
