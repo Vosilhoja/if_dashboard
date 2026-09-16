@@ -67,14 +67,6 @@ interface SystemUser {
   created_at?: string;
 }
 
-interface StatusCategory {
-  id: string;
-  name: string;
-  description: string;
-  phrases: string[];
-  editablePhrases: string[];
-}
-
 const AVAILABLE_PAGES = [
   { key: 'overview', label: 'Главная', desc: 'Сводный обзор' },
   { key: 'dashboard', label: 'Операционная воронка', desc: 'Конверсии и звонки' },
@@ -147,12 +139,6 @@ export default function SettingsPage() {
   const [editingPermissionsUser, setEditingPermissionsUser] = useState<SystemUser | null>(null);
   const [editingPermissionsList, setEditingPermissionsList] = useState<string[]>([]);
   const [savingPermissions, setSavingPermissions] = useState(false);
-  const [statusCategories, setStatusCategories] = useState<StatusCategory[]>([]);
-  const [selectedStatusCategory, setSelectedStatusCategory] = useState('');
-  const [newStatusPhrase, setNewStatusPhrase] = useState('');
-  const [statusSaving, setStatusSaving] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
-
   const canManageUsers = currentUserRole === 'super_admin';
 
   const loadUsers = async () => {
@@ -170,46 +156,6 @@ export default function SettingsPage() {
       setUsersLoading(false);
     }
   };
-
-  const loadStatusCategories = async () => {
-    if (!currentUserRole || !['super_admin', 'admin'].includes(currentUserRole)) return;
-    try {
-      const res = await fetch('/api/proxy/admin/statuses', { cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Ошибка загрузки статусов');
-      setStatusCategories(data.categories || []);
-      setSelectedStatusCategory((current) => current || data.categories?.[0]?.id || '');
-    } catch (e: unknown) {
-      setStatusError(e instanceof Error ? e.message : 'Ошибка загрузки статусов');
-    }
-  };
-
-  const saveStatusPhrase = async (phrase: string, action: 'add' | 'remove') => {
-    if (!selectedStatusCategory || !phrase.trim()) return;
-    setStatusSaving(true);
-    setStatusError(null);
-    try {
-      const res = await fetch('/api/proxy/admin/statuses', {
-        method: action === 'add' ? 'POST' : 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ categoryId: selectedStatusCategory, phrase }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Не удалось сохранить вариант');
-      setStatusCategories((categories) =>
-        categories.map((category) => category.id === selectedStatusCategory ? data.category : category)
-      );
-      if (action === 'add') setNewStatusPhrase('');
-    } catch (e: unknown) {
-      setStatusError(e instanceof Error ? e.message : 'Ошибка сохранения статуса');
-    } finally {
-      setStatusSaving(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadStatusCategories();
-  }, [currentUserRole]);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -544,106 +490,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* 1. Status Settings Link (Google Sheets Tab) */}
-      <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
-        <div className="flex items-center gap-2">
-          <Sliders className="w-4 h-4 text-accent" />
-          <h2 className="text-sm font-semibold text-primary">Настройки статусов воронки</h2>
-        </div>
-        <p className="text-xs text-secondary">
-          Правила сопоставления статусов звонков, категорий отказов и повторных контактов настраиваются во вкладке Google Таблицы:
-        </p>
-
-        {settingsUrl ? (
-          <a
-            href={settingsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-[6px] bg-accent text-white hover:opacity-95 text-xs font-medium transition-all shadow-xs cursor-pointer"
-          >
-            <span>Открыть настройки статусов в Google Таблицах</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        ) : (
-          <div className="text-xs text-secondary italic">Загрузка ссылки...</div>
-        )}
-      </section>
-
-      {['super_admin', 'admin'].includes(currentUserRole || '') && (
-        <section id="statuses" className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-accent" />
-            <div>
-              <h2 className="text-sm font-semibold text-primary">Варианты статусов звонков</h2>
-              <p className="text-xs text-secondary mt-0.5">
-                Добавляйте свои фразы: например, варианты для «повтор», «пройден», «отказ» и других категорий.
-              </p>
-            </div>
-          </div>
-
-          {statusError && (
-            <div className="text-xs text-rose-500 flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5" /> {statusError}
-            </div>
-          )}
-
-          <select
-            value={selectedStatusCategory}
-            onChange={(event) => setSelectedStatusCategory(event.target.value)}
-            className="w-full rounded-[6px] bg-surface-2 border border-border px-3 py-2 text-xs text-primary"
-          >
-            {statusCategories.map((category) => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
-          </select>
-
-          {statusCategories.find((category) => category.id === selectedStatusCategory) && (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  value={newStatusPhrase}
-                  onChange={(event) => setNewStatusPhrase(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      void saveStatusPhrase(newStatusPhrase, 'add');
-                    }
-                  }}
-                  placeholder="Новый вариант фразы, например: qayta aloqa"
-                  maxLength={120}
-                  className="min-w-0 flex-1 rounded-[6px] bg-surface-2 border border-border px-3 py-2 text-xs text-primary"
-                />
-                <button
-                  type="button"
-                  disabled={statusSaving || !newStatusPhrase.trim()}
-                  onClick={() => void saveStatusPhrase(newStatusPhrase, 'add')}
-                  className="rounded-[6px] bg-accent px-3 py-2 text-xs font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  Добавить
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {statusCategories.find((category) => category.id === selectedStatusCategory)?.phrases.map((phrase) => (
-                  <span key={phrase} className="inline-flex items-center gap-1 rounded-full bg-surface-2 border border-border px-2.5 py-1 text-xs text-primary">
-                    {phrase}
-                    <button
-                      type="button"
-                      disabled={statusSaving || !statusCategories.find((category) => category.id === selectedStatusCategory)?.editablePhrases.includes(phrase)}
-                      onClick={() => void saveStatusPhrase(phrase, 'remove')}
-                      className="text-secondary hover:text-rose-500 disabled:opacity-50"
-                      title="Удалить вариант"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* 2. Connected Google Sheets Cards with Live Connection Test */}
+      {/* Connected Google Sheets Cards with Live Connection Test */}
       <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

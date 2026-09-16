@@ -101,7 +101,7 @@ const allNavItems: NavItem[] = [
     minRole: 'admin',
   },
   {
-    href: '/settings#statuses',
+    href: '/statuses',
     label: 'Статусы',
     subtitle: 'Варианты статусов звонков',
     icon: SlidersHorizontal,
