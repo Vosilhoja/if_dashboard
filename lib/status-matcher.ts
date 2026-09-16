@@ -1,6 +1,13 @@
 import { STATUS_CONFIG, StatusCategoryConfig } from './status-config';
 
 /**
+ * WARNING: this is a second copy of the status-classification logic.
+ * The backend source of truth is if_dashboard_backend/src/utils/statusMatcher.ts.
+ * Keep semantic roots and STATUS_CONFIG synchronized so UI filtering/highlighting
+ * does not classify comments differently from the API.
+ */
+
+/**
  * Standard Levenshtein distance implementation
  */
 export function levenshteinDistance(a: string, b: string): number {
@@ -71,22 +78,9 @@ export function normalizeText(text: string | null | undefined): string {
  */
 const SEMANTIC_CATEGORY_ROOTS: Record<string, string[]> = {
   declined: [
-    'otkaz',
-    'rad',
-    'foydalan',
-    'vaqt',
-    'ochir',
-    'uchir',
-    'kerak',
-    'xohla',
-    'hohla',
-    'istam',
-    'otmen',
-    'gaplash',
-    'keragi',
-    'бросил',
-    'отказ',
-    'нет времени',
+    'otkaz', 'foydalanmayman', 'ochirib', 'uchirib', 'otmen qildi', 'gaplashmoqchi emas',
+    'бросил', 'отказ', 'нет времени', "vaqti yo'q", 'vaqti yoq', 'internet', 'shubhali',
+    'ishxona', 'kompaniya', 'korxona', 'aptek', 'spam', 'ishlatmaydi',
   ],
   linkSent: [
     'silka',
@@ -125,6 +119,13 @@ const SEMANTIC_CATEGORY_ROOTS: Record<string, string[]> = {
   ],
 };
 
+function containsSemanticRoot(text: string, root: string): boolean {
+  const normalizedRoot = normalizeText(root);
+  if (!normalizedRoot) return false;
+  if (normalizedRoot.includes(' ')) return text.includes(normalizedRoot);
+  return text.split(' ').some((word) => word.startsWith(normalizedRoot));
+}
+
 /**
  * Intelligent category matching:
  * 1. Semantic root matching with character deduplication ("otkaaaz" -> "otkaz" -> matches declined)
@@ -149,10 +150,10 @@ export function matchesCategory(
   if (semanticRoots) {
     for (const root of semanticRoots) {
       if (
-        norm.includes(root) ||
-        latinNorm.includes(root) ||
-        collapsedNorm.includes(root) ||
-        collapsedLatin.includes(root)
+        containsSemanticRoot(norm, root) ||
+        containsSemanticRoot(latinNorm, root) ||
+        containsSemanticRoot(collapsedNorm, root) ||
+        containsSemanticRoot(collapsedLatin, root)
       ) {
         return true;
       }
