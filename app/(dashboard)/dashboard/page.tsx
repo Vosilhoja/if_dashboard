@@ -47,7 +47,8 @@ export default function DashboardPage() {
     fresh = false,
     selectedAttemptFilter = attemptFilter,
     selectedAttemptRegion = attemptRegion,
-    selectedAttemptStatus = attemptStatus
+    selectedAttemptStatus = attemptStatus,
+    signal?: AbortSignal,
   ) => {
     if (fresh) {
       setIsRefreshing(true);
@@ -68,6 +69,7 @@ export default function DashboardPage() {
         attemptFilter: selectedAttemptFilter,
         attemptRegion: selectedAttemptRegion,
         attemptStatus: selectedAttemptStatus,
+        signal,
       });
 
       setMetrics(data);
@@ -82,6 +84,8 @@ export default function DashboardPage() {
         savedAt: savedTime,
       });
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof Error && err.name === 'CanceledError') return;
       setError(err instanceof Error ? err.message : 'Ошибка при загрузке метрик');
     } finally {
       setLoading(false);
@@ -103,13 +107,35 @@ export default function DashboardPage() {
     const shouldUseCacheForThisLoad = hasUsableCache && !hasInitialLoadRef.current;
     hasInitialLoadRef.current = true;
 
-    void fetchMetrics(startDate, endDate, shouldUseCacheForThisLoad, attemptFilter, attemptRegion, attemptStatus);
+    const controller = new AbortController();
+    void fetchMetrics(
+      startDate,
+      endDate,
+      shouldUseCacheForThisLoad,
+      attemptFilter,
+      attemptRegion,
+      attemptStatus,
+      controller.signal,
+    );
+    return () => controller.abort();
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
   useEffect(() => {
-    const handleSync = () => void fetchMetrics(startDate, endDate, false, attemptFilter, attemptRegion, attemptStatus);
+    const controller = new AbortController();
+    const handleSync = () => void fetchMetrics(
+      startDate,
+      endDate,
+      false,
+      attemptFilter,
+      attemptRegion,
+      attemptStatus,
+      controller.signal,
+    );
     window.addEventListener('hurmo:sync', handleSync);
-    return () => window.removeEventListener('hurmo:sync', handleSync);
+    return () => {
+      window.removeEventListener('hurmo:sync', handleSync);
+      controller.abort();
+    };
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);
 
   const handleDateRangeChange = (start: string, end: string, autoFetch = false) => {

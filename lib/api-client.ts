@@ -149,6 +149,7 @@ export async function getMetrics(params: {
   attemptFilter?: string;
   attemptRegion?: string;
   attemptStatus?: string;
+  signal?: AbortSignal;
 } = {}): Promise<DashboardMetrics> {
   const query = new URLSearchParams();
   if (params.startDate) query.set('startDate', params.startDate);
@@ -162,9 +163,11 @@ export async function getMetrics(params: {
   try {
     const { data } = await request<DashboardMetrics>({
       url: `/data?${query.toString()}`,
+      signal: params.signal,
     });
     return data;
   } catch (error) {
+    if (axios.isCancel(error)) throw error;
     throw new Error(getErrorMessage(error, 'Не удалось загрузить метрики'));
   }
 }

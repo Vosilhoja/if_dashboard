@@ -70,7 +70,7 @@ export default function OverviewPage() {
     }
   }, []);
 
-  const loadOverviewData = async (fresh = false) => {
+  const loadOverviewData = async (fresh = false, signal?: AbortSignal) => {
     if (fresh) setRefreshing(true);
     else setLoading(true);
     setDataError(null);
@@ -82,14 +82,17 @@ export default function OverviewPage() {
           attemptFilter,
           attemptRegion,
           attemptStatus,
+          signal,
         }),
-        fetch('/api/proxy/data/analytics', { cache: 'no-store' }),
+        fetch('/api/proxy/data/analytics', { cache: 'no-store', signal }),
       ]);
       setMetrics(metricsPayload);
       const analyticsPayload = await analyticsRes.json().catch(() => ({}));
       if (analyticsRes.ok) setAnalyticsData(analyticsPayload);
       else setDataError(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      if (e instanceof Error && e.name === 'CanceledError') return;
       console.error('Error loading overview data:', e);
       setDataError(e instanceof Error ? e.message : 'Не удалось загрузить данные');
     } finally {
@@ -99,11 +102,15 @@ export default function OverviewPage() {
   };
 
   useEffect(() => {
-    loadOverviewData(false);
+    const controller = new AbortController();
+    void loadOverviewData(false, controller.signal);
 
-    const handleSync = () => void loadOverviewData(false);
+    const handleSync = () => void loadOverviewData(false, controller.signal);
     window.addEventListener('hurmo:sync', handleSync);
-    return () => window.removeEventListener('hurmo:sync', handleSync);
+    return () => {
+      window.removeEventListener('hurmo:sync', handleSync);
+      controller.abort();
+    };
      
   }, [attemptFilter, attemptRegion, attemptStatus]);
 

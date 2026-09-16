@@ -94,6 +94,7 @@ function AnalyticsDashboardContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     setLoading(true);
     const params = new URLSearchParams();
     // When filterMode is 'alltime', don't send date params
@@ -102,7 +103,7 @@ function AnalyticsDashboardContent() {
       if (endDate) params.set('endDate', endDate);
     }
 
-    fetch(`/api/proxy/data/analytics?${params.toString()}`)
+    fetch(`/api/proxy/data/analytics?${params.toString()}`, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -111,9 +112,11 @@ function AnalyticsDashboardContent() {
         setData(json);
       })
       .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError(err.message || 'Ошибка загрузки аналитики');
       })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [startDate, endDate, filterMode]);
 
   // Helper matching predicates

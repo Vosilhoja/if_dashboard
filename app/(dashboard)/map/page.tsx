@@ -39,6 +39,7 @@ export default function MapPage() {
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
 
   useEffect(() => {
+    const controller = new AbortController();
     async function loadAnalyticsData() {
       try {
         setLoading(true);
@@ -46,7 +47,9 @@ export default function MapPage() {
         if (startDate) params.set('startDate', startDate);
         if (endDate) params.set('endDate', endDate);
 
-        const res = await fetch(`/api/proxy/data/analytics?${params.toString()}`);
+        const res = await fetch(`/api/proxy/data/analytics?${params.toString()}`, {
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.rows) {
@@ -54,6 +57,7 @@ export default function MapPage() {
           setTotalCountryRows(data.allRowsCount || data.rows.length);
         }
       } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить данные карты');
       } finally {
         setLoading(false);
@@ -61,6 +65,7 @@ export default function MapPage() {
     }
 
     loadAnalyticsData();
+    return () => controller.abort();
   }, [startDate, endDate]);
 
   // Compute aggregated count per canonical region
