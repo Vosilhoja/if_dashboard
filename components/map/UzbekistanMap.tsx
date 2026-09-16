@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { geoMercator, geoPath, geoArea, geoBounds } from 'd3-geo';
+import { geoMercator, geoPath } from 'd3-geo';
 import { REGION_EN_TO_RU, normalizeRegionName } from '@/lib/region-name-map';
 import { ZoomIn, ZoomOut, RotateCcw, AlertTriangle, RefreshCw, MapPin } from 'lucide-react';
 

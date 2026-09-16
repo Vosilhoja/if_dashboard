@@ -4,13 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import {
   X,
-  Users,
   MapPin,
   GraduationCap,
-  Calendar,
-  ExternalLink,
-  ChevronRight,
-  Filter,
   ArrowRight,
 } from 'lucide-react';
 import {
@@ -19,7 +14,7 @@ import {
   aggregateByAge,
   aggregateByCategory,
 } from '@/lib/analytics-aggregations';
-import { DATA_PALETTE, GENDER_COLORS } from '@/lib/chart-colors';
+import {  GENDER_COLORS } from '@/lib/chart-colors';
 import { normalizeRegionName } from '@/lib/region-name-map';
 
 interface RegionDetailPanelProps {

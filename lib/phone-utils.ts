@@ -10,20 +10,6 @@ export interface PhoneDiagnostic {
   original: string;
 }
 
-interface CountryRule {
-  code: CountryCode;
-  countryDigits: string; // '998', '7', '380', '1'
-  localLength: number; // length of subscriber part
-}
-
-const COUNTRY_RULES: CountryRule[] = [
-  { code: 'UZ', countryDigits: '998', localLength: 9 },
-  { code: 'RU', countryDigits: '7', localLength: 10 },
-  { code: 'KZ', countryDigits: '7', localLength: 10 },
-  { code: 'UA', countryDigits: '380', localLength: 9 },
-  { code: 'US', countryDigits: '1', localLength: 10 },
-];
-
 /**
  * Checks if raw value is broken by Excel scientific notation float
  */
@@ -168,6 +154,7 @@ export function formatPhoneDisplay(
   normalizedPhone: string,
   country?: CountryCode
 ): string {
+  void country;
   if (!normalizedPhone) return '-';
 
   // UZ (+998)

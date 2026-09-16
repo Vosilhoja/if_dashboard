@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { PhoneCall, Send, UserCheck, ArrowDown, ChevronRight, TrendingDown } from 'lucide-react';
+import { PhoneCall, Send, UserCheck, ChevronRight } from 'lucide-react';
 
 interface FunnelStep {
   id: string;
@@ -23,7 +22,6 @@ export const FunnelWidget: React.FC<FunnelWidgetProps> = ({
   callsCount,
   linksSentCount,
   registeredCount,
-  loading = false,
 }) => {
   const steps: FunnelStep[] = [
     {
@@ -76,7 +74,6 @@ export const FunnelWidget: React.FC<FunnelWidgetProps> = ({
             nextStep && step.count > 0
               ? ((nextStep.count / step.count) * 100).toFixed(1)
               : null;
-          const dropOff = convToNext ? (100 - Number(convToNext)).toFixed(1) : null;
           const widthPercent = Math.max(8, Math.min(100, (step.count / maxVal) * 100));
 
           return (

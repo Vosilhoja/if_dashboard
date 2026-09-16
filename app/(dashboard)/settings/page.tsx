@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Sliders,
   ExternalLink,
   Sun,
   Moon,
@@ -28,11 +27,10 @@ import {
   Loader2,
   Trash2,
   KeyRound,
-  ShieldAlert,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
-import { useAuth, hasMinRole } from '@/lib/auth-context';
+import { useAuth } from '@/lib/auth-context';
 
 interface SheetInfo {
   key: string;
@@ -81,9 +79,9 @@ export default function SettingsPage() {
   const { weekStartsOn, setWeekStartsOn } = useAnalyticsFilter();
   const { role: currentUserRole } = useAuth();
 
-  const [settingsUrl, setSettingsUrl] = useState<string>('');
+  const [, setSettingsUrl] = useState<string>('');
   const [sheets, setSheets] = useState<SheetInfo[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   // Live Sheet Ping State

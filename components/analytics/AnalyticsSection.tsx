@@ -26,8 +26,6 @@ import {
   aggregateByCategory,
 } from '@/lib/analytics-aggregations';
 import { DateFilter } from '@/components/DateFilter';
-import { useTheme } from '@/lib/theme-context';
-import { DATA_PALETTE } from '@/lib/chart-colors';
 import { exportRowsToCSV, exportRowsToExcel } from '@/lib/csv-utils';
 
 interface AnalyticsPayload {
@@ -87,13 +85,9 @@ function AnalyticsDashboardContent() {
     setSelectedAgeBin,
     selectedSource,
     setSelectedSource,
-    selectedCompareRegions,
-    toggleCompareRegion,
     resetFilters,
   } = useAnalyticsFilter();
 
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   const [data, setData] = useState<AnalyticsPayload | null>(null);
   const [loading, setLoading] = useState(false);
@@ -241,27 +235,7 @@ function AnalyticsDashboardContent() {
     selectedAgeBin,
   ]);
 
-  // 6. Slice for Region Table (cross-filtered by non-region dimensions)
-  const rowsForRegionTable = useMemo(() => {
-    if (!data?.rows) return [];
-    return data.rows.filter(
-      (r) =>
-        matchesGender(r) &&
-        matchesEducation(r) &&
-        matchesProfession(r) &&
-        matchesAge(r) &&
-        matchesSource(r)
-    );
-  }, [
-    data?.rows,
-    selectedGender,
-    selectedEducation,
-    selectedProfession,
-    selectedAgeBin,
-    selectedSource,
-  ]);
-
-  // 7. Full slice (ALL filters combined) — for CSV, counts, KPI, Dynamics, TopPairs
+  // 6. Full slice (ALL filters combined) — for CSV, counts, KPI, Dynamics, TopPairs
   const filteredRows = useMemo(() => {
     if (!data?.rows) return [];
     return data.rows.filter(

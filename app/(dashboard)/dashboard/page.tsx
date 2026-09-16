@@ -1,11 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DateFilter, FilterMode } from '@/components/DateFilter';
+import { DateFilter } from '@/components/DateFilter';
 import { MetricsGrid } from '@/components/MetricsGrid';
 import { DashboardMetrics } from '@/lib/types';
-import { formatDateToISO } from '@/lib/date-utils';
-import { startOfWeek, endOfWeek } from 'date-fns';
 import {
   saveCachedDashboard,
   loadCachedDashboard,
@@ -14,11 +12,9 @@ import {
 } from '@/lib/dashboard-cache';
 import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
-import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
 import { AlertCircle, Clock, FileSpreadsheet } from 'lucide-react';
 import { getMetrics } from '@/lib/api-client';
-import { motion, AnimatePresence } from 'framer-motion';
 
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
@@ -36,7 +32,7 @@ export default function DashboardPage() {
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [needsFreshData, setNeedsFreshData] = useState<boolean>(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -122,18 +118,6 @@ export default function DashboardPage() {
     if (!autoFetch) {
       setNeedsFreshData(true);
     }
-  };
-
-  const handleAttemptFilterChange = (value: string) => {
-    setAttemptFilter(value);
-  };
-
-  const handleAttemptRegionChange = (value: string) => {
-    setAttemptRegion(value);
-  };
-
-  const handleAttemptStatusChange = (value: string) => {
-    setAttemptStatus(value);
   };
 
   const stale = lastSavedAt ? isCacheStale(lastSavedAt) : false;

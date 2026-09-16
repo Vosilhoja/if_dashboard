@@ -104,7 +104,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [, setMetricsLoading] = useState(false);
 
   const { startDate: ctxStart, endDate: ctxEnd, selectedRegion } = useAnalyticsFilter();
   // Local overrides for AI context period — user can adjust independently

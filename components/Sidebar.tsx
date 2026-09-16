@@ -22,7 +22,6 @@ import {
   Search,
   ChevronRight,
   ShieldCheck,
-  Zap,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';

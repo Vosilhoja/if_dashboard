@@ -12,14 +12,9 @@ import {
   UserX,
   MessageSquare,
   AlertTriangle,
-  CheckCircle2,
   ArrowRight,
-  TrendingUp,
-  TrendingDown,
   Layers,
-  Clock,
   ExternalLink,
-  X,
   Search,
   Bot,
 } from 'lucide-react';
@@ -35,7 +30,6 @@ import {
 import { DashboardMetrics } from '@/lib/types';
 import { DATA_PALETTE } from '@/lib/chart-colors';
 import { subDays, format } from 'date-fns';
-import { Skeleton } from '@/components/ui/Skeleton';
 import { FunnelWidget } from '@/components/FunnelWidget';
 import { AnomalyBanner } from '@/components/shared/AnomalyBanner';
 import { OdometerNumber } from '@/components/ui/OdometerNumber';
@@ -58,9 +52,8 @@ export default function OverviewPage() {
     rows?: { creationDate?: string }[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [dataError, setDataError] = useState<string | null>(null);
-  const [showAnomalyBanner, setShowAnomalyBanner] = useState<boolean>(true);
   const [anomalyAlertsEnabled, setAnomalyAlertsEnabled] = useState<boolean>(true);
   const [attemptFilter, setAttemptFilter] = useState('all');
   const [attemptRegion, setAttemptRegion] = useState('all');

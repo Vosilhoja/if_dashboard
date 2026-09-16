@@ -13,8 +13,6 @@ import {
   Phone,
   BarChart2,
   Table,
-  ExternalLink,
-  Command,
 } from 'lucide-react';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 import { useTheme } from '@/lib/theme-context';

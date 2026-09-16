@@ -10,14 +10,9 @@ import { AnalyticsRow } from '@/lib/analytics-aggregations';
 import { normalizeRegionName, REGION_RU_TO_EN } from '@/lib/region-name-map';
 import {
   Map as MapIcon,
-  Filter,
   X,
   ExternalLink,
-  Users,
-  Building2,
-  RefreshCw,
   AlertCircle,
-  Calendar,
   RotateCcw,
 } from 'lucide-react';
 
@@ -38,8 +33,8 @@ export default function MapPage() {
   } = useAnalyticsFilter();
 
   const [rows, setRows] = useState<AnalyticsRow[]>([]);
-  const [totalCountryRows, setTotalCountryRows] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [, setTotalCountryRows] = useState<number>(0);
+  const [, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
 
@@ -228,7 +223,7 @@ export default function MapPage() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
-          {Object.entries(REGION_RU_TO_EN).map(([ruName, enName]) => {
+          {Object.entries(REGION_RU_TO_EN).map(([ruName]) => {
             const count = regionCounts[ruName] || 0;
             const percent =
               totalRespondents > 0

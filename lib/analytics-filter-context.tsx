@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { startOfWeek, endOfWeek, format, subWeeks } from 'date-fns';
+import { startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import { formatDateToISO } from './date-utils';
 import { AgeBin } from './age-utils';
 import { FilterMode } from '@/components/DateFilter';

@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronRight, Home, ShieldCheck, FilterX, RotateCcw } from 'lucide-react';
+import { ChevronRight, Home, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
 const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
@@ -43,7 +43,7 @@ const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
 
 export const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
-  const { hasActiveFilters, resetAllFilters, selectedRegion, selectedDistrict } = useAnalyticsFilter();
+  const { hasActiveFilters, resetAllFilters } = useAnalyticsFilter();
 
   const current = ROUTE_LABELS[pathname] || {
     title: 'Раздел',
