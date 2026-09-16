@@ -137,14 +137,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (refreshInProgress) return;
     setLocalRefreshInProgress(true);
     setRefreshAnimationKey((key) => key + 1);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
     try {
-      const response = await fetch('/api/proxy/data?fresh=true', { cache: 'no-store' });
+      const response = await fetch('/api/proxy/data?fresh=true', {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
       if (!response.ok) throw new Error(`Sync failed: ${response.status}`);
-      fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' }).catch(() => {});
-      window.dispatchEvent(new CustomEvent('hurmo:sync'));
+      let classificationJobId: string | null = null;
+      try {
+        const classifyResponse = await fetch('/api/proxy/admin/statuses/classify-unmatched', {
+          method: 'POST',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const classifyData = await classifyResponse.json().catch(() => ({}));
+        if (classifyResponse.ok && typeof classifyData.jobId === 'string') {
+          classificationJobId = classifyData.jobId;
+        } else if (!classifyResponse.ok) {
+          console.warn('[Sidebar] unmatched classification was not queued:', classifyData.error);
+        }
+      } catch (classificationError) {
+        if (!(classificationError instanceof DOMException && classificationError.name === 'AbortError')) {
+          console.warn('[Sidebar] unmatched classification failed:', classificationError);
+        }
+      }
+      window.dispatchEvent(new CustomEvent('hurmo:sync', {
+        detail: { classificationJobId },
+      }));
     } catch (error) {
-      console.error('[Sidebar] sync failed', error);
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.error('[Sidebar] sync failed', error);
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setLocalRefreshInProgress(false);
     }
   };

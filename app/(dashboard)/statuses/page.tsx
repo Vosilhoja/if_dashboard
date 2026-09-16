@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -64,6 +64,7 @@ export default function StatusesPage() {
   const [editingValue, setEditingValue] = useState('');
   const [suggestions, setSuggestions] = useState<StatusSuggestion[]>([]);
   const [assigningSuggestion, setAssigningSuggestion] = useState<number | null>(null);
+  const suggestionsRequestRef = useRef<Promise<void> | null>(null);
 
   const selected = categories.find((category) => category.id === selectedId);
   const customPhraseCount = useMemo(
@@ -93,6 +94,8 @@ export default function StatusesPage() {
   };
 
   const loadSuggestions = async () => {
+    if (suggestionsRequestRef.current) return suggestionsRequestRef.current;
+    const request = (async () => {
     try {
       const response = await fetch('/api/proxy/admin/statuses/suggestions', { cache: 'no-store' });
       const data = await response.json().catch(() => ({}));
@@ -101,6 +104,13 @@ export default function StatusesPage() {
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Ошибка загрузки новых статусов');
     }
+    })();
+    suggestionsRequestRef.current = request;
+    try {
+      await request;
+    } finally {
+      if (suggestionsRequestRef.current === request) suggestionsRequestRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -108,18 +118,42 @@ export default function StatusesPage() {
     void loadCategories();
     void loadSuggestions();
 
-    // Classification is queued after synchronization and may finish after
-    // this page mounts. Poll briefly so newly created suggestions appear
-    // without a manual refresh or a second navigation.
-    const refreshSuggestions = () => void loadSuggestions();
+    let pollTimeout: number | null = null;
+    let cancelled = false;
+    const refreshSuggestions = (event: Event) => {
+      const jobId = (event as CustomEvent<{ classificationJobId?: string | null }>).detail?.classificationJobId;
+      if (!jobId) {
+        void loadSuggestions();
+        return;
+      }
+
+      let attempts = 0;
+      const pollJob = async () => {
+        if (cancelled || attempts >= 20) return;
+        attempts += 1;
+        try {
+          const response = await fetch(
+            `/api/proxy/admin/statuses/classify-unmatched?jobId=${encodeURIComponent(jobId)}`,
+            { cache: 'no-store' },
+          );
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && (data.state === 'completed' || data.state === 'failed')) {
+            await loadSuggestions();
+            return;
+          }
+        } catch (cause) {
+          if (!cancelled) console.warn('[Statuses] classification status check failed:', cause);
+        }
+        if (!cancelled) pollTimeout = window.setTimeout(() => void pollJob(), 2000);
+      };
+      void pollJob();
+    };
     window.addEventListener('hurmo:sync', refreshSuggestions);
-    const intervalId = window.setInterval(refreshSuggestions, 3000);
-    const stopPollingId = window.setTimeout(() => window.clearInterval(intervalId), 30000);
 
     return () => {
       window.removeEventListener('hurmo:sync', refreshSuggestions);
-      window.clearInterval(intervalId);
-      window.clearTimeout(stopPollingId);
+      cancelled = true;
+      if (pollTimeout !== null) window.clearTimeout(pollTimeout);
     };
   }, [role]);
 
