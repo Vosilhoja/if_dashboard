@@ -570,7 +570,7 @@ export default function SettingsPage() {
       </section>
 
       {['super_admin', 'admin'].includes(currentUserRole || '') && (
-        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
+        <section id="statuses" className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-4 h-4 text-accent" />
             <div>

@@ -11,6 +11,7 @@ import {
   Map,
   Database,
   Settings,
+  SlidersHorizontal,
   Users,
   RefreshCw,
   Sun,
@@ -97,6 +98,13 @@ const allNavItems: NavItem[] = [
     label: 'Пользователи',
     subtitle: 'Управление доступом и ролями',
     icon: Users,
+    minRole: 'admin',
+  },
+  {
+    href: '/settings#statuses',
+    label: 'Статусы',
+    subtitle: 'Варианты статусов звонков',
+    icon: SlidersHorizontal,
     minRole: 'admin',
   },
   {
@@ -354,8 +362,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {navItems.map((item, index) => {
                     const Icon = item.icon;
                     const isActive =
-                      pathname === item.href ||
-                      (item.href !== '/overview' && pathname.startsWith(item.href));
+                      pathname === item.href.split('#')[0] ||
+                      (item.href !== '/overview' && pathname.startsWith(item.href.split('#')[0]));
 
                     return (
                       <motion.div
@@ -518,8 +526,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/overview' && pathname.startsWith(item.href));
+                  pathname === item.href.split('#')[0] ||
+                  (item.href !== '/overview' && pathname.startsWith(item.href.split('#')[0]));
 
                 return (
                   <motion.div
