@@ -15,7 +15,6 @@ import {
   Database,
   ArrowRight,
   ExternalLink,
-  Calendar,
 } from 'lucide-react';
 import { DashboardMetrics } from '@/lib/types';
 import { showToast } from '@/components/ui/Toast';
@@ -28,7 +27,13 @@ interface Message {
   timestamp: string;
 }
 
-const INITIAL_WELCOME = `Я — ваш **старший дата-аналитик и стратегический консультант платформы HURMO UZ**.
+const INITIAL_WELCOME = `Я — аналитический помощник HURMO UZ. Я работаю только с актуальным снимком данных дашборда и не подставляю вымышленные цифры.
+
+Я могу найти расхождения между таблицами, объяснить узкие места воронки, разобрать причины отказов и предложить конкретный план действий для команды.
+
+Задайте вопрос обычным языком — я сначала проверю данные, затем дам краткий ответ с доказуемыми цифрами.`;
+
+const LEGACY_INITIAL_WELCOME = `Я — ваш **старший дата-аналитик и стратегический консультант платформы HURMO UZ**.
 
 Я глубоко интегрирован в архитектуру нашего дашборда и имею прямой доступ к данным из ключевых таблиц проекта (**main_base**, **numbers**, **eskiz**, **not_completed**).
 
@@ -106,18 +111,15 @@ export default function ChatPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [, setMetricsLoading] = useState(false);
 
-  const { startDate: ctxStart, endDate: ctxEnd, selectedRegion } = useAnalyticsFilter();
-  // Local overrides for AI context period — user can adjust independently
-  const [aiStartDate, setAiStartDate] = useState(ctxStart);
-  const [aiEndDate, setAiEndDate] = useState(ctxEnd);
+  const { selectedRegion } = useAnalyticsFilter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load metrics context for the chat whenever AI date range changes
-  const loadMetrics = async (start: string, end: string) => {
+  // AI uses the current live snapshot; date filters belong to dashboard pages.
+  const loadMetrics = async () => {
     setMetricsLoading(true);
     try {
-      const res = await fetch(`/api/proxy/data?startDate=${start}&endDate=${end}`);
+      const res = await fetch('/api/proxy/data', { cache: 'no-store' });
       if (res.ok) {
         const json: DashboardMetrics = await res.json();
         setMetrics(json);
@@ -130,8 +132,8 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    loadMetrics(aiStartDate, aiEndDate);
-  }, [aiStartDate, aiEndDate]);
+    void loadMetrics();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -166,7 +168,6 @@ export default function ChatPage() {
           messages: apiMessages,
           metrics,
           selectedRegion,
-          period: { startDate: aiStartDate, endDate: aiEndDate },
         }),
       });
 
@@ -381,29 +382,8 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* AI Period Selector + Actions */}
+        {/* AI Actions */}
         <div className="flex items-center flex-wrap gap-2">
-          {/* Date range control for AI context */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-surface-2 border border-border">
-            <Calendar className="w-3.5 h-3.5 text-accent shrink-0" />
-            <span className="text-xs text-secondary font-medium hidden sm:inline">Период:</span>
-            <input
-              type="date"
-              value={aiStartDate}
-              onChange={(e) => setAiStartDate(e.target.value)}
-              className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer w-[110px] tabular-nums"
-              title="Начало периода для контекста ИИ"
-            />
-            <span className="text-secondary text-xs">—</span>
-            <input
-              type="date"
-              value={aiEndDate}
-              onChange={(e) => setAiEndDate(e.target.value)}
-              className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer w-[110px] tabular-nums"
-              title="Конец периода для контекста ИИ"
-            />
-          </div>
-
           {metrics && (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-400">
               <Database className="w-3.5 h-3.5" />

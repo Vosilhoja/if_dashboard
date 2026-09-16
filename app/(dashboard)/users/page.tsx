@@ -267,7 +267,7 @@ export default function UsersManagementPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="app-content pb-12 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -342,7 +342,7 @@ export default function UsersManagementPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="responsive-data-table overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border/60 bg-surface-2/50 text-[11px] font-bold text-secondary uppercase tracking-wider">
@@ -377,7 +377,7 @@ export default function UsersManagementPage() {
 
                   return (
                     <tr key={u.id} className="hover:bg-surface-2/40 transition-colors">
-                      <td className="py-3.5 px-4">
+                      <td data-label="Пользователь" className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs uppercase ${
                             isSuperAdmin
@@ -400,7 +400,7 @@ export default function UsersManagementPage() {
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td data-label="Роль" className="py-3.5 px-4">
                         {isSuperAdmin ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                             Главный администратор
@@ -424,7 +424,7 @@ export default function UsersManagementPage() {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td data-label="Разрешенные страницы" className="py-3.5 px-4">
                         {isSuperAdmin || hasWildcard ? (
                           <span className="text-emerald-500 font-semibold text-[11px] flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" />
@@ -451,7 +451,7 @@ export default function UsersManagementPage() {
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td data-label="Статус" className="py-3.5 px-4">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
                             u.is_active
@@ -464,11 +464,11 @@ export default function UsersManagementPage() {
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-secondary text-[11px] font-mono">
+                      <td data-label="Последний вход" className="py-3.5 px-4 text-secondary text-[11px] font-mono">
                         {u.last_login ? new Date(u.last_login).toLocaleString('ru-RU') : 'Никогда'}
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
+                      <td data-label="Действия" className="py-3.5 px-4 text-right">
                         {!isSuperAdmin && (
                           <div className="flex items-center justify-end gap-1.5">
                             <button

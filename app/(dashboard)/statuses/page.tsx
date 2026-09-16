@@ -232,7 +232,7 @@ export default function StatusesPage() {
   if (role && !['admin', 'super_admin'].includes(role)) return null;
 
   return (
-    <div className="max-w-[1180px] mx-auto pb-12 space-y-6">
+    <div className="app-content pb-12 space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-accent mb-2">

@@ -29,7 +29,7 @@ export default function DashboardLayout({
 
   return (
     <AnalyticsFilterProvider>
-      <div className="h-[100dvh] min-h-0 bg-page text-primary flex flex-col lg:flex-row font-sans overflow-hidden">
+      <div className="h-[100dvh] min-h-0 bg-page text-primary flex flex-col xl:flex-row font-sans overflow-hidden">
         {/* Unified Sidebar Navigation */}
         <Sidebar />
 
@@ -47,7 +47,7 @@ export default function DashboardLayout({
               className={
                 pathname === '/chat'
                   ? 'flex-1 min-h-0 flex flex-col w-full overflow-hidden p-0'
-                  : 'flex-1 min-h-0 flex flex-col max-w-[1440px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-6 gap-3 sm:gap-6 overflow-y-auto overflow-x-hidden'
+                  : 'flex-1 min-h-0 flex flex-col w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 gap-4 sm:gap-6 overflow-y-auto overflow-x-hidden'
               }
             >
               {children}

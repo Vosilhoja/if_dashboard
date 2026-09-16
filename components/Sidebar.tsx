@@ -243,7 +243,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* ============================================================
           МОБИЛЬНЫЙ ХЕДЕР В СТИЛЕ РЕФЕРЕНСА (Премиум Dark/Light, h-16)
           ============================================================ */}
-      <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-16 bg-surface/90 backdrop-blur-xl border-b border-border/70 shadow-sm transition-all">
+      <header className="xl:hidden sticky top-0 z-40 flex items-center justify-between px-4 h-16 bg-surface/90 backdrop-blur-xl border-b border-border/70 shadow-sm transition-all">
         {/* Бренд */}
         <Link
           href="/overview"
@@ -321,7 +321,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md lg:hidden"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md xl:hidden"
             onClick={() => setMobileDrawerOpen(false)}
           >
             <motion.div
@@ -507,7 +507,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* ============================================================
           ДЕСТКТОПНЫЙ SIDEBAR
           ============================================================ */}
-      <aside className="hidden lg:flex flex-col w-64 shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto">
+      <aside className="hidden xl:flex flex-col w-64 shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto">
         <div className="flex flex-col h-full justify-between p-4 bg-surface select-none">
           <div className="space-y-5">
             {/* Brand Header */}
