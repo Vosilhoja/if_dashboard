@@ -155,7 +155,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           metric={metrics.registeredFromSupport}
           icon={Headset}
           badgeText="numbers → base"
-          tooltipText="Уникальные пользователи из main_base, которым звонили из поддержки за выбранный период. Для неоднозначного статуса система проверяет дату регистрации: день звонка или следующие 3 дня считаются результатом звонка, регистрация до звонка исключается. При отсутствии даты регистрация не засчитывается."
+          tooltipText="Все уникальные номера из numbers за выбранный период, которые есть в main_base. Статус комментария оператора не исключает пользователя: o`tdi, bot bor и другие отметки учитываются здесь. Показатель «Уже зарегистрирован» отображается отдельно."
           delayIndex={3}
         />
         <MetricCard
@@ -186,11 +186,11 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           delayIndex={6}
         />
         <MetricCard
-          title="8. Уже через бот"
+          title="8. Уже зарегистрирован"
           metric={metrics.alreadyRegisteredCount}
           icon={Bot}
           badgeText="bot bor"
-          tooltipText="Абоненты, которые сообщили, что уже зарегистрировались или пользуются Telegram-ботом"
+          tooltipText="Отдельное количество звонков со статусом уже зарегистрирован, bot bor и похожими комментариями"
           delayIndex={7}
         />
         <MetricCard

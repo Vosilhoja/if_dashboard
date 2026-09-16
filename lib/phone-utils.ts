@@ -54,10 +54,15 @@ export function normalizePhoneWithDiagnostics(
     return { normalized: '', status: 'corrupted_scientific', country: 'UNKNOWN', original };
   }
 
-  const digits = original.replace(/\D/g, '');
+  let digits = original.replace(/\D/g, '');
 
   if (!digits || digits.length <= 8 || isAllSameDigit(digits)) {
     return { normalized: '', status: 'invalid', country: 'UNKNOWN', original };
+  }
+
+  // International numbers may arrive from spreadsheets with the 00 prefix.
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
   }
 
   // --- 1. UZBEKISTAN PRIORITY RULES (Data is predominantly Uzbek) ---
