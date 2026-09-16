@@ -119,7 +119,23 @@ export default function StatusesPage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось запустить проверку');
       setNotice('Проверка запущена. Ожидаю завершения и обновляю статусы…');
-      await new Promise((resolve) => window.setTimeout(resolve, 5000));
+      if (!data.jobId) throw new Error('Backend не вернул идентификатор задачи синхронизации');
+      let completed = false;
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        const statusResponse = await fetch(
+          `/api/proxy/admin/statuses/classify-unmatched?jobId=${encodeURIComponent(data.jobId)}`,
+          { cache: 'no-store' },
+        );
+        const statusData = await statusResponse.json().catch(() => ({}));
+        if (!statusResponse.ok) throw new Error(statusData.error || 'Не удалось получить статус синхронизации');
+        if (statusData.state === 'failed') throw new Error(statusData.error || 'Синхронизация завершилась с ошибкой');
+        if (statusData.state === 'completed') {
+          completed = true;
+          break;
+        }
+      }
+      if (!completed) throw new Error('Синхронизация выполняется слишком долго. Попробуйте обновить страницу позже.');
       await refreshStatuses();
       setNotice('Статусы и новые варианты обновлены.');
     } catch (cause) {
