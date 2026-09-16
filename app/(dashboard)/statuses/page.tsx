@@ -32,10 +32,10 @@ interface StatusSuggestion {
   created_at?: string;
 }
 
-function normalizePhraseKey(phrase: string): string {
+export function normalizePhraseKey(phrase: string): string {
   return phrase
     .toLowerCase()
-    .replace(/[`'’ʻʽ_]/g, ' ')
+    .replace(/[`'’‘ʻʽʼ′_]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

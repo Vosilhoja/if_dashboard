@@ -6,8 +6,15 @@ import {
   matchesCategory,
   normalizeText,
 } from './status-matcher';
+import { normalizePhraseKey } from '@/app/(dashboard)/statuses/page';
 
 describe('status matcher utilities', () => {
+  it('normalizes all supported apostrophe variants to one phrase key', () => {
+    expect(normalizePhraseKey("ro'yxatdan")).toBe(normalizePhraseKey('ro‘yxatdan'));
+    expect(normalizePhraseKey("ro'yxatdan")).toBe(normalizePhraseKey('ro`yxatdan'));
+    expect(normalizePhraseKey("ro'yxatdan")).toBe(normalizePhraseKey('roʼyxatdan'));
+    expect(normalizePhraseKey("ro'yxatdan")).toBe(normalizePhraseKey('ro′yxatdan'));
+  });
   it('normalizes text', () => {
     expect(normalizeText('  OTKAZ  ')).toBe('otkaz');
   });
