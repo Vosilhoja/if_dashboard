@@ -198,6 +198,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                 <span>{metric.statusText}</span>
               </div>
             )}
+            {metric.diagnostics?.note && (
+              <div className="mt-1 flex items-start gap-1 text-[11px] text-amber-500 dark:text-amber-400">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                <span>{metric.diagnostics.note}</span>
+              </div>
+            )}
           </div>
 
           {/* Sparkline Graphic */}

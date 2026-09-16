@@ -18,6 +18,14 @@ export const MetricValueSchema = z.object({
   isAlert: z.boolean().optional(),
   statusText: z.string().optional(),
   error: z.string().optional(),
+  diagnostics: z.object({
+    matchedByCleanStatus: z.number().optional(),
+    matchedByDateHeuristic: z.number().optional(),
+    excludedPreExisting: z.number().optional(),
+    excludedAmbiguousNoRegDate: z.number().optional(),
+    unknownSourceCount: z.number().optional(),
+    note: z.string().optional(),
+  }).optional(),
 });
 
 // ── Phone diagnostics ──────────────────────────────────────────────────────

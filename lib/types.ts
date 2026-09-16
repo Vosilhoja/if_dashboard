@@ -5,6 +5,14 @@ export interface MetricValue {
   isAlert?: boolean;
   statusText?: string;
   error?: string;
+  diagnostics?: {
+    matchedByCleanStatus?: number;
+    matchedByDateHeuristic?: number;
+    excludedPreExisting?: number;
+    excludedAmbiguousNoRegDate?: number;
+    unknownSourceCount?: number;
+    note?: string;
+  };
 }
 
 export interface NotCompletedRow {
