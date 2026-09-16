@@ -130,6 +130,9 @@ export default function StatusesPage() {
         const statusData = await statusResponse.json().catch(() => ({}));
         if (!statusResponse.ok) throw new Error(statusData.error || 'Не удалось получить статус синхронизации');
         if (statusData.state === 'failed') throw new Error(statusData.error || 'Синхронизация завершилась с ошибкой');
+        if (statusData.progress?.total) {
+          setNotice(`Обработано вариантов: ${statusData.progress.completed} из ${statusData.progress.total}…`);
+        }
         if (statusData.state === 'completed') {
           completed = true;
           break;
