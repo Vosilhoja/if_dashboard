@@ -155,7 +155,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
           metric={metrics.registeredFromSupport}
           icon={Headset}
           badgeText="numbers → base"
-          tooltipText="Все уникальные номера из numbers за выбранный период, которые есть в main_base. Статус комментария оператора не исключает пользователя: o`tdi, bot bor и другие отметки учитываются здесь. Показатель «Уже зарегистрирован» отображается отдельно."
+          tooltipText="Уникальные номера из numbers за период, которые есть в main_base, за вычетом пользователей после повторного звонка и статуса bot bor. o`tdi и похожие отметки остаются в «От поддержки», а «Уже зарегистрирован» и «После повторного звонка» считаются отдельно."
           delayIndex={3}
         />
         <MetricCard

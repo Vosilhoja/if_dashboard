@@ -11,6 +11,8 @@ export interface MetricValue {
     excludedPreExisting?: number;
     excludedAmbiguousNoRegDate?: number;
     unknownSourceCount?: number;
+    excludedRepeatCount?: number;
+    excludedBotRegisteredCount?: number;
     note?: string;
   };
 }

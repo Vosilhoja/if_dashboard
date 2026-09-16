@@ -24,6 +24,8 @@ export const MetricValueSchema = z.object({
     excludedPreExisting: z.number().optional(),
     excludedAmbiguousNoRegDate: z.number().optional(),
     unknownSourceCount: z.number().optional(),
+    excludedRepeatCount: z.number().optional(),
+    excludedBotRegisteredCount: z.number().optional(),
     note: z.string().optional(),
   }).optional(),
 });
