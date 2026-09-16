@@ -382,7 +382,7 @@ export default function SettingsPage() {
     setPingingSheet(sheetKey);
     const start = performance.now();
     try {
-      const res = await fetch(`/api/proxy/data/sheets/${sheetKey}?page=1&pageSize=1&fresh=true`, {
+      const res = await fetch(`/api/proxy/data/sheets/${sheetKey}?summary=true&fresh=true`, {
         cache: 'no-store',
       });
       const duration = Math.round(performance.now() - start);

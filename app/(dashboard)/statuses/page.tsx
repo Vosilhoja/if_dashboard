@@ -118,11 +118,16 @@ export default function StatusesPage() {
       const response = await fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось запустить проверку');
+      if (data.completed && data.uniqueTexts === 0) {
+        await refreshStatuses();
+        setNotice('Новых строк для проверки нет. Полная загрузка numbers доступна отдельно в настройках.');
+        return;
+      }
       setNotice('Проверка запущена. Ожидаю завершения и обновляю статусы…');
       if (!data.jobId) throw new Error('Backend не вернул идентификатор задачи синхронизации');
       let completed = false;
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
         const statusResponse = await fetch(
           `/api/proxy/admin/statuses/classify-unmatched?jobId=${encodeURIComponent(data.jobId)}`,
           { cache: 'no-store' },

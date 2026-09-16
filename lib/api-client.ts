@@ -19,8 +19,11 @@ const api = axios.create({
   },
 });
 
-const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
+// Retrying gateway/server errors creates a request storm when the backend is
+// overloaded. Only transient client-side throttling/timeouts are retried.
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429]);
 const MAX_RETRIES = 3;
+const inFlightGetRequests = new Map<string, Promise<AxiosResponse<unknown>>>();
 
 function isRetryable(error: AxiosError, method: string) {
   if (method.toUpperCase() !== 'GET') return false;
@@ -29,6 +32,29 @@ function isRetryable(error: AxiosError, method: string) {
 }
 
 async function request<T>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+  const method = config.method || 'GET';
+  const requestKey = method.toUpperCase() === 'GET'
+    ? `${config.baseURL || api.defaults.baseURL || ''}${config.url || ''}`
+    : null;
+
+  if (requestKey) {
+    const existing = inFlightGetRequests.get(requestKey);
+    if (existing) return existing as Promise<AxiosResponse<T>>;
+  }
+
+  const requestPromise = requestWithRetry<T>(config);
+  if (requestKey) {
+    inFlightGetRequests.set(requestKey, requestPromise as Promise<AxiosResponse<unknown>>);
+    requestPromise.finally(() => {
+      if (inFlightGetRequests.get(requestKey) === requestPromise) {
+        inFlightGetRequests.delete(requestKey);
+      }
+    }).catch(() => undefined);
+  }
+  return requestPromise;
+}
+
+async function requestWithRetry<T>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
   const method = config.method || 'GET';
   let lastError: unknown;
 
