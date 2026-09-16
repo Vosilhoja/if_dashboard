@@ -118,7 +118,10 @@ export default function StatusesPage() {
       const response = await fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось запустить проверку');
-      setNotice('Проверка новых вариантов запущена. После завершения нажмите «Обновить список».');
+      setNotice('Проверка запущена. Ожидаю завершения и обновляю статусы…');
+      await new Promise((resolve) => window.setTimeout(resolve, 5000));
+      await refreshStatuses();
+      setNotice('Статусы и новые варианты обновлены.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Ошибка запуска проверки');
     } finally {
@@ -218,15 +221,6 @@ export default function StatusesPage() {
             Системные правила защищены, а ваши фразы можно добавлять и удалять без изменения кода.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void refreshStatuses()}
-          disabled={loading || saving}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-surface text-sm text-primary hover:border-accent/60 transition-colors disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 text-accent" />}
-          Обновить список
-        </button>
       </div>
 
       {error && (
