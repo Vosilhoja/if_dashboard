@@ -140,6 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     try {
       const response = await fetch('/api/proxy/data?fresh=true', { cache: 'no-store' });
       if (!response.ok) throw new Error(`Sync failed: ${response.status}`);
+      fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' }).catch(() => {});
       window.dispatchEvent(new CustomEvent('hurmo:sync'));
     } catch (error) {
       console.error('[Sidebar] sync failed', error);

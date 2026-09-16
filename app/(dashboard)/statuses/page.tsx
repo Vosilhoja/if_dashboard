@@ -11,7 +11,6 @@ import {
   Loader2,
   Plus,
   SlidersHorizontal,
-  Sparkles,
   Trash2,
   Tags,
 } from 'lucide-react';
@@ -64,7 +63,6 @@ export default function StatusesPage() {
   const [editingPhrase, setEditingPhrase] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const [suggestions, setSuggestions] = useState<StatusSuggestion[]>([]);
-  const [checkingSuggestions, setCheckingSuggestions] = useState(false);
   const [assigningSuggestion, setAssigningSuggestion] = useState<number | null>(null);
 
   const selected = categories.find((category) => category.id === selectedId);
@@ -110,52 +108,6 @@ export default function StatusesPage() {
     void loadCategories();
     void loadSuggestions();
   }, [role]);
-
-  const checkForSuggestions = async () => {
-    setCheckingSuggestions(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/proxy/admin/statuses/classify-unmatched', { method: 'POST' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Не удалось запустить проверку');
-      if (data.completed && data.uniqueTexts === 0) {
-        await refreshStatuses();
-        setNotice('Новых строк для проверки нет. Полная загрузка numbers доступна отдельно в настройках.');
-        return;
-      }
-      setNotice('Проверка запущена. Ожидаю завершения и обновляю статусы…');
-      if (!data.jobId) throw new Error('Backend не вернул идентификатор задачи синхронизации');
-      let completed = false;
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1000));
-        const statusResponse = await fetch(
-          `/api/proxy/admin/statuses/classify-unmatched?jobId=${encodeURIComponent(data.jobId)}`,
-          { cache: 'no-store' },
-        );
-        const statusData = await statusResponse.json().catch(() => ({}));
-        if (!statusResponse.ok) throw new Error(statusData.error || 'Не удалось получить статус синхронизации');
-        if (statusData.state === 'failed') throw new Error(statusData.error || 'Синхронизация завершилась с ошибкой');
-        if (statusData.progress?.total) {
-          setNotice(`Обработано вариантов: ${statusData.progress.completed} из ${statusData.progress.total}…`);
-        }
-        if (statusData.state === 'completed') {
-          completed = true;
-          break;
-        }
-      }
-      if (!completed) throw new Error('Синхронизация выполняется слишком долго. Попробуйте обновить страницу позже.');
-      await refreshStatuses();
-      setNotice('Статусы и новые варианты обновлены.');
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Ошибка запуска проверки');
-    } finally {
-      setCheckingSuggestions(false);
-    }
-  };
-
-  const refreshStatuses = async () => {
-    await Promise.all([loadCategories(), loadSuggestions()]);
-  };
 
   const assignSuggestion = async (suggestion: StatusSuggestion, categoryId: string) => {
     setAssigningSuggestion(suggestion.id);
@@ -258,23 +210,16 @@ export default function StatusesPage() {
         </div>
       )}
 
-      <section className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-primary">
-              Новые нераспознанные статусы {suggestions.length > 0 && `(${suggestions.length})`}
-            </p>
-            <p className="text-xs text-secondary mt-1">
-              Если в таблице появилась новая формулировка, выберите категорию — она сохранится на backend.
-            </p>
+      {suggestions.length > 0 && (
+        <section className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-primary">Новые нераспознанные статусы</p>
+              <p className="text-xs text-secondary mt-1">
+                Если в таблице появилась новая формулировка, выберите категорию — она сохранится на backend.
+              </p>
+            </div>
           </div>
-          <button type="button" onClick={() => void checkForSuggestions()} disabled={checkingSuggestions || loading}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400/40 px-3 py-2 text-xs font-semibold text-primary hover:bg-amber-400/10 disabled:opacity-50">
-            {checkingSuggestions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            Проверить новые варианты
-          </button>
-        </div>
-        {suggestions.length > 0 && (
           <div className="mt-4 space-y-2">
             {suggestions.map((suggestion) => (
               <div key={suggestion.id} className="flex flex-col gap-2 rounded-xl border border-border/70 bg-surface px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -296,8 +241,8 @@ export default function StatusesPage() {
               </div>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
