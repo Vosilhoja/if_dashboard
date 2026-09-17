@@ -240,7 +240,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const poll = async () => {
       try {
         const response = await fetch('/api/proxy/data/sync/status', { cache: 'no-store' });
-        if (response.ok && !cancelled) setSyncStatus(await response.json());
+        if (response.ok && !cancelled) {
+          const nextStatus = await response.json();
+          setSyncStatus((current) => ({
+            ...nextStatus,
+            // Never let a delayed response move the visible progress backwards.
+            current: Math.max(current.current, Number(nextStatus.current) || 0),
+            total: Number(nextStatus.total) || current.total,
+            error: nextStatus.error || current.error,
+          }));
+        }
       } catch {
         // The sync request itself remains the source of truth if polling is unavailable.
       }
@@ -262,6 +271,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       : refreshInProgress
         ? `Подготовка синхронизации 0/${syncStatus.total}`
         : 'Синхронизация завершена';
+  const compactSyncLabel = syncStatus.error
+    ? 'Ошибка'
+    : `${Math.min(syncStatus.current, syncStatus.total)}/${syncStatus.total}`;
 
   useEffect(() => {
     const move = (event: MouseEvent) => {
@@ -703,16 +715,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className={`pt-3 border-t border-border/80 space-y-2.5 ${isCompact ? 'space-y-3' : ''}`}>
             {true && (
               <>
-              {!isCompact && syncNoticeVisible && (
+              {syncNoticeVisible && (
                 <div
                   aria-live="polite"
-                  className={`mb-2 flex h-10 w-full items-center justify-center rounded-xl border px-3 text-xs font-medium truncate ${
+                  title={isCompact ? syncLabel : undefined}
+                  className={`mb-2 flex h-10 w-full items-center justify-center rounded-xl border px-2 text-xs font-medium truncate ${
                     syncStatus.error
                       ? 'border-rose-400/40 bg-rose-500/10 text-rose-400'
                       : 'border-accent/30 bg-accent/10 text-accent'
                   }`}
                 >
-                  {syncLabel}
+                  {isCompact ? compactSyncLabel : syncLabel}
                 </div>
               )}
               <motion.button
