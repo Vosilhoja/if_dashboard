@@ -110,6 +110,7 @@ export const SheetPaginatedResponseSchema = z.object({
   totalPages: z.number(),
   headers: z.array(z.string()),
   rows: z.array(z.record(z.string(), z.string())),
+  filterOptions: z.array(z.string()).optional(),
   cachedAt: z.string(),
 });
 

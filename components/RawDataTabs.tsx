@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Users, Phone, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { Button } from './ui/Button';
+import { Dropdown } from './ui/Dropdown';
 
 export const RawDataTabs: React.FC = () => {
   const pathname = usePathname();
@@ -48,8 +49,17 @@ export const RawDataTabs: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* Tab headers — Horizontal Scrollable Pills on Mobile */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-border/60 -mx-3 px-3 sm:mx-0 sm:px-0">
+      <div className="sm:hidden">
+        <Dropdown
+          value={activeTab}
+          onChange={(value) => router.push(`/raw/${value === 'main' ? 'main-base' : value}`)}
+          ariaLabel="Выбор таблицы"
+          options={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
+        />
+      </div>
+
+      {/* Tab headers — compact dropdown on mobile, pills on desktop */}
+      <div className="hidden sm:flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-border/60">
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;

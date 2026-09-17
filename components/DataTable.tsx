@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Search,
   ChevronLeft,
@@ -24,6 +25,7 @@ import { exportRowsToCSV, exportRowsToExcel } from '@/lib/csv-utils';
 import { STATUS_CONFIG, StatusCategoryConfig } from '@/lib/status-config';
 import { matchesCategory } from '@/lib/status-matcher';
 import { Skeleton } from './ui/Skeleton';
+import { Dropdown } from './ui/Dropdown';
 
 import { showToast } from './ui/Toast';
 import { Copy, CopyCheck } from 'lucide-react';
@@ -55,10 +57,16 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterColumn, setFilterColumn] = useState('');
   const [filterValue, setFilterValue] = useState('');
+  const [selectedFilterValues, setSelectedFilterValues] = useState<string[]>([]);
+  const [draftFilterValues, setDraftFilterValues] = useState<string[]>([]);
+  const [filterMenuColumn, setFilterMenuColumn] = useState<string | null>(null);
+  const [filterMenuPosition, setFilterMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [filterOptionSearch, setFilterOptionSearch] = useState('');
   const [selectedStatusCategory, setSelectedStatusCategory] = useState<string>('all');
   const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [exportMode, setExportMode] = useState<'all' | 'date'>('all');
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
@@ -75,6 +83,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     setSortDirection(params.get('sortDirection') === 'desc' ? 'desc' : 'asc');
     setFilterColumn(params.get('filterColumn') || '');
     setFilterValue(params.get('filterValue') || '');
+    setSelectedFilterValues((params.get('filterValues') || '').split('|').filter(Boolean));
   }, []);
 
   const handleSort = (col: string) => {
@@ -88,6 +97,12 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       setSortColumn(col);
       setSortDirection('asc');
     }
+    setPage(1);
+  };
+
+  const setSort = (col: string, direction: 'asc' | 'desc') => {
+    setSortColumn(col);
+    setSortDirection(direction);
     setPage(1);
   };
 
@@ -116,6 +131,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
         params.append('filterColumn', filterColumn);
         params.append('filterValue', filterValue.trim());
       }
+      if (filterColumn && selectedFilterValues.length > 0) {
+        params.append('filterValues', selectedFilterValues.join('|'));
+      }
+      if (filterMenuColumn) params.append('filterOptionsColumn', filterMenuColumn);
 
       const res = await fetch(`/api/proxy/data/sheets/${sheetType}?${params.toString()}`);
       if (!res.ok) {
@@ -133,7 +152,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
   useEffect(() => {
     fetchData(page, activeSearch, pageSize);
-  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue]);
+  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -156,7 +175,33 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       url.searchParams.delete('filterValue');
     }
     window.history.replaceState(null, '', url);
-  }, [page, pageSize, sortColumn, sortDirection, activeSearch, filterColumn, filterValue]);
+    if (filterColumn && selectedFilterValues.length > 0) {
+      url.searchParams.set('filterValues', selectedFilterValues.join('|'));
+    } else {
+      url.searchParams.delete('filterValues');
+    }
+    window.history.replaceState(null, '', url);
+  }, [page, pageSize, sortColumn, sortDirection, activeSearch, filterColumn, filterValue, selectedFilterValues]);
+
+  useEffect(() => {
+    if (!filterMenuColumn) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setFilterMenuColumn(null);
+        setFilterMenuPosition(null);
+      }
+    };
+    const closeOnResize = () => {
+      setFilterMenuColumn(null);
+      setFilterMenuPosition(null);
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    window.addEventListener('resize', closeOnResize);
+    return () => {
+      document.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('resize', closeOnResize);
+    };
+  }, [filterMenuColumn]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -221,6 +266,108 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     return count;
   }, [phoneCounts]);
 
+  const filterOptions = useMemo(() => {
+    if (!filterMenuColumn || !data) return [];
+    const source = data.filterOptions ?? data.rows.map((row) => String(row[filterMenuColumn] ?? ''));
+    return Array.from(new Set(source))
+      .sort((a, b) => a.localeCompare(b, 'ru', { numeric: true, sensitivity: 'base' }))
+      .filter((value) => value.toLowerCase().includes(filterOptionSearch.toLowerCase()));
+  }, [data, filterMenuColumn, filterOptionSearch]);
+
+  const applyColumnFilter = (column: string, values: string[]) => {
+    setFilterColumn(values.length ? column : '');
+    setFilterValue('');
+    setSelectedFilterValues(values);
+    setFilterMenuColumn(null);
+    setFilterMenuPosition(null);
+    setFilterOptionSearch('');
+    setPage(1);
+  };
+
+  const openFilterMenu = (header: string, element: HTMLButtonElement) => {
+    const rect = element.getBoundingClientRect();
+    const width = Math.min(320, Math.max(280, window.innerWidth - 24));
+    const left = Math.min(Math.max(12, rect.right - width), window.innerWidth - width - 12);
+    const top = Math.min(rect.bottom + 8, window.innerHeight - 520);
+    setFilterMenuColumn(header);
+    setDraftFilterValues(filterColumn === header ? selectedFilterValues : []);
+    setFilterOptionSearch('');
+    setFilterMenuPosition({ top: Math.max(12, top), left, width });
+  };
+
+  const filterMenu = filterMenuColumn && filterMenuPosition && typeof document !== 'undefined'
+    ? createPortal(
+        <div
+          className="fixed z-[2147483647] max-h-[min(520px,calc(100dvh-24px))] overflow-hidden rounded-lg border border-border bg-surface p-3 text-left normal-case text-primary shadow-2xl ring-1 ring-black/20"
+          style={{ top: filterMenuPosition.top, left: filterMenuPosition.left, width: filterMenuPosition.width }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold text-primary">
+            <span className="truncate">Фильтр: {filterMenuColumn}</span>
+            <button
+              data-icon-button
+              type="button"
+              className="!h-6 !min-h-6 !w-6 !shrink-0 !p-0 text-secondary hover:text-primary"
+              onClick={() => {
+                setFilterMenuColumn(null);
+                setFilterMenuPosition(null);
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="mb-2 grid grid-cols-2 gap-1.5">
+            <button type="button" className="flex h-9 min-h-9 items-center justify-center rounded border border-border bg-surface-2 px-2 text-[11px] text-primary hover:bg-accent-soft hover:text-accent" onClick={() => {
+              setSort(filterMenuColumn, 'asc');
+              setFilterMenuColumn(null);
+              setFilterMenuPosition(null);
+            }}>
+              Сортировка А → Я
+            </button>
+            <button type="button" className="flex h-9 min-h-9 items-center justify-center rounded border border-border bg-surface-2 px-2 text-[11px] text-primary hover:bg-accent-soft hover:text-accent" onClick={() => {
+              setSort(filterMenuColumn, 'desc');
+              setFilterMenuColumn(null);
+              setFilterMenuPosition(null);
+            }}>
+              Сортировка Я → А
+            </button>
+          </div>
+          <input
+            value={filterOptionSearch}
+            onChange={(event) => setFilterOptionSearch(event.target.value)}
+            placeholder="Поиск значений"
+            className="mb-2 h-10 w-full rounded border border-border bg-surface-2 px-2 text-xs text-primary"
+          />
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs">
+            <button type="button" className="h-8 text-accent hover:underline" onClick={() => setDraftFilterValues(filterOptions)}>Выделить всё</button>
+            <button type="button" className="h-8 text-secondary hover:text-primary" onClick={() => setDraftFilterValues([])}>Очистить</button>
+          </div>
+          <div className="max-h-56 overflow-y-auto rounded border border-border bg-surface-2/50 py-1">
+            {filterOptions.length > 0 ? filterOptions.map((value) => (
+              <label key={value} className="flex min-h-9 cursor-pointer items-center gap-2 px-2 text-xs text-primary hover:bg-surface-2">
+                <input
+                  type="checkbox"
+                  checked={draftFilterValues.includes(value)}
+                  onChange={(event) => setDraftFilterValues((current) => event.target.checked ? [...current, value] : current.filter((item) => item !== value))}
+                />
+                <span className="truncate">{value || '(пусто)'}</span>
+              </label>
+            )) : (
+              <div className="px-2 py-4 text-center text-xs text-secondary">Значения не найдены</div>
+            )}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" className="h-10 rounded border border-border bg-surface-2 px-3 text-xs text-primary hover:bg-surface-2/80" onClick={() => {
+              setFilterMenuColumn(null);
+              setFilterMenuPosition(null);
+            }}>Отмена</button>
+            <button type="button" className="h-10 rounded bg-accent px-3 text-xs font-medium text-white hover:bg-accent/90" onClick={() => applyColumnFilter(filterMenuColumn, draftFilterValues)}>Применить</button>
+          </div>
+        </div>,
+        document.body,
+      )
+    : null;
+
   const handleCopyPhone = (phoneStr: string) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(phoneStr);
@@ -263,7 +410,11 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     return rows;
   }, [data?.rows, selectedStatusCategory, onlyDuplicates, phoneCounts]);
 
-  const exportByDate = async (format: 'csv' | 'excel') => {
+  const exportData = async (format: 'csv' | 'excel') => {
+    if (exportMode === 'date' && (!exportFrom || !exportTo)) {
+      showToast('Выберите даты «от» и «до» перед экспортом', 'info');
+      return;
+    }
     setExportLoading(true);
     try {
       const params = new URLSearchParams({ page: '1', pageSize: '100000', export: 'true' });
@@ -274,7 +425,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
         const normalized = header.toLowerCase();
         return normalized.includes('дата') || normalized.includes('date');
       });
-      const rows = dateHeader && (exportFrom || exportTo)
+      if (exportMode === 'date' && !dateHeader) {
+        throw new Error('В активной таблице не найден столбец с датой');
+      }
+      const rows = exportMode === 'date' && dateHeader
         ? fullData.rows.filter((row) => {
             const value = String(row[dateHeader] ?? '');
             const date = new Date(value.split('.').reverse().join('-'));
@@ -283,7 +437,9 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             return (!exportFrom || iso >= exportFrom) && (!exportTo || iso <= exportTo);
           })
         : fullData.rows;
-      const filename = `${sheetType}_data_${exportFrom || 'all'}_${exportTo || 'all'}`;
+      const filename = exportMode === 'date'
+        ? `${sheetType}_data_${exportFrom}_${exportTo}`
+        : `${sheetType}_data_all`;
       if (format === 'csv') exportRowsToCSV(rows, fullData.headers, `${filename}.csv`);
       else exportRowsToExcel(rows, fullData.headers, filename);
       setExportOpen(false);
@@ -313,7 +469,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           {/* Mobile column toggle button */}
           <button
             onClick={() => setShowAllColumnsMobile(!showAllColumnsMobile)}
-            className="sm:hidden h-8 flex items-center gap-1 px-2 rounded-[4px] bg-surface-2 text-[10px] text-secondary border border-border"
+            className="sm:hidden h-10 min-h-10 flex items-center gap-1 px-2 rounded-[4px] bg-surface-2 text-[10px] text-secondary border border-border"
           >
             {showAllColumnsMobile ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             <span>{showAllColumnsMobile ? 'Кратко' : 'Все'}</span>
@@ -329,7 +485,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               placeholder="Поиск по номеру..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full h-8 pl-8 pr-12 bg-surface-2 border border-border focus:border-accent rounded-[6px] text-xs text-primary placeholder-secondary focus:outline-none transition-colors"
+              className="w-full h-10 min-h-10 pl-8 pr-12 bg-surface-2 border border-border focus:border-accent rounded-[6px] text-xs text-primary placeholder-secondary transition-colors"
             />
             {searchInput && (
               <button
@@ -368,21 +524,16 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           )}
 
           {/* Status category filter */}
-          <div className="h-8 flex items-center gap-1 bg-surface-2 px-2 rounded-[6px] border border-border">
-            <Filter className="w-3 h-3 text-secondary shrink-0" />
-            <select
+          <div className="w-36">
+            <Dropdown
               value={selectedStatusCategory}
-              onChange={(e) => setSelectedStatusCategory(e.target.value)}
-              className="bg-transparent text-xs text-primary focus:outline-none cursor-pointer max-w-[140px] truncate"
-              title="Фильтр по категории статуса"
-            >
-              <option value="all">Все статусы</option>
-              {STATUS_CATEGORY_OPTIONS.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedStatusCategory}
+              ariaLabel="Фильтр по категории статуса"
+              options={[
+                { value: 'all', label: 'Все статусы' },
+                ...STATUS_CATEGORY_OPTIONS.map((cat) => ({ value: cat.id, label: cat.name })),
+              ]}
+            />
             {selectedStatusCategory !== 'all' && (
               <button
                 type="button"
@@ -399,7 +550,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           <button
             type="button"
             onClick={() => setOnlyDuplicates(!onlyDuplicates)}
-            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-[6px] border text-xs font-medium transition-all cursor-pointer ${
+            className={`h-10 min-h-10 flex items-center gap-1.5 px-2.5 rounded-[6px] border text-xs font-medium transition-all cursor-pointer ${
               onlyDuplicates
                 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 font-semibold'
                 : duplicatePhoneCount > 0
@@ -427,7 +578,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               type="button"
               onClick={() => setExportOpen((open) => !open)}
               disabled={!data || exportLoading}
-              className="h-8 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
+              className="h-10 min-h-10 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Экспорт</span>
@@ -435,34 +586,35 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             </button>
             {exportOpen && (
               <div className="absolute right-0 top-10 z-30 w-64 p-3 rounded-lg border border-border bg-surface shadow-xl">
-                <div className="text-xs font-semibold text-primary mb-2">Экспорт по дате</div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <input type="date" value={exportFrom} onChange={(event) => setExportFrom(event.target.value)} className="h-10 min-w-0 w-full px-2 rounded border border-border bg-surface-2 text-xs" />
-                  <input type="date" value={exportTo} onChange={(event) => setExportTo(event.target.value)} className="h-10 min-w-0 w-full px-2 rounded border border-border bg-surface-2 text-xs" />
+                <div className="mb-2 text-xs font-semibold text-primary">Экспорт активной таблицы</div>
+                <div className="mb-3 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setExportMode('all')} className={`h-10 rounded border text-xs ${exportMode === 'all' ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-surface-2 text-primary'}`}>Вся таблица</button>
+                  <button type="button" onClick={() => setExportMode('date')} className={`h-10 rounded border text-xs ${exportMode === 'date' ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-surface-2 text-primary'}`}>По дате</button>
                 </div>
+                {exportMode === 'date' && (
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    <input aria-label="Дата от" type="date" value={exportFrom} onChange={(event) => setExportFrom(event.target.value)} className="h-10 min-w-0 w-full px-2 rounded border border-border bg-surface-2 text-xs text-primary" />
+                    <input aria-label="Дата до" type="date" value={exportTo} onChange={(event) => setExportTo(event.target.value)} className="h-10 min-w-0 w-full px-2 rounded border border-border bg-surface-2 text-xs text-primary" />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => exportByDate('excel')} className="h-10 rounded border border-emerald-300/60 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Excel</button>
-                  <button type="button" onClick={() => exportByDate('csv')} className="h-10 rounded border border-border bg-surface-2 text-xs text-primary">CSV</button>
+                  <button type="button" disabled={exportMode === 'date' && (!exportFrom || !exportTo)} onClick={() => exportData('excel')} className="h-10 rounded border border-emerald-300/60 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 disabled:opacity-40">Excel</button>
+                  <button type="button" disabled={exportMode === 'date' && (!exportFrom || !exportTo)} onClick={() => exportData('csv')} className="h-10 rounded border border-border bg-surface-2 text-xs text-primary disabled:opacity-40">CSV</button>
                 </div>
               </div>
             )}
           </div>
 
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
+          <Dropdown
+            value={String(pageSize)}
+            onChange={(value) => {
+              setPageSize(Number(value));
               setPage(1);
             }}
-            className="h-8 bg-surface-2 border border-border rounded-[6px] px-2 text-xs text-primary focus:outline-none cursor-pointer tabular-nums"
-          >
-            <option value={15}>15</option>
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={250}>250</option>
-            <option value={500}>500</option>
-          </select>
+            ariaLabel="Количество строк на странице"
+            className="w-20"
+            options={[15, 25, 50, 100, 250, 500].map((value) => ({ value: String(value), label: String(value) }))}
+          />
         </div>
       </div>
 
@@ -483,7 +635,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             ))}
           </div>
         ) : data && processedRows.length > 0 ? (
-          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-gutter:stable]">
           <table className="min-w-max w-full text-left text-sm border-collapse">
             <thead className="sticky top-0 bg-surface-2 text-secondary font-semibold border-b border-border z-10 text-xs uppercase tracking-wide">
               <tr>
@@ -497,7 +649,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                     <th
                       key={header}
                       onClick={() => handleSort(header)}
-                      className={`py-3 px-3 whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-surface-2/80 hover:text-primary transition-colors group ${
+                      className={`relative py-3 px-3 whitespace-nowrap font-semibold cursor-pointer select-none hover:bg-surface-2/80 hover:text-primary transition-colors group ${
                         !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                       }`}
                       title="Кликните для сортировки по этой колонке"
@@ -505,13 +657,18 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                       <div className="inline-flex items-center gap-1.5">
                         <span>{header}</span>
                         <button
+                          data-icon-button
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            setFilterColumn(header);
-                            setPage(1);
+                            if (filterMenuColumn === header) {
+                              setFilterMenuColumn(null);
+                              setFilterMenuPosition(null);
+                            } else {
+                              openFilterMenu(header, event.currentTarget);
+                            }
                           }}
-                          className={`opacity-0 group-hover:opacity-100 ${filterColumn === header ? 'opacity-100 text-accent' : ''}`}
+                          className={`!h-5 !min-h-5 !w-5 !p-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 ${filterColumn === header ? 'text-accent' : ''}`}
                           title={`Фильтр по столбцу ${header}`}
                         >
                           <Filter className="w-3 h-3" />
@@ -641,11 +798,11 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             <div className="flex flex-col items-center justify-center h-48 text-secondary text-xs gap-2">
               <Database className="w-6 h-6 opacity-40" />
               <span>
-                {selectedStatusCategory !== 'ALL'
+                {selectedStatusCategory !== 'all'
                   ? 'Нет строк с выбранным статусом на этой странице'
                   : 'Данных не найдено'}
               </span>
-              {selectedStatusCategory !== 'ALL' && (
+              {selectedStatusCategory !== 'all' && (
                 <button
                   type="button"
                   onClick={() => setSelectedStatusCategory('ALL')}
@@ -658,6 +815,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           )
         )}
       </div>
+      {filterMenu}
 
       {/* Pagination Footer */}
       {data && data.totalPages > 1 && (
