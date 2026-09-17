@@ -2,7 +2,7 @@
 import { DashboardMetrics } from './types';
 
 const CACHE_KEY = 'hurmo-dashboard-cache-v2';
-const STALE_AFTER_MS = 2 * 60 * 1000; // 2 minutes — after that always refetch
+const STALE_AFTER_MS = 4 * 60 * 1000;
 
 export interface CachedDashboard {
   metrics: DashboardMetrics;
