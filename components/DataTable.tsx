@@ -38,6 +38,43 @@ const STATUS_CATEGORY_OPTIONS: { id: string; name: string; config: StatusCategor
   { id: 'wrong_person', name: 'Не тот человек', config: STATUS_CONFIG.wrongPerson },
 ];
 
+const parseComparableValue = (value: string): { kind: 'empty' | 'number' | 'date' | 'text'; value: number | string } => {
+  const text = value.trim();
+  if (!text) return { kind: 'empty', value: '' };
+
+  const numeric = text.replace(/\s+/g, '').replace(/%$/, '').replace(',', '.');
+  if (/^[-+]?\d+(?:\.\d+)?$/.test(numeric)) {
+    return { kind: 'number', value: Number(numeric) };
+  }
+
+  const dateMatch = text.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (dateMatch) {
+    const [, day, month, year, hour = '0', minute = '0', second = '0'] = dateMatch;
+    return {
+      kind: 'date',
+      value: Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second)),
+    };
+  }
+
+  const isoTime = Date.parse(text);
+  if (/^\d{4}-\d{2}-\d{2}/.test(text) && Number.isFinite(isoTime)) {
+    return { kind: 'date', value: isoTime };
+  }
+  return { kind: 'text', value: text.toLocaleLowerCase('ru') };
+};
+
+const compareComparableValues = (left: string, right: string): number => {
+  const a = parseComparableValue(left);
+  const b = parseComparableValue(right);
+  if (a.kind === 'empty' || b.kind === 'empty') {
+    return a.kind === b.kind ? 0 : a.kind === 'empty' ? 1 : -1;
+  }
+  if (a.kind === b.kind && typeof a.value === typeof b.value) {
+    return a.value < b.value ? -1 : a.value > b.value ? 1 : 0;
+  }
+  return String(a.value).localeCompare(String(b.value), 'ru', { numeric: true, sensitivity: 'base' });
+};
+
 interface DataTableProps {
   sheetType: 'main' | 'numbers' | 'eskiz' | 'not_completed' | 'survey_attempts';
   title: string;
@@ -274,7 +311,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     if (!filterMenuColumn || !data) return [];
     const source = data.filterOptions ?? data.rows.map((row) => String(row[filterMenuColumn] ?? ''));
     return Array.from(new Set(source))
-      .sort((a, b) => a.localeCompare(b, 'ru', { numeric: true, sensitivity: 'base' }))
+      .sort(compareComparableValues)
       .filter((value) => value.toLowerCase().includes(filterOptionSearch.toLowerCase()));
   }, [data, filterMenuColumn, filterOptionSearch]);
 
