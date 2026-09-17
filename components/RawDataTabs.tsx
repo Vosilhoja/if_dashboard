@@ -6,8 +6,10 @@ import { Users, Phone, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { Button } from './ui/Button';
 import { Dropdown } from './ui/Dropdown';
+import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
 export const RawDataTabs: React.FC = () => {
+  const { startDate, endDate, filterMode } = useAnalyticsFilter();
   const pathname = usePathname();
   const router = useRouter();
   const pathTab = pathname.split('/').filter(Boolean).at(-1);
@@ -85,6 +87,8 @@ export const RawDataTabs: React.FC = () => {
         key={activeTab}
         sheetType={activeTab}
         title={tabs.find((t) => t.id === activeTab)?.label || ''}
+        startDate={filterMode === 'alltime' ? '' : startDate}
+        endDate={filterMode === 'alltime' ? '' : endDate}
       />
     </div>
   );

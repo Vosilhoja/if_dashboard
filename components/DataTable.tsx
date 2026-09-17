@@ -78,9 +78,11 @@ const compareComparableValues = (left: string, right: string): number => {
 interface DataTableProps {
   sheetType: 'main' | 'numbers' | 'eskiz' | 'not_completed' | 'survey_attempts';
   title: string;
+  startDate?: string;
+  endDate?: string;
 }
 
-export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
+export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDate = '', endDate = '' }) => {
   const [data, setData] = useState<SheetPaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +174,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
         params.append('filterValues', selectedFilterValues.join('|'));
       }
       if (filterMenuColumn) params.append('filterOptionsColumn', filterMenuColumn);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
 
       const res = await fetch(`/api/proxy/data/sheets/${sheetType}?${params.toString()}`);
       if (!res.ok) {
@@ -189,7 +193,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
   useEffect(() => {
     fetchData(page, activeSearch, pageSize);
-  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn]);
+  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn, startDate, endDate]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
