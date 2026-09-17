@@ -125,6 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const resizingRef = useRef(false);
   const refreshInProgress = isRefreshing || localRefreshInProgress;
+  const isCompact = sidebarWidth <= 100;
 
   const handleRefresh = async () => {
     if (refreshInProgress) return;
@@ -200,7 +201,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setSidebarWidth(next);
       window.localStorage.setItem('hurmo-sidebar-width', String(next));
     };
-    const stop = () => { resizingRef.current = false; };
+    const stop = () => {
+      if (!resizingRef.current) return;
+      resizingRef.current = false;
+      document.body.classList.remove('sidebar-resizing');
+    };
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', stop);
     return () => {
@@ -523,11 +528,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         style={{ width: sidebarWidth }}
         className="hidden xl:flex relative flex-col shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto transition-[width] duration-150 ease-out rounded-tr-2xl rounded-br-2xl"
       >
-        <div className="flex flex-col h-full justify-between p-4 bg-surface select-none">
+        <div className={`flex flex-col h-full justify-between bg-surface select-none ${isCompact ? 'p-2' : 'p-4'}`}>
           <div className="space-y-5">
             {/* Brand Header */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-border/80">
-              <Link href="/overview" prefetch={false} className="flex items-center gap-3 group">
+            <div className={`flex items-center justify-between pb-3.5 border-b border-border/80 ${isCompact ? 'justify-center' : ''}`}>
+              <Link href="/overview" prefetch={false} draggable={false} className={`flex items-center gap-3 group ${isCompact ? 'justify-center' : ''}`}>
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.15 }}
@@ -535,7 +540,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   H
                 </motion.div>
-                <div className="flex flex-col min-w-0">
+                <div className={`flex flex-col min-w-0 ${isCompact ? 'hidden' : ''}`}>
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold text-primary tracking-tight leading-none">
                       HURMO UZ
@@ -545,7 +550,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                   </div>
 
-                  {refreshInProgress && (
+                  {refreshInProgress && !isCompact && (
                     <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] text-accent truncate">
                       Загрузка {syncStatus.label || 'таблицы'} {syncStatus.current}/{syncStatus.total}
                     </div>
@@ -577,15 +582,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <Link
                       href={item.href}
                       prefetch={false}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
+                      draggable={false}
+                      title={isCompact ? item.label : undefined}
+                      className={`w-full flex items-center gap-3 ${isCompact ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
                         isActive
                           ? 'bg-accent text-white font-semibold shadow-xs'
                           : 'text-secondary hover:text-primary hover:bg-surface-2 font-medium'
                       }`}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
-                      <span className={`text-xs truncate flex-1 ${sidebarWidth <= 100 ? 'hidden' : ''}`}>{item.label}</span>
-                      {item.badge && (
+                      <span className={`text-xs truncate flex-1 ${isCompact ? 'hidden' : ''}`}>{item.label}</span>
+                      {item.badge && !isCompact && (
                         <span
                           className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold font-mono ${
                             isActive
@@ -604,7 +611,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Desktop Footer */}
-          <div className="pt-3 border-t border-border/80 space-y-2.5">
+          <div className={`pt-3 border-t border-border/80 space-y-2.5 ${isCompact ? 'space-y-3' : ''}`}>
             {true && (
               <motion.button
                 whileHover={{ opacity: 0.9 }}
@@ -614,7 +621,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 disabled={refreshInProgress}
                 aria-busy={refreshInProgress}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-accent text-white hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed text-xs font-medium transition-all cursor-pointer shadow-xs"
+                title={isCompact ? 'Обновить данные' : undefined}
+                className={`w-full flex items-center justify-center gap-2 rounded-xl bg-accent text-white hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed text-xs font-medium transition-all cursor-pointer shadow-xs ${isCompact ? 'px-2 py-2.5' : 'px-3 py-2'}`}
               >
                 <motion.span
                   key={refreshAnimationKey}
@@ -629,7 +637,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </motion.span>
-                <span className={`truncate ${sidebarWidth <= 100 ? 'hidden' : ''}`}>
+                <span className={`truncate ${isCompact ? 'hidden' : ''}`}>
                   {refreshInProgress && syncStatus.label
                     ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
                     : refreshInProgress ? 'Синхронизация...' : 'Обновить данные'}
@@ -637,12 +645,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </motion.button>
             )}
 
-            <div className="flex items-center justify-between text-[11px] text-secondary">
-              <div className="flex items-center gap-1.5 truncate">
+            <div className={`flex items-center text-[11px] text-secondary ${isCompact ? 'flex-col gap-2' : 'justify-between'}`}>
+              <div className={`flex items-center gap-1.5 truncate ${isCompact ? 'hidden' : ''}`}>
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span className="truncate">Сессия защищена</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div className={`flex items-center ${isCompact ? 'flex-col gap-2' : 'gap-1'}`}>
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={toggleTheme}
@@ -665,8 +673,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           role="separator"
           aria-label="Изменить ширину боковой панели"
-          onMouseDown={() => { resizingRef.current = true; }}
-          className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-accent/50 transition-colors"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            resizingRef.current = true;
+            document.body.classList.add('sidebar-resizing');
+          }}
+          className="absolute right-0 top-0 z-20 h-full w-2 cursor-col-resize hover:bg-accent/50 transition-colors"
         />
       </aside>
     </>
