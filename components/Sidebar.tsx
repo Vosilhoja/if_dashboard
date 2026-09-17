@@ -20,6 +20,8 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
@@ -123,13 +125,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
     active: false, current: 0, total: 5, label: null, error: null,
   });
   const [sidebarWidth, setSidebarWidth] = useState(256);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [syncNoticeVisible, setSyncNoticeVisible] = useState(false);
   const resizingRef = useRef(false);
+  const syncNoticeTimerRef = useRef<number | null>(null);
   const refreshInProgress = isRefreshing || localRefreshInProgress;
-  const isCompact = sidebarWidth <= 100;
+  const isCompact = sidebarCollapsed;
 
   const handleRefresh = async () => {
     if (refreshInProgress) return;
+    if (syncNoticeTimerRef.current !== null) {
+      window.clearTimeout(syncNoticeTimerRef.current);
+      syncNoticeTimerRef.current = null;
+    }
     setLocalRefreshInProgress(true);
+    setSyncNoticeVisible(true);
     setSyncStatus({
       active: true,
       current: 0,
@@ -177,13 +187,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
     } finally {
       window.clearTimeout(timeoutId);
       setLocalRefreshInProgress(false);
+      setSyncStatus((current) => ({
+        ...current,
+        active: false,
+        current: current.error ? current.current : current.total,
+        label: current.error ? current.label : 'Завершено',
+      }));
+      syncNoticeTimerRef.current = window.setTimeout(() => {
+        setSyncNoticeVisible(false);
+        syncNoticeTimerRef.current = null;
+      }, 2000);
     }
   };
 
+  useEffect(() => () => {
+    if (syncNoticeTimerRef.current !== null) {
+      window.clearTimeout(syncNoticeTimerRef.current);
+    }
+  }, []);
+
   useEffect(() => {
     const savedWidth = Number(window.localStorage.getItem('hurmo-sidebar-width'));
-    if (Number.isFinite(savedWidth)) setSidebarWidth(Math.min(360, Math.max(76, savedWidth)));
+    if (Number.isFinite(savedWidth)) setSidebarWidth(Math.min(400, Math.max(240, savedWidth)));
+    setSidebarCollapsed(window.localStorage.getItem('hurmo-sidebar-collapsed') === 'true');
   }, []);
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      window.localStorage.setItem('hurmo-sidebar-collapsed', String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!refreshInProgress) return;
@@ -207,6 +242,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const syncLabel = syncStatus.error
     ? 'Ошибка синхронизации'
+    : !refreshInProgress && syncStatus.current >= syncStatus.total
+      ? 'Загрузка завершена'
     : syncStatus.current > 0 && syncStatus.label
       ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
       : refreshInProgress
@@ -216,7 +253,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     const move = (event: MouseEvent) => {
       if (!resizingRef.current) return;
-      const next = Math.min(360, Math.max(76, event.clientX));
+      const next = Math.min(400, Math.max(240, event.clientX));
       setSidebarWidth(next);
       window.localStorage.setItem('hurmo-sidebar-width', String(next));
     };
@@ -482,16 +519,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {/* Кнопка синхронизации и выхода */}
-                <div
-                  aria-live="polite"
-                  className={`flex h-10 w-full items-center justify-center rounded-2xl border px-3 text-xs font-bold truncate ${
-                    syncStatus.error
-                      ? 'border-rose-400/40 bg-rose-500/10 text-rose-400'
-                      : 'border-accent/30 bg-accent/10 text-accent'
-                  }`}
-                >
-                  {syncLabel}
-                </div>
+                {syncNoticeVisible && (
+                  <div
+                    aria-live="polite"
+                    className={`flex h-10 w-full items-center justify-center rounded-2xl border px-3 text-xs font-bold truncate ${
+                      syncStatus.error
+                        ? 'border-rose-400/40 bg-rose-500/10 text-rose-400'
+                        : 'border-accent/30 bg-accent/10 text-accent'
+                    }`}
+                  >
+                    {syncLabel}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2.5">
                   {true && (
                     <motion.button
@@ -545,8 +584,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ДЕСТКТОПНЫЙ SIDEBAR
           ============================================================ */}
       <aside
-        style={{ width: sidebarWidth }}
-        className="hidden xl:flex relative flex-col shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto transition-[width] duration-150 ease-out rounded-tr-2xl rounded-br-2xl"
+        style={{ width: sidebarCollapsed ? 76 : sidebarWidth }}
+        className="hidden xl:flex relative flex-col shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto transition-[width] duration-300 ease-in-out rounded-tr-2xl rounded-br-2xl"
       >
         <div className={`flex flex-col h-full justify-between bg-surface select-none ${isCompact ? 'p-2' : 'p-4'}`}>
           <div className="space-y-5">
@@ -575,6 +614,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                 </div>
               </Link>
+              <button
+                type="button"
+                onClick={toggleSidebarCollapsed}
+                aria-label={isCompact ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
+                title={isCompact ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
+                className={`shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary ${isCompact ? 'hidden' : ''}`}
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
             </div>
 
             {/* Desktop Navigation */}
@@ -629,7 +677,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className={`pt-3 border-t border-border/80 space-y-2.5 ${isCompact ? 'space-y-3' : ''}`}>
             {true && (
               <>
-              {!isCompact && (
+              {!isCompact && syncNoticeVisible && (
                 <div
                   aria-live="polite"
                   className={`mb-2 flex h-10 w-full items-center justify-center rounded-xl border px-3 text-xs font-medium truncate ${
@@ -697,10 +745,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         </div>
+        {isCompact && (
+          <button
+            type="button"
+            onClick={toggleSidebarCollapsed}
+            aria-label="Развернуть боковую панель"
+            title="Развернуть боковую панель"
+            className="absolute right-1 top-4 z-10 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
+          >
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+        )}
         <div
           role="separator"
           aria-label="Изменить ширину боковой панели"
           onMouseDown={(event) => {
+            if (isCompact) return;
             event.preventDefault();
             resizingRef.current = true;
             document.body.classList.add('sidebar-resizing');
