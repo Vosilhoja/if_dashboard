@@ -463,6 +463,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     setExportLoading(true);
     try {
       const params = new URLSearchParams({ page: '1', pageSize: '100000', export: 'true' });
+      const supportStartDate = exportMode === 'date' ? exportFrom : startDate;
+      const supportEndDate = exportMode === 'date' ? exportTo : endDate;
+      if (supportStartDate) params.set('startDate', supportStartDate);
+      if (supportEndDate) params.set('endDate', supportEndDate);
       const response = await fetch(`/api/proxy/data/sheets/${sheetType}?${params}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const fullData: SheetPaginatedResponse = await response.json();
