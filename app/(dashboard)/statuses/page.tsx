@@ -200,6 +200,15 @@ export default function StatusesPage() {
         category.id === selected.id ? data.category : category
       )));
       if (action === 'add') setNewPhrase('');
+      if (action === 'remove' && data.suggestion) {
+        setSuggestions((current) => {
+          const existing = current.find((item) => item.id === data.suggestion.id);
+          if (existing) {
+            return current.map((item) => item.id === data.suggestion.id ? data.suggestion : item);
+          }
+          return [data.suggestion, ...current];
+        });
+      }
       setNotice(action === 'add' ? 'Фраза добавлена и будет учитываться в классификации.' : 'Пользовательская фраза удалена.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Ошибка сохранения');
