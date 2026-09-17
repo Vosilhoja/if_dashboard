@@ -16,6 +16,7 @@ import {
   ArrowUp,
   ArrowDown,
   Filter,
+  ChevronDown,
 } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
@@ -57,6 +58,10 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [selectedStatusCategory, setSelectedStatusCategory] = useState<string>('all');
   const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportFrom, setExportFrom] = useState('');
+  const [exportTo, setExportTo] = useState('');
+  const [exportLoading, setExportLoading] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -255,34 +260,39 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       });
     }
 
-    if (sortColumn) {
-      rows.sort((a, b) => {
-        const valA = a[sortColumn] ?? '';
-        const valB = b[sortColumn] ?? '';
-        const numA = Number(valA);
-        const numB = Number(valB);
-        if (!isNaN(numA) && !isNaN(numB) && valA !== '' && valB !== '') {
-          return sortDirection === 'asc' ? numA - numB : numB - numA;
-        }
-        return sortDirection === 'asc'
-          ? String(valA).localeCompare(String(valB), 'ru')
-          : String(valB).localeCompare(String(valA), 'ru');
-      });
-    }
-
     return rows;
-  }, [data?.rows, sortColumn, sortDirection, selectedStatusCategory, onlyDuplicates, phoneCounts]);
+  }, [data?.rows, selectedStatusCategory, onlyDuplicates, phoneCounts]);
 
-  const downloadCSV = () => {
-    if (!processedRows.length || !data) return;
-    const filename = `${sheetType}_data_${new Date().toISOString().slice(0, 10)}.csv`;
-    exportRowsToCSV(processedRows, data.headers, filename);
-  };
-
-  const downloadExcel = () => {
-    if (!processedRows.length || !data) return;
-    const filename = `${sheetType}_data_${new Date().toISOString().slice(0, 10)}`;
-    exportRowsToExcel(processedRows, data.headers, filename);
+  const exportByDate = async (format: 'csv' | 'excel') => {
+    setExportLoading(true);
+    try {
+      const params = new URLSearchParams({ page: '1', pageSize: '100000', export: 'true' });
+      const response = await fetch(`/api/proxy/data/sheets/${sheetType}?${params}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const fullData: SheetPaginatedResponse = await response.json();
+      const dateHeader = fullData.headers.find((header) => {
+        const normalized = header.toLowerCase();
+        return normalized.includes('дата') || normalized.includes('date');
+      });
+      const rows = dateHeader && (exportFrom || exportTo)
+        ? fullData.rows.filter((row) => {
+            const value = String(row[dateHeader] ?? '');
+            const date = new Date(value.split('.').reverse().join('-'));
+            if (Number.isNaN(date.getTime())) return false;
+            const iso = date.toISOString().slice(0, 10);
+            return (!exportFrom || iso >= exportFrom) && (!exportTo || iso <= exportTo);
+          })
+        : fullData.rows;
+      const filename = `${sheetType}_data_${exportFrom || 'all'}_${exportTo || 'all'}`;
+      if (format === 'csv') exportRowsToCSV(rows, fullData.headers, `${filename}.csv`);
+      else exportRowsToExcel(rows, fullData.headers, filename);
+      setExportOpen(false);
+      showToast(`Экспортировано строк: ${rows.length}`, 'success');
+    } catch (exportError) {
+      showToast(exportError instanceof Error ? exportError.message : 'Ошибка экспорта', 'error');
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   return (
@@ -412,29 +422,31 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             )}
           </button>
 
-          {/* Export Excel (.xlsx) */}
-          <button
-            type="button"
-            onClick={downloadExcel}
-            disabled={!processedRows || processedRows.length === 0}
-            className="h-8 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
-            title="Экспорт в Excel (.xlsx / XML)"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">Excel</span>
-          </button>
-
-          {/* Export CSV */}
-          <button
-            type="button"
-            onClick={downloadCSV}
-            disabled={!processedRows || processedRows.length === 0}
-            className="h-8 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
-            title="Скачать строки как CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-secondary" />
-            <span className="hidden sm:inline">CSV</span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setExportOpen((open) => !open)}
+              disabled={!data || exportLoading}
+              className="h-8 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Экспорт</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {exportOpen && (
+              <div className="absolute right-0 top-10 z-30 w-64 p-3 rounded-lg border border-border bg-surface shadow-xl">
+                <div className="text-xs font-semibold text-primary mb-2">Экспорт по дате</div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <input type="date" value={exportFrom} onChange={(event) => setExportFrom(event.target.value)} className="h-10 min-w-0 w-full px-2 rounded border border-border bg-surface-2 text-xs" />
+                  <input type="date" value={exportTo} onChange={(event) => setExportTo(event.target.value)} className="h-10 min-w-0 w-full px-2 rounded border border-border bg-surface-2 text-xs" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => exportByDate('excel')} className="h-10 rounded border border-emerald-300/60 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">Excel</button>
+                  <button type="button" onClick={() => exportByDate('csv')} className="h-10 rounded border border-border bg-surface-2 text-xs text-primary">CSV</button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <select
             value={pageSize}

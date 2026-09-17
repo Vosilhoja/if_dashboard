@@ -1,11 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Users, Phone, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { DataTable } from './DataTable';
+import { Button } from './ui/Button';
 
 export const RawDataTabs: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'main' | 'numbers' | 'eskiz' | 'not_completed' | 'survey_attempts'>('numbers');
+  const pathname = usePathname();
+  const router = useRouter();
+  const pathTab = pathname.split('/').filter(Boolean).at(-1);
+  const slugToType = { 'main-base': 'main', numbers: 'numbers', eskiz: 'eskiz', not_completed: 'not_completed', survey_attempts: 'survey_attempts' } as const;
+  const activeTab = slugToType[pathTab as keyof typeof slugToType] || 'numbers';
 
   const tabs = [
     {
@@ -48,10 +54,10 @@ export const RawDataTabs: React.FC = () => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
           return (
-            <button
+            <Button
               key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`active-press flex items-center gap-2 px-3.5 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap cursor-pointer shrink-0 border ${
+              onClick={() => router.push(`/raw/${t.id === 'main' ? 'main-base' : t.id}`)}
+              className={`active-press rounded-xl whitespace-nowrap shrink-0 ${
                 isActive
                   ? 'bg-accent text-white border-accent shadow-xs'
                   : 'bg-surface-2/70 text-secondary hover:text-primary border-border/60 hover:bg-surface-2'
@@ -59,7 +65,7 @@ export const RawDataTabs: React.FC = () => {
             >
               <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-secondary'}`} />
               <span>{t.label}</span>
-            </button>
+            </Button>
           );
         })}
       </div>
