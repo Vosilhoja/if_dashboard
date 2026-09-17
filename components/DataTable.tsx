@@ -422,6 +422,15 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     if (!data?.rows) return [];
     let rows = [...data.rows];
 
+    if (filterColumn && selectedFilterValues.length > 0) {
+      const selected = new Set(
+        selectedFilterValues.map((value) => value.replace(/\u00a0/g, ' ').trim().toLocaleLowerCase('ru')),
+      );
+      rows = rows.filter((row) =>
+        selected.has(String(row[filterColumn] ?? '').replace(/\u00a0/g, ' ').trim().toLocaleLowerCase('ru')),
+      );
+    }
+
     // Filter by status category if selected
     if (selectedStatusCategory !== 'all') {
       const catOption = STATUS_CATEGORY_OPTIONS.find((c) => c.id === selectedStatusCategory);
