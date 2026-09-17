@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { backendErrorResponse } from '@/lib/proxy-response';
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
@@ -24,10 +25,7 @@ export async function GET(request: NextRequest) {
     const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
-      return NextResponse.json(
-        { error: data.error || `Ошибка бэкенда: ${backendRes.status}` },
-        { status: backendRes.status }
-      );
+      return backendErrorResponse(data, backendRes.status, `Ошибка бэкенда: ${backendRes.status}`, '/api/proxy/data/period');
     }
 
     return NextResponse.json(data);

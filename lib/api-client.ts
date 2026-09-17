@@ -25,6 +25,28 @@ const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 503]);
 const MAX_RETRIES = 3;
 const inFlightGetRequests = new Map<string, Promise<AxiosResponse<unknown>>>();
 
+export interface ApiErrorDetails {
+  requestId?: string;
+  method?: string;
+  path?: string;
+  location?: string;
+  stack?: string;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly details: ApiErrorDetails;
+
+  constructor(message: string, status = 0, code = 'NETWORK_ERROR', details: ApiErrorDetails = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
 function isRetryable(error: AxiosError, method: string) {
   if (method.toUpperCase() !== 'GET') return false;
   if (axios.isCancel(error)) return false;
@@ -65,7 +87,8 @@ async function requestWithRetry<T>(config: AxiosRequestConfig): Promise<AxiosRes
     } catch (error) {
       lastError = error;
       if (!(error instanceof AxiosError) || !isRetryable(error, method) || attempt === MAX_RETRIES) {
-        throw error;
+        if (axios.isCancel(error)) throw error;
+        throw parseApiError(error);
       }
 
       const retryAfter = Number(error.response?.headers?.['retry-after']);
@@ -76,16 +99,53 @@ async function requestWithRetry<T>(config: AxiosRequestConfig): Promise<AxiosRes
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Ошибка сетевого запроса');
+  throw parseApiError(lastError, 'Ошибка сетевого запроса');
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiError) {
+    const status = error.status ? `HTTP ${error.status}` : 'NETWORK';
+    const endpoint = error.details.path ? ` · ${error.details.path}` : '';
+    const requestId = error.details.requestId ? ` · ID: ${error.details.requestId}` : '';
+    return `${error.message} (${status}${endpoint}${requestId})`;
+  }
   if (error instanceof AxiosError) {
-    const message = error.response?.data?.error || error.response?.data?.message;
+    const response = error.response?.data as {
+      error?: string;
+      message?: string;
+      code?: string;
+      details?: ApiErrorDetails;
+    } | undefined;
+    const message = response?.error || response?.message;
     if (typeof message === 'string' && message) return message;
     if (error.code === 'ECONNABORTED') return 'Сервер отвечает слишком долго. Повторите попытку.';
+    if (!error.response) return 'Нет подключения к серверу. Проверьте интернет-соединение и доступность backend.';
   }
   return error instanceof Error ? error.message : fallback;
+}
+
+export function parseApiError(error: unknown, fallback = 'Не удалось выполнить запрос'): ApiError {
+  if (error instanceof ApiError) return error;
+  if (axios.isAxiosError(error)) {
+    const response = error.response?.data as {
+      error?: string;
+      message?: string;
+      code?: string;
+      details?: ApiErrorDetails;
+    } | undefined;
+    const status = error.response?.status || 0;
+    const message = response?.error || response?.message ||
+      (status === 0
+        ? 'Нет подключения к серверу. Проверьте интернет-соединение и доступность backend.'
+        : fallback);
+    return new ApiError(
+      message,
+      status,
+      response?.code || (status ? `HTTP_${status}` : 'NETWORK_ERROR'),
+      response?.details || { path: error.config?.url },
+    );
+  }
+  return new ApiError(error instanceof Error ? error.message : fallback);
 }
 
 export interface AuthUser {

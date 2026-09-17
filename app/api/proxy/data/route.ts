@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { backendErrorResponse } from '@/lib/proxy-response';
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
@@ -25,18 +26,17 @@ export async function GET(request: NextRequest) {
 
     if (!backendRes.ok) {
       console.error(`[Proxy /api/data Error] Status ${backendRes.status}:`, data);
-      return NextResponse.json(
-        { error: data.error || `Ошибка бэкенда: ${backendRes.status}` },
-        { status: backendRes.status }
-      );
+      return backendErrorResponse(data, backendRes.status, `Ошибка бэкенда: ${backendRes.status}`, '/api/proxy/data');
     }
 
     return NextResponse.json(data);
   } catch (err: unknown) {
     console.error('[Proxy /api/data Exception]:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Внутренняя ошибка сервера' },
-      { status: 500 }
+    return backendErrorResponse(
+      { error: err instanceof Error ? err.message : 'Нет подключения к backend', code: 'BACKEND_UNAVAILABLE' },
+      502,
+      'Нет подключения к backend',
+      '/api/proxy/data',
     );
   }
 }

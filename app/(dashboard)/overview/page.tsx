@@ -35,6 +35,7 @@ import { OdometerNumber } from '@/components/ui/OdometerNumber';
 import { motion } from 'framer-motion';
 import { getMetrics } from '@/lib/api-client';
 import { SurveyAttemptsPanel } from '@/components/SurveyAttemptsPanel';
+import { isUnusableCache, loadCachedDashboard, saveCachedDashboard } from '@/lib/dashboard-cache';
 
 interface SheetHealth {
   name: string;
@@ -86,6 +87,14 @@ export default function OverviewPage() {
         fetch('/api/proxy/data/analytics', { cache: 'no-store', signal }),
       ]);
       setMetrics(metricsPayload);
+      if (attemptFilter === 'all' && attemptRegion === 'all' && attemptStatus === 'all') {
+        saveCachedDashboard({
+          metrics: metricsPayload,
+          startDate: '',
+          endDate: '',
+          savedAt: new Date().toISOString(),
+        });
+      }
       const analyticsPayload = await analyticsRes.json().catch(() => ({}));
       if (analyticsRes.ok) setAnalyticsData(analyticsPayload);
       else setDataError(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
@@ -102,6 +111,19 @@ export default function OverviewPage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const cached = loadCachedDashboard();
+    const canUseCachedMetrics =
+      attemptFilter === 'all' &&
+      attemptRegion === 'all' &&
+      attemptStatus === 'all' &&
+      cached &&
+      !isUnusableCache(cached.metrics);
+
+    if (canUseCachedMetrics) {
+      setMetrics(cached.metrics);
+      setLoading(false);
+    }
+
     void loadOverviewData(false, controller.signal);
 
     const handleSync = () => void loadOverviewData(false, controller.signal);
