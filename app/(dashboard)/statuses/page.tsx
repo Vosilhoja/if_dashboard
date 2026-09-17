@@ -83,16 +83,26 @@ export default function StatusesPage() {
   const loadCategories = async () => {
     setLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 15_000);
     try {
-      const response = await fetch('/api/proxy/admin/statuses', { cache: 'no-store' });
+      const response = await fetch('/api/proxy/admin/statuses', {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить статусы');
       const nextCategories = normalizeCategories(data.categories || []);
       setCategories(nextCategories);
       setSelectedId((current) => current || nextCategories[0]?.id || '');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Ошибка загрузки статусов');
+      setError(
+        cause instanceof DOMException && cause.name === 'AbortError'
+          ? 'Загрузка статусов превысила 15 секунд. Проверьте подключение и повторите попытку.'
+          : cause instanceof Error ? cause.message : 'Ошибка загрузки статусов',
+      );
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
@@ -459,9 +469,16 @@ export default function StatusesPage() {
                 </p>
               </div>
             </>
-          ) : (
+          ) : loading ? (
             <div className="p-12 text-center text-sm text-secondary">Загрузка категорий статусов...</div>
-          )}
+             ) : (
+               <div className="p-12 text-center text-sm text-secondary">
+                 Не удалось загрузить категории.
+                 <button type="button" onClick={() => void loadCategories()} className="ml-2 text-accent hover:underline">
+                   Повторить
+                 </button>
+               </div>
+             )}
         </section>
       </div>
     </div>

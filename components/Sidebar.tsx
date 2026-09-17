@@ -126,6 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   });
   const [sidebarWidth, setSidebarWidth] = useState(256);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [brandHovered, setBrandHovered] = useState(false);
   const [syncNoticeVisible, setSyncNoticeVisible] = useState(false);
   const resizingRef = useRef(false);
   const syncNoticeTimerRef = useRef<number | null>(null);
@@ -150,6 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setRefreshAnimationKey((key) => key + 1);
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
+    let syncSucceeded = false;
     try {
       // Synchronize all source sheets once. Normal dashboard requests only
       // read the backend snapshot and never contact Google Sheets.
@@ -180,6 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       window.dispatchEvent(new CustomEvent('hurmo:sync', {
         detail: { classificationJobId },
       }));
+      syncSucceeded = true;
     } catch (error) {
       setSyncStatus((current) => ({
         ...current,
@@ -194,12 +197,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     } finally {
       window.clearTimeout(timeoutId);
       setLocalRefreshInProgress(false);
-      setSyncStatus((current) => ({
-        ...current,
-        active: false,
-        current: current.error ? current.current : current.total,
-        label: current.error ? current.label : 'Завершено',
-      }));
+      if (syncSucceeded) {
+        setSyncStatus((current) => ({
+          ...current,
+          active: false,
+          current: current.total,
+          label: 'Завершено',
+          error: null,
+        }));
+      }
       syncNoticeTimerRef.current = window.setTimeout(() => {
         setSyncNoticeVisible(false);
         syncNoticeTimerRef.current = null;
@@ -591,20 +597,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
           ДЕСТКТОПНЫЙ SIDEBAR
           ============================================================ */}
       <aside
-        style={{ width: sidebarCollapsed ? 76 : sidebarWidth }}
+        style={{ width: sidebarCollapsed ? 60 : sidebarWidth }}
         className="hidden xl:flex relative flex-col shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto transition-[width] duration-300 ease-in-out rounded-tr-2xl rounded-br-2xl"
       >
         <div className={`flex flex-col h-full justify-between bg-surface select-none ${isCompact ? 'p-2' : 'p-4'}`}>
           <div className="space-y-5">
             {/* Brand Header */}
             <div className={`flex items-center justify-between pb-3.5 border-b border-border/80 ${isCompact ? 'justify-center' : ''}`}>
-              <Link href="/overview" prefetch={false} draggable={false} className={`flex items-center gap-3 group ${isCompact ? 'justify-center' : ''}`}>
+              <Link
+                href="/overview"
+                prefetch={false}
+                draggable={false}
+                onClick={(event) => {
+                  if (isCompact) {
+                    event.preventDefault();
+                    toggleSidebarCollapsed();
+                  }
+                }}
+                className={`flex items-center gap-3 group ${isCompact ? 'justify-center' : ''}`}
+              >
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.15 }}
                   className="w-9 h-9 rounded-xl bg-accent text-white flex items-center justify-center font-black text-base shadow-sm"
+                  onMouseEnter={() => setBrandHovered(true)}
+                  onMouseLeave={() => setBrandHovered(false)}
                 >
-                  H
+                  {isCompact && brandHovered ? <PanelLeftOpen className="h-4 w-4" /> : 'H'}
                 </motion.div>
                 <div className={`flex flex-col min-w-0 ${isCompact ? 'hidden' : ''}`}>
                   <div className="flex items-center gap-1.5">
@@ -752,17 +771,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         </div>
-        {isCompact && (
-          <button
-            type="button"
-            onClick={toggleSidebarCollapsed}
-            aria-label="Развернуть боковую панель"
-            title="Развернуть боковую панель"
-            className="absolute right-1 top-4 z-10 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
-          >
-            <PanelLeftOpen className="h-4 w-4" />
-          </button>
-        )}
         <div
           role="separator"
           aria-label="Изменить ширину боковой панели"
