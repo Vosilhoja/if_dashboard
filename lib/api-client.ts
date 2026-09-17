@@ -21,7 +21,7 @@ const api = axios.create({
 
 // Retrying gateway/server errors creates a request storm when the backend is
 // overloaded. Only transient client-side throttling/timeouts are retried.
-const RETRYABLE_STATUS_CODES = new Set([408, 425, 429]);
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 503]);
 const MAX_RETRIES = 3;
 const inFlightGetRequests = new Map<string, Promise<AxiosResponse<unknown>>>();
 
