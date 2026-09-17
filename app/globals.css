@@ -172,7 +172,8 @@ input[type="search"],
 input[type="email"],
 input[type="date"],
 select:not([multiple]) {
-  height: 40px;
+  height: 40px !important;
+  min-height: 40px;
   line-height: 1.5;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
@@ -193,9 +194,18 @@ textarea {
 /* Standard button base height for interactive elements */
 .btn,
 button.btn {
+  height: 40px;
   min-height: 40px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Keep the height of every standard action control consistent across pages. */
+button:not([data-icon-button]) {
+  height: 40px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
 }
 
 .app-content {

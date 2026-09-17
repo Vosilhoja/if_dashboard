@@ -286,7 +286,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-[8px] overflow-visible flex flex-col">
+    <div className="w-full min-w-0 max-w-full bg-surface border border-border rounded-[8px] overflow-visible flex flex-col">
       {/* Controls Bar */}
       <div className="p-3 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface">
         <div className="flex items-center justify-between sm:justify-start gap-2">
@@ -303,7 +303,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           {/* Mobile column toggle button */}
           <button
             onClick={() => setShowAllColumnsMobile(!showAllColumnsMobile)}
-            className="sm:hidden flex items-center gap-1 px-2 py-1 rounded-[4px] bg-surface-2 text-[10px] text-secondary border border-border"
+            className="sm:hidden h-8 flex items-center gap-1 px-2 rounded-[4px] bg-surface-2 text-[10px] text-secondary border border-border"
           >
             {showAllColumnsMobile ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             <span>{showAllColumnsMobile ? 'Кратко' : 'Все'}</span>
@@ -319,7 +319,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               placeholder="Поиск по номеру..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-8 pr-12 py-1.5 bg-surface-2 border border-border focus:border-accent rounded-[6px] text-xs text-primary placeholder-secondary focus:outline-none transition-colors"
+              className="w-full h-8 pl-8 pr-12 bg-surface-2 border border-border focus:border-accent rounded-[6px] text-xs text-primary placeholder-secondary focus:outline-none transition-colors"
             />
             {searchInput && (
               <button
@@ -341,7 +341,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                   setPage(1);
                 }}
                 placeholder={`Фильтр: ${filterColumn}`}
-                className="w-36 px-2 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                className="w-36 h-8 px-2 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
               />
               <button
                 type="button"
@@ -358,7 +358,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           )}
 
           {/* Status category filter */}
-          <div className="flex items-center gap-1 bg-surface-2 px-2 py-1 rounded-[6px] border border-border">
+          <div className="h-8 flex items-center gap-1 bg-surface-2 px-2 rounded-[6px] border border-border">
             <Filter className="w-3 h-3 text-secondary shrink-0" />
             <select
               value={selectedStatusCategory}
@@ -389,7 +389,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
           <button
             type="button"
             onClick={() => setOnlyDuplicates(!onlyDuplicates)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border text-xs font-medium transition-all cursor-pointer ${
+            className={`h-8 flex items-center gap-1.5 px-2.5 rounded-[6px] border text-xs font-medium transition-all cursor-pointer ${
               onlyDuplicates
                 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 font-semibold'
                 : duplicatePhoneCount > 0
@@ -417,7 +417,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             type="button"
             onClick={downloadExcel}
             disabled={!processedRows || processedRows.length === 0}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
+            className="h-8 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 disabled:opacity-40 text-emerald-700 dark:text-emerald-400 border border-emerald-300/60 dark:border-emerald-700/50 text-xs font-medium transition-colors cursor-pointer"
             title="Экспорт в Excel (.xlsx / XML)"
           >
             <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -429,7 +429,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             type="button"
             onClick={downloadCSV}
             disabled={!processedRows || processedRows.length === 0}
-            className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
+            className="h-8 flex items-center justify-center gap-1.5 px-2.5 rounded-[6px] bg-surface-2 hover:bg-surface-2/80 disabled:opacity-40 text-secondary hover:text-primary border border-border text-xs font-medium transition-colors cursor-pointer"
             title="Скачать строки как CSV"
           >
             <Download className="w-3.5 h-3.5 text-secondary" />
@@ -442,7 +442,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="bg-surface-2 border border-border rounded-[6px] px-2 py-1.5 text-xs text-primary focus:outline-none cursor-pointer tabular-nums"
+            className="h-8 bg-surface-2 border border-border rounded-[6px] px-2 text-xs text-primary focus:outline-none cursor-pointer tabular-nums"
           >
             <option value={15}>15</option>
             <option value={25}>25</option>
@@ -471,7 +471,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             ))}
           </div>
         ) : data && processedRows.length > 0 ? (
-          <table className="w-full min-w-max text-left text-sm border-collapse">
+          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+          <table className="min-w-max w-full text-left text-sm border-collapse">
             <thead className="sticky top-0 bg-surface-2 text-secondary font-semibold border-b border-border z-10 text-xs uppercase tracking-wide">
               <tr>
                 <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">
@@ -622,6 +623,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           !loading && (
             <div className="flex flex-col items-center justify-center h-48 text-secondary text-xs gap-2">
