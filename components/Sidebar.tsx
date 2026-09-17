@@ -130,6 +130,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const handleRefresh = async () => {
     if (refreshInProgress) return;
     setLocalRefreshInProgress(true);
+    setSyncStatus({
+      active: true,
+      current: 0,
+      total: 5,
+      label: 'Подготовка',
+      error: null,
+    });
     setRefreshAnimationKey((key) => key + 1);
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
@@ -181,6 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     if (!refreshInProgress) return;
     let cancelled = false;
+    let timer: number | undefined;
     const poll = async () => {
       try {
         const response = await fetch('/api/proxy/data/sync/status', { cache: 'no-store' });
@@ -188,11 +196,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } catch {
         // The sync request itself remains the source of truth if polling is unavailable.
       }
-      if (!cancelled) window.setTimeout(poll, 700);
+      if (!cancelled) timer = window.setTimeout(poll, 500);
     };
     void poll();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
   }, [refreshInProgress]);
+
+  const syncLabel = syncStatus.error
+    ? 'Ошибка синхронизации'
+    : syncStatus.current > 0 && syncStatus.label
+      ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
+      : refreshInProgress
+        ? `Подготовка синхронизации 0/${syncStatus.total}`
+        : 'Синхронизация завершена';
 
   useEffect(() => {
     const move = (event: MouseEvent) => {
@@ -302,11 +321,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Правые действия: Поиск, Тема, Бургер с бейджем */}
         <div className="flex items-center gap-1.5 min-w-0">
-          {refreshInProgress && (
-            <span className="max-w-[170px] truncate rounded-lg bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent">
-              Загрузка {syncStatus.label || 'таблицы'} {syncStatus.current}/{syncStatus.total}
-            </span>
-          )}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={toggleTheme}
@@ -468,6 +482,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {/* Кнопка синхронизации и выхода */}
+                <div
+                  aria-live="polite"
+                  className={`flex h-10 w-full items-center justify-center rounded-2xl border px-3 text-xs font-bold truncate ${
+                    syncStatus.error
+                      ? 'border-rose-400/40 bg-rose-500/10 text-rose-400'
+                      : 'border-accent/30 bg-accent/10 text-accent'
+                  }`}
+                >
+                  {syncLabel}
+                </div>
                 <div className="grid grid-cols-2 gap-2.5">
                   {true && (
                     <motion.button
@@ -492,11 +516,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-accent" />
                       </motion.span>
-                      <span className="truncate">
-                        {refreshInProgress && syncStatus.label
-                          ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
-                          : 'Синхронизация'}
-                      </span>
+                      <span className="truncate">Синхронизация</span>
                     </motion.button>
                   )}
 
@@ -550,11 +570,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                   </div>
 
-                  {refreshInProgress && !isCompact && (
-                    <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] text-accent truncate">
-                      Загрузка {syncStatus.label || 'таблицы'} {syncStatus.current}/{syncStatus.total}
-                    </div>
-                  )}
                   <span className="text-[11px] text-secondary mt-1 leading-none">
                     Data Intelligence
                   </span>
@@ -613,6 +628,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Desktop Footer */}
           <div className={`pt-3 border-t border-border/80 space-y-2.5 ${isCompact ? 'space-y-3' : ''}`}>
             {true && (
+              <>
+              {!isCompact && (
+                <div
+                  aria-live="polite"
+                  className={`mb-2 flex h-10 w-full items-center justify-center rounded-xl border px-3 text-xs font-medium truncate ${
+                    syncStatus.error
+                      ? 'border-rose-400/40 bg-rose-500/10 text-rose-400'
+                      : 'border-accent/30 bg-accent/10 text-accent'
+                  }`}
+                >
+                  {syncLabel}
+                </div>
+              )}
               <motion.button
                 whileHover={{ opacity: 0.9 }}
                 whileTap={{ scale: 0.97 }}
@@ -638,11 +666,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <RefreshCw className="w-3.5 h-3.5" />
                 </motion.span>
                 <span className={`truncate ${isCompact ? 'hidden' : ''}`}>
-                  {refreshInProgress && syncStatus.label
-                    ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
-                    : refreshInProgress ? 'Синхронизация...' : 'Обновить данные'}
+                  {refreshInProgress ? 'Синхронизация...' : 'Обновить данные'}
                 </span>
               </motion.button>
+              </>
             )}
 
             <div className={`flex items-center text-[11px] text-secondary ${isCompact ? 'flex-col gap-2' : 'justify-between'}`}>
