@@ -87,6 +87,8 @@ export default function SettingsPage() {
   // Live Sheet Ping State
   const [pingingSheet, setPingingSheet] = useState<string | null>(null);
   const [pingResults, setPingResults] = useState<Record<string, PingResult>>({});
+  const [reloadingSheet, setReloadingSheet] = useState<string | null>(null);
+  const [reloadResults, setReloadResults] = useState<Record<string, string>>({});
 
   // 1. Anomaly Threshold & History
   const [anomalyThreshold, setAnomalyThreshold] = useState<number>(30);
@@ -382,7 +384,7 @@ export default function SettingsPage() {
     setPingingSheet(sheetKey);
     const start = performance.now();
     try {
-      const res = await fetch(`/api/proxy/data/sheets/${sheetKey}?summary=true&fresh=true`, {
+      const res = await fetch(`/api/proxy/data/sheets/${sheetKey}/connection`, {
         cache: 'no-store',
       });
       const duration = Math.round(performance.now() - start);
@@ -411,6 +413,28 @@ export default function SettingsPage() {
       }));
     } finally {
       setPingingSheet(null);
+    }
+  };
+
+  const handleFullReload = async (sheetKey: string) => {
+    setReloadingSheet(sheetKey);
+    setError(null);
+    try {
+      const res = await fetch(`/api/proxy/data/sheets/${sheetKey}`, {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setReloadResults((prev) => ({
+        ...prev,
+        [sheetKey]: `Загружено строк: ${(data.total || 0).toLocaleString('ru-RU')}`,
+      }));
+      window.dispatchEvent(new Event('hurmo:sync'));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Не удалось загрузить таблицу полностью');
+    } finally {
+      setReloadingSheet(null);
     }
   };
 
@@ -503,6 +527,7 @@ export default function SettingsPage() {
           {sheets.map((sheet) => {
             const ping = pingResults[sheet.key];
             const isPinging = pingingSheet === sheet.key;
+            const isReloading = reloadingSheet === sheet.key;
 
             return (
               <div
@@ -534,26 +559,41 @@ export default function SettingsPage() {
                     <span>Всего строк: {ping.totalRows.toLocaleString('ru-RU')}</span>
                   </div>
                 )}
+                {reloadResults[sheet.key] && (
+                  <div className="px-2 py-1 rounded-[4px] bg-accent/10 text-accent border border-accent/20 text-[11px]">
+                    {reloadResults[sheet.key]}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-2 border-t border-border/40 gap-2">
                   <button
-                    onClick={() => handlePingSheet(sheet.key)}
-                    disabled={isPinging}
+                    onClick={() => handleFullReload(sheet.key)}
+                    disabled={isReloading || isPinging}
                     className="flex items-center gap-1.5 px-2 py-1 rounded-[4px] bg-surface hover:bg-surface-2 border border-border text-[11px] text-secondary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    <Activity className={`w-3 h-3 ${isPinging ? 'animate-spin text-accent' : ''}`} />
-                    <span>{isPinging ? 'Загрузка...' : 'Загрузить полностью'}</span>
+                    <RefreshCw className={`w-3 h-3 ${isReloading ? 'animate-spin text-accent' : ''}`} />
+                    <span>{isReloading ? 'Загружаем...' : 'Загрузить полностью'}</span>
                   </button>
 
-                  <a
-                    href={sheet.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs font-medium text-accent hover:underline cursor-pointer"
-                  >
-                    <span>Открыть таблицу</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handlePingSheet(sheet.key)}
+                      disabled={isPinging || isReloading}
+                      className="flex items-center gap-1 text-[11px] font-medium text-secondary hover:text-primary cursor-pointer disabled:opacity-50"
+                    >
+                      <Activity className={`w-3 h-3 ${isPinging ? 'animate-spin text-accent' : ''}`} />
+                      <span>{isPinging ? 'Проверяем...' : 'Проверить связь'}</span>
+                    </button>
+                    <a
+                      href={sheet.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs font-medium text-accent hover:underline cursor-pointer"
+                    >
+                      <span>Открыть</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
               </div>
             );

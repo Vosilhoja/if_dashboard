@@ -52,10 +52,25 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   const [showAllColumnsMobile, setShowAllColumnsMobile] = useState(false);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [filterColumn, setFilterColumn] = useState('');
+  const [filterValue, setFilterValue] = useState('');
   const [selectedStatusCategory, setSelectedStatusCategory] = useState<string>('all');
   const [onlyDuplicates, setOnlyDuplicates] = useState(false);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlPage = Number(params.get('page'));
+    const urlPageSize = Number(params.get('pageSize'));
+    if (Number.isFinite(urlPage) && urlPage > 0) setPage(urlPage);
+    if ([25, 50, 100].includes(urlPageSize)) setPageSize(urlPageSize);
+    setActiveSearch(params.get('search') || '');
+    setSortColumn(params.get('sortBy'));
+    setSortDirection(params.get('sortDirection') === 'desc' ? 'desc' : 'asc');
+    setFilterColumn(params.get('filterColumn') || '');
+    setFilterValue(params.get('filterValue') || '');
+  }, []);
 
   const handleSort = (col: string) => {
     if (sortColumn === col) {
@@ -68,6 +83,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       setSortColumn(col);
       setSortDirection('asc');
     }
+    setPage(1);
   };
 
   const goToPage = () => {
@@ -87,6 +103,14 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
         pageSize: String(size),
       });
       if (search) params.append('search', search);
+      if (sortColumn) {
+        params.append('sortBy', sortColumn);
+        params.append('sortDirection', sortDirection);
+      }
+      if (filterColumn && filterValue.trim()) {
+        params.append('filterColumn', filterColumn);
+        params.append('filterValue', filterValue.trim());
+      }
 
       const res = await fetch(`/api/proxy/data/sheets/${sheetType}?${params.toString()}`);
       if (!res.ok) {
@@ -104,7 +128,30 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
 
   useEffect(() => {
     fetchData(page, activeSearch, pageSize);
-  }, [sheetType, page, activeSearch, pageSize]);
+  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', String(page));
+    url.searchParams.set('pageSize', String(pageSize));
+    if (sortColumn) {
+      url.searchParams.set('sortBy', sortColumn);
+      url.searchParams.set('sortDirection', sortDirection);
+    } else {
+      url.searchParams.delete('sortBy');
+      url.searchParams.delete('sortDirection');
+    }
+    if (activeSearch) url.searchParams.set('search', activeSearch);
+    else url.searchParams.delete('search');
+    if (filterColumn && filterValue.trim()) {
+      url.searchParams.set('filterColumn', filterColumn);
+      url.searchParams.set('filterValue', filterValue.trim());
+    } else {
+      url.searchParams.delete('filterColumn');
+      url.searchParams.delete('filterValue');
+    }
+    window.history.replaceState(null, '', url);
+  }, [page, pageSize, sortColumn, sortDirection, activeSearch, filterColumn, filterValue]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,7 +286,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
   };
 
   return (
-    <div className="bg-surface border border-border rounded-[8px] overflow-hidden flex flex-col">
+    <div className="bg-surface border border-border rounded-[8px] overflow-visible flex flex-col">
       {/* Controls Bar */}
       <div className="p-3 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface">
         <div className="flex items-center justify-between sm:justify-start gap-2">
@@ -284,6 +331,31 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
               </button>
             )}
           </form>
+
+          {filterColumn && (
+            <div className="flex items-center gap-1">
+              <input
+                value={filterValue}
+                onChange={(event) => {
+                  setFilterValue(event.target.value);
+                  setPage(1);
+                }}
+                placeholder={`Фильтр: ${filterColumn}`}
+                className="w-36 px-2 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterColumn('');
+                  setFilterValue('');
+                  setPage(1);
+                }}
+                className="text-[10px] text-secondary hover:text-primary"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {/* Status category filter */}
           <div className="flex items-center gap-1 bg-surface-2 px-2 py-1 rounded-[6px] border border-border">
@@ -391,7 +463,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
       )}
 
       {/* Table Container */}
-      <div className="overflow-x-auto relative min-h-[400px] max-h-[calc(100vh-320px)]">
+      <div className="relative min-h-[400px] overflow-visible">
         {loading && !data ? (
           <div className="p-3 space-y-2">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -399,7 +471,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
             ))}
           </div>
         ) : data && processedRows.length > 0 ? (
-          <table className="w-full text-left text-sm border-collapse">
+          <table className="w-full min-w-max text-left text-sm border-collapse">
             <thead className="sticky top-0 bg-surface-2 text-secondary font-semibold border-b border-border z-10 text-xs uppercase tracking-wide">
               <tr>
                 <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">
@@ -419,6 +491,18 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
                     >
                       <div className="inline-flex items-center gap-1.5">
                         <span>{header}</span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setFilterColumn(header);
+                            setPage(1);
+                          }}
+                          className={`opacity-0 group-hover:opacity-100 ${filterColumn === header ? 'opacity-100 text-accent' : ''}`}
+                          title={`Фильтр по столбцу ${header}`}
+                        >
+                          <Filter className="w-3 h-3" />
+                        </button>
                         {isCurrentSort ? (
                           sortDirection === 'asc' ? (
                             <ArrowUp className="w-3.5 h-3.5 text-accent shrink-0" />
