@@ -100,6 +100,7 @@ export interface SheetPaginatedResponse {
   totalPages: number;
   headers: string[];
   rows: Record<string, string>[];
+  supportRegistrationCount?: number;
   filterOptions?: string[];
   cachedAt: string;
 }
