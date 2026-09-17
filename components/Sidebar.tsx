@@ -181,6 +181,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         detail: { classificationJobId },
       }));
     } catch (error) {
+      setSyncStatus((current) => ({
+        ...current,
+        active: false,
+        error: error instanceof DOMException && error.name === 'AbortError'
+          ? 'Синхронизация превысила лимит времени'
+          : 'Не удалось синхронизировать данные',
+      }));
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
         console.error('[Sidebar] sync failed', error);
       }
