@@ -167,9 +167,13 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title }) => {
     }
     if (activeSearch) url.searchParams.set('search', activeSearch);
     else url.searchParams.delete('search');
-    if (filterColumn && filterValue.trim()) {
+    if (filterColumn) {
       url.searchParams.set('filterColumn', filterColumn);
-      url.searchParams.set('filterValue', filterValue.trim());
+      if (filterValue.trim()) {
+        url.searchParams.set('filterValue', filterValue.trim());
+      } else {
+        url.searchParams.delete('filterValue');
+      }
     } else {
       url.searchParams.delete('filterColumn');
       url.searchParams.delete('filterValue');
