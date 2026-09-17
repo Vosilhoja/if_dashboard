@@ -4,9 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
-import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { AnalyticsFilterProvider } from '@/lib/analytics-filter-context';
-import { CommandPalette } from '@/components/CommandPalette';
 import { ToastContainer } from '@/components/ui/Toast';
 
 const pageVariants = {
@@ -35,7 +33,6 @@ export default function DashboardLayout({
 
         {/* Content Container */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-          <Breadcrumbs />
           <AnimatePresence mode="wait" initial={false}>
             <motion.main
               key={pathname}
@@ -53,8 +50,7 @@ export default function DashboardLayout({
           </AnimatePresence>
         </div>
 
-        {/* Global Command Palette (Cmd+K) & Toast Notifications */}
-        <CommandPalette />
+        {/* Global notifications */}
         <ToastContainer />
       </div>
     </AnalyticsFilterProvider>

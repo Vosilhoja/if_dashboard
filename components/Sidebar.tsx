@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,13 +18,11 @@ import {
   Moon,
   X,
   LogOut,
-  Search,
   ChevronRight,
   ShieldCheck,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
-import { openCommandPalette } from '@/components/CommandPalette';
 
 interface SidebarProps {
   isRefreshing?: boolean;
@@ -121,6 +119,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [refreshAnimationKey, setRefreshAnimationKey] = useState(0);
   const [localRefreshInProgress, setLocalRefreshInProgress] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<{ active: boolean; current: number; total: number; label: string | null; error: string | null }>({
+    active: false, current: 0, total: 5, label: null, error: null,
+  });
+  const [sidebarWidth, setSidebarWidth] = useState(256);
+  const resizingRef = useRef(false);
   const refreshInProgress = isRefreshing || localRefreshInProgress;
 
   const handleRefresh = async () => {
@@ -168,6 +171,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setLocalRefreshInProgress(false);
     }
   };
+
+  useEffect(() => {
+    const savedWidth = Number(window.localStorage.getItem('hurmo-sidebar-width'));
+    if (Number.isFinite(savedWidth)) setSidebarWidth(Math.min(360, Math.max(76, savedWidth)));
+  }, []);
+
+  useEffect(() => {
+    if (!refreshInProgress) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch('/api/proxy/data/sync/status', { cache: 'no-store' });
+        if (response.ok && !cancelled) setSyncStatus(await response.json());
+      } catch {
+        // The sync request itself remains the source of truth if polling is unavailable.
+      }
+      if (!cancelled) window.setTimeout(poll, 700);
+    };
+    void poll();
+    return () => { cancelled = true; };
+  }, [refreshInProgress]);
+
+  useEffect(() => {
+    const move = (event: MouseEvent) => {
+      if (!resizingRef.current) return;
+      const next = Math.min(360, Math.max(76, event.clientX));
+      setSidebarWidth(next);
+      window.localStorage.setItem('hurmo-sidebar-width', String(next));
+    };
+    const stop = () => { resizingRef.current = false; };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', stop);
+    return () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', stop);
+    };
+  }, []);
 
   // Lock body scroll when mobile burger menu is opened
   useEffect(() => {
@@ -256,16 +296,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </Link>
 
         {/* Правые действия: Поиск, Тема, Бургер с бейджем */}
-        <div className="flex items-center gap-1.5">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => openCommandPalette()}
-            className="p-2.5 rounded-xl bg-surface-2/60 border border-border/60 text-secondary hover:text-primary transition-all flex items-center justify-center"
-            title="Поиск по системе"
-          >
-            <Search className="w-4 h-4" />
-          </motion.button>
-
+        <div className="flex items-center gap-1.5 min-w-0">
+          {refreshInProgress && (
+            <span className="max-w-[170px] truncate rounded-lg bg-accent/10 px-2 py-1 text-[10px] font-semibold text-accent">
+              Загрузка {syncStatus.label || 'таблицы'} {syncStatus.current}/{syncStatus.total}
+            </span>
+          )}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={toggleTheme}
@@ -348,20 +384,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </motion.button>
                 </div>
 
-                {/* Поисковая строка */}
-                <div
-                  onClick={() => {
-                    setMobileDrawerOpen(false);
-                    openCommandPalette();
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-surface-2/80 border border-border/80 text-secondary hover:text-primary cursor-pointer transition-all active:scale-[0.99]"
-                >
-                  <Search className="w-4 h-4 text-secondary/70 shrink-0" />
-                  <span className="text-xs text-secondary/70">
-                    Поиск метрик, областей, таблиц...
-                  </span>
-                </div>
-
               </div>
 
               {/* Список навигации */}
@@ -395,7 +417,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               <Icon className="w-4 h-4" />
                             </div>
 
-                            <div className="flex flex-col min-w-0">
+                            <div className={`flex flex-col min-w-0 ${sidebarWidth <= 100 ? 'hidden' : ''}`}>
                               <span className="text-sm tracking-tight leading-tight">
                                 {item.label}
                               </span>
@@ -446,7 +468,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       onClick={() => {
-                        setMobileDrawerOpen(false);
                         handleRefresh();
                       }}
                       disabled={refreshInProgress}
@@ -466,7 +487,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-accent" />
                       </motion.span>
-                      <span>Синхронизация</span>
+                      <span className="truncate">
+                        {refreshInProgress && syncStatus.label
+                          ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
+                          : 'Синхронизация'}
+                      </span>
                     </motion.button>
                   )}
 
@@ -494,7 +519,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* ============================================================
           ДЕСТКТОПНЫЙ SIDEBAR
           ============================================================ */}
-      <aside className="hidden xl:flex flex-col w-64 shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto">
+      <aside
+        style={{ width: sidebarWidth }}
+        className="hidden xl:flex relative flex-col shrink-0 h-screen sticky top-0 bg-surface border-r border-border overflow-y-auto transition-[width] duration-150 ease-out rounded-tr-2xl rounded-br-2xl"
+      >
         <div className="flex flex-col h-full justify-between p-4 bg-surface select-none">
           <div className="space-y-5">
             {/* Brand Header */}
@@ -516,6 +544,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       PRO
                     </span>
                   </div>
+
+                  {refreshInProgress && (
+                    <div className="rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-[11px] text-accent truncate">
+                      Загрузка {syncStatus.label || 'таблицы'} {syncStatus.current}/{syncStatus.total}
+                    </div>
+                  )}
                   <span className="text-[11px] text-secondary mt-1 leading-none">
                     Data Intelligence
                   </span>
@@ -550,7 +584,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       }`}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
-                      <span className="text-xs truncate flex-1">{item.label}</span>
+                      <span className={`text-xs truncate flex-1 ${sidebarWidth <= 100 ? 'hidden' : ''}`}>{item.label}</span>
                       {item.badge && (
                         <span
                           className={`px-1.5 py-0.2 rounded-full text-[9px] font-bold font-mono ${
@@ -595,7 +629,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </motion.span>
-                <span>{refreshInProgress ? 'Синхронизация...' : 'Обновить данные'}</span>
+                <span className={`truncate ${sidebarWidth <= 100 ? 'hidden' : ''}`}>
+                  {refreshInProgress && syncStatus.label
+                    ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
+                    : refreshInProgress ? 'Синхронизация...' : 'Обновить данные'}
+                </span>
               </motion.button>
             )}
 
@@ -624,6 +662,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         </div>
+        <div
+          role="separator"
+          aria-label="Изменить ширину боковой панели"
+          onMouseDown={() => { resizingRef.current = true; }}
+          className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-accent/50 transition-colors"
+        />
       </aside>
     </>
   );

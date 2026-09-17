@@ -22,6 +22,7 @@ interface StatusCategory {
   description: string;
   phrases: string[];
   editablePhrases: string[];
+  customPhrases?: string[];
 }
 
 interface StatusSuggestion {
@@ -47,7 +48,10 @@ function normalizeCategories(categories: StatusCategory[]): StatusCategory[] {
       if (key && !unique.has(key)) unique.set(key, phrase.trim());
     }
     const phrases = [...unique.values()];
-    return { ...category, phrases, editablePhrases: phrases };
+    const customPhrases = (category.customPhrases || [])
+      .map((phrase) => String(phrase).trim())
+      .filter((phrase) => phrase && unique.has(normalizePhraseKey(phrase)));
+    return { ...category, phrases, editablePhrases: phrases, customPhrases };
   });
 }
 
@@ -68,7 +72,7 @@ export default function StatusesPage() {
 
   const selected = categories.find((category) => category.id === selectedId);
   const customPhraseCount = useMemo(
-    () => categories.reduce((total, category) => total + category.editablePhrases.length, 0),
+    () => categories.reduce((total, category) => total + (category.customPhrases?.length || 0), 0),
     [categories],
   );
   const totalPhraseCount = useMemo(
@@ -119,7 +123,7 @@ export default function StatusesPage() {
   useEffect(() => {
     if (role && !['admin', 'super_admin'].includes(role)) return;
     void loadCategories();
-    void loadSuggestions();
+    void loadSuggestions(true);
 
     let pollTimeout: number | null = null;
     let cancelled = false;

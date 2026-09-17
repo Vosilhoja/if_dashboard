@@ -89,7 +89,7 @@ export default function OverviewPage() {
         attemptStatus,
         signal,
       });
-      const analyticsPromise = fetch('/api/proxy/data/analytics', { cache: 'no-store', signal });
+      const analyticsPromise = fetch('/api/proxy/data/analytics?summary=true', { cache: 'no-store', signal });
       const metricsPayload = await metricsPromise;
       setMetrics(metricsPayload);
       setLoading(false);
