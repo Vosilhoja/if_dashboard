@@ -13,7 +13,7 @@ import {
 import { PeriodDetailsPanel } from '@/components/PeriodDetailsPanel';
 import { AnomalyWidget } from '@/components/AnomalyWidget';
 import { AIInsightsWidget } from '@/components/AIInsightsWidget';
-import { AlertCircle, Clock, FileSpreadsheet } from 'lucide-react';
+import { AlertCircle, Clock, FileSpreadsheet, LoaderCircle, RefreshCw } from 'lucide-react';
 import { getMetrics } from '@/lib/api-client';
 
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
@@ -32,7 +32,7 @@ export default function DashboardPage() {
 
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [, setIsRefreshing] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [needsFreshData, setNeedsFreshData] = useState<boolean>(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -72,6 +72,12 @@ export default function DashboardPage() {
         signal,
       });
 
+      if (isUnusableCache(data)) {
+        throw new Error('Сервер вернул неполный снимок данных. Повторяем загрузку, старые значения сохранены.');
+      }
+
+      // Never replace a complete snapshot with a partial/empty response.
+      // The previous values remain visible while a retry or sync is in flight.
       setMetrics(data);
       setNeedsFreshData(false);
 
@@ -88,8 +94,10 @@ export default function DashboardPage() {
       if (err instanceof Error && err.name === 'CanceledError') return;
       setError(err instanceof Error ? err.message : 'Ошибка при загрузке метрик');
     } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -207,6 +215,20 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {(loading || isRefreshing) && metrics && (
+        <div className="flex items-center gap-2 rounded-[6px] border border-accent/20 bg-accent/5 px-3 py-2 text-xs text-accent">
+          <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+          <span>{isRefreshing ? 'Обновляем данные…' : 'Загружаем данные…'} Предыдущие значения пока сохранены.</span>
+        </div>
+      )}
+
+      {!loading && !isRefreshing && !metrics && !error && (
+        <div className="flex items-center gap-2 rounded-[6px] border border-border bg-surface-2 px-3 py-2 text-xs text-secondary">
+          <RefreshCw className="h-3.5 w-3.5" />
+          <span>Данные ещё не загружены. Нажмите «Обновить данные» в боковом меню.</span>
+        </div>
+      )}
+
       {/* Anomaly detection & metrics grid */}
       <section id="anomalies" className="space-y-4">
         <AnomalyWidget metrics={metrics} loading={loading} />
@@ -220,7 +242,7 @@ export default function DashboardPage() {
 
         <MetricsGrid
           metrics={metrics}
-          loading={loading}
+          loading={loading || isRefreshing}
           attemptFilter={attemptFilter}
           onAttemptFilterChange={(value) => {
             setAttemptFilter(value);

@@ -45,7 +45,9 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({
   onAttemptRegionChange,
   onAttemptStatusChange,
 }) => {
-  if (loading) {
+  // Keep the last complete values visible during refresh. Skeletons are only
+  // useful before the first successful response, not while updating data.
+  if (loading && !metrics) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (

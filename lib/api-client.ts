@@ -27,6 +27,7 @@ const inFlightGetRequests = new Map<string, Promise<AxiosResponse<unknown>>>();
 
 function isRetryable(error: AxiosError, method: string) {
   if (method.toUpperCase() !== 'GET') return false;
+  if (axios.isCancel(error)) return false;
   if (!error.response) return true;
   return RETRYABLE_STATUS_CODES.has(error.response.status);
 }
