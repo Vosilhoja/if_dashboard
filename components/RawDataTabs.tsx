@@ -9,7 +9,10 @@ import { Dropdown } from './ui/Dropdown';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
 export const RawDataTabs: React.FC = () => {
-  const { startDate, endDate, filterMode } = useAnalyticsFilter();
+  // Страница "Сырые таблицы" — независимый просмотр всех данных.
+  // НЕ наследует период с дашборда "Операционная воронка": иначе таблица
+  // молча показывает 200-300 строк вместо всех ~33 тыс, и это выглядит
+  // как потеря данных, хотя данные просто отфильтрованы по чужому периоду.
   const pathname = usePathname();
   const router = useRouter();
   const pathTab = pathname.split('/').filter(Boolean).at(-1);
@@ -87,8 +90,8 @@ export const RawDataTabs: React.FC = () => {
         key={activeTab}
         sheetType={activeTab}
         title={tabs.find((t) => t.id === activeTab)?.label || ''}
-        startDate={filterMode === 'alltime' ? '' : startDate}
-        endDate={filterMode === 'alltime' ? '' : endDate}
+        startDate=""
+        endDate=""
       />
     </div>
   );
