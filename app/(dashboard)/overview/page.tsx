@@ -45,6 +45,8 @@ interface SheetHealth {
   lastSync: string;
 }
 
+const OVERVIEW_ANALYTICS_CACHE_KEY = 'hurmo-overview-analytics-v1';
+
 export default function OverviewPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [analyticsData, setAnalyticsData] = useState<{
@@ -65,6 +67,10 @@ export default function OverviewPage() {
       if (pref !== null) {
         setAnomalyAlertsEnabled(pref === 'true');
       }
+      const cachedAnalytics = localStorage.getItem(OVERVIEW_ANALYTICS_CACHE_KEY);
+      if (cachedAnalytics) {
+        setAnalyticsData(JSON.parse(cachedAnalytics));
+      }
     } catch {
       // ignore in SSR
     }
@@ -76,17 +82,17 @@ export default function OverviewPage() {
     setDataError(null);
 
     try {
-      const [metricsPayload, analyticsRes] = await Promise.all([
-        getMetrics({
-          fresh,
-          attemptFilter,
-          attemptRegion,
-          attemptStatus,
-          signal,
-        }),
-        fetch('/api/proxy/data/analytics', { cache: 'no-store', signal }),
-      ]);
+      const metricsPromise = getMetrics({
+        fresh,
+        attemptFilter,
+        attemptRegion,
+        attemptStatus,
+        signal,
+      });
+      const analyticsPromise = fetch('/api/proxy/data/analytics', { cache: 'no-store', signal });
+      const metricsPayload = await metricsPromise;
       setMetrics(metricsPayload);
+      setLoading(false);
       if (attemptFilter === 'all' && attemptRegion === 'all' && attemptStatus === 'all') {
         saveCachedDashboard({
           metrics: metricsPayload,
@@ -95,8 +101,16 @@ export default function OverviewPage() {
           savedAt: new Date().toISOString(),
         });
       }
+      const analyticsRes = await analyticsPromise;
       const analyticsPayload = await analyticsRes.json().catch(() => ({}));
-      if (analyticsRes.ok) setAnalyticsData(analyticsPayload);
+      if (analyticsRes.ok) {
+        setAnalyticsData(analyticsPayload);
+        try {
+          localStorage.setItem(OVERVIEW_ANALYTICS_CACHE_KEY, JSON.stringify(analyticsPayload));
+        } catch {
+          // Analytics cache is an optimization; the live response remains authoritative.
+        }
+      }
       else setDataError(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return;
