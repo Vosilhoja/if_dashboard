@@ -5,7 +5,6 @@
  *   import { Sidebar } from '@/components/layout'
  *   import { MetricCard } from '@/components/metrics'
  *   import { DataTable } from '@/components/data-table'
- *   import { AIChatDrawer } from '@/components/ai'
  *
  * Or use this master barrel for quick imports:
  *   import { Sidebar, MetricCard, DataTable } from '@/components'
@@ -21,10 +20,6 @@ export { MetricCard } from '@/components/MetricCard';
 export { MetricsGrid } from '@/components/MetricsGrid';
 export { AnomalyWidget } from '@/components/AnomalyWidget';
 export { FunnelWidget } from '@/components/FunnelWidget';
-
-// AI
-export { AIChatDrawer, openAIChat } from '@/components/AIChatDrawer';
-export { AIInsightsWidget } from '@/components/AIInsightsWidget';
 
 // Data Table
 export { DataTable } from '@/components/DataTable';

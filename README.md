@@ -1,6 +1,6 @@
 # HURMO UZ Dashboard
 
-Responsive Next.js dashboard for HURMO RESEARCH call-center operations, registration funnel analytics and AI-assisted analysis.
+Responsive Next.js dashboard for HURMO RESEARCH call-center operations and registration funnel analytics.
 
 ## Features
 
@@ -10,9 +10,7 @@ Responsive Next.js dashboard for HURMO RESEARCH call-center operations, registra
 - Interactive Uzbekistan map with mouse, touch and stylus support.
 - Raw Google Sheets data with search, filtering, pagination and export.
 - RBAC-aware navigation and protected `settings`/`users` areas.
-- Full-page AI analyst and assistant drawer.
 - Responsive layout for desktop, tablet and mobile.
-- Server-side API proxy so Gemini and Google credentials never reach the browser.
 
 ## Stack
 
@@ -52,14 +50,12 @@ npm run start        # production server after build
 
 Only `NEXT_PUBLIC_*` variables belong in this application. Never put any of these in `.env.local`:
 
-- `GEMINI_API_KEY`;
 - `JWT_SECRET`;
 - `DATABASE_URL`;
 - `GOOGLE_PRIVATE_KEY`;
 - Google service-account credentials;
 - Telegram bot tokens.
 
-The AI route `/api/ai-chat` forwards authenticated requests to the backend. Gemini is called only by the backend.
 
 ## Application routes
 
@@ -70,7 +66,6 @@ The AI route `/api/ai-chat` forwards authenticated requests to the backend. Gemi
 | `/analytics` | Demographic and BI analysis |
 | `/map` | Regional map |
 | `/raw` | Source tables |
-| `/chat` | Full-page AI analyst |
 | `/settings` | Integrations and settings |
 | `/users` | User and role management |
 
@@ -81,11 +76,9 @@ The last two areas are visible and accessible according to the backend/frontend 
 ```text
 Browser
   -> Next.js App Router and server-side API proxy
-  -> Backend API (JWT, RBAC, analytics and AI)
-  -> Google Sheets / PostgreSQL / Redis / Gemini
+  -> Backend API (JWT, RBAC and analytics)
 ```
 
-The frontend sends the current date period, selected region, metrics context and chat history to the backend. The backend decides which AI provider and data sources to use.
 
 ## Performance notes
 
@@ -110,17 +103,15 @@ Manual smoke scenarios:
 2. Open `/settings` and `/users`.
 3. Change the date range and verify all dashboard sections update.
 4. Test the map with mouse and touch gestures.
-5. Send two related messages in the AI chat and verify context is preserved.
 6. Verify that no secret appears in browser requests or client-side environment variables.
 
 ## Repository layout
 
 ```text
 app/                    Next.js routes and API proxy handlers
-components/             Dashboard, charts, map, tables and AI UI
+components/             Dashboard, charts, map and tables
 lib/                    API clients, auth, filters, analytics and utilities
 public/geo/             Uzbekistan GeoJSON
 middleware.ts           Route protection
 .env.example            Safe environment template
 ```
-

@@ -22,7 +22,6 @@ const DEFAULT_ITEMS: BurgerMenuItem[] = [
   { title: 'Аналитика и графики', href: '/analytics', description: 'Тренды, конверсии и воронка' },
   { title: 'Карта регионов', href: '/map', description: 'География доставок и заявок' },
   { title: 'Таблица данных', href: '/raw', description: 'Полный журнал транзакций' },
-  { title: 'AI Ассистент', href: '/chat', badge: 'PRO', description: 'Нейросетевой анализ Google Таблиц' },
   { title: 'Настройки', href: '/settings', description: 'Параметры системы и темы' },
 ];
 

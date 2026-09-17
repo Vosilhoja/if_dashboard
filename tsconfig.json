@@ -38,7 +38,6 @@
       "@/components": ["./components/index.ts"],
       "@/components/layout": ["./components/layout/index.ts"],
       "@/components/metrics": ["./components/metrics/index.ts"],
-      "@/components/ai": ["./components/ai/index.ts"],
       "@/components/data-table": ["./components/data-table/index.ts"],
       "@/lib/stores": ["./lib/stores/index.ts"],
       "@/lib/schemas": ["./lib/schemas/index.ts"]

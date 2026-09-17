@@ -16,7 +16,6 @@ import {
   Layers,
   ExternalLink,
   Search,
-  Bot,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -259,13 +258,6 @@ export default function OverviewPage() {
             className="px-3 py-1.5 rounded-xl bg-surface-2/70 border border-border/70 hover:border-accent/40 text-xs font-semibold text-primary active:scale-95 transition-all shadow-xs"
           >
             14 регионов
-          </Link>
-          <Link
-            href="/chat"
-            className="px-3 py-1.5 rounded-xl bg-accent/10 border border-accent/30 text-xs font-bold text-accent active:scale-95 transition-all shadow-xs flex items-center gap-1"
-          >
-            <Bot className="w-3.5 h-3.5" />
-            <span>ИИ-Ассистент</span>
           </Link>
         </div>
         {dataError && (

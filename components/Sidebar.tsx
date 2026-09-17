@@ -18,7 +18,6 @@ import {
   Moon,
   X,
   LogOut,
-  Bot,
   Search,
   ChevronRight,
   ShieldCheck,
@@ -45,7 +44,6 @@ interface NavItem {
   subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string | null;
-  isAi?: boolean;
   minRole?: 'viewer' | 'operator' | 'manager' | 'admin' | 'super_admin';
 }
 
@@ -82,14 +80,6 @@ const allNavItems: NavItem[] = [
     subtitle: 'Все 5 таблиц Google',
     icon: Database,
     minRole: 'operator',
-  },
-  {
-    href: '/chat',
-    label: 'ИИ-Аналитик',
-    subtitle: 'Нейросетевой аудит данных',
-    icon: Bot,
-    badge: 'AI PRO',
-    isAi: true,
   },
   {
     href: '/users',
@@ -222,7 +212,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       else if (item.href === '/analytics') pageKey = 'analytics';
       else if (item.href === '/map') pageKey = 'map';
       else if (item.href === '/raw') pageKey = 'raw';
-      else if (item.href === '/chat') pageKey = 'chat';
 
       if (pageKey && !user.permissions.includes(pageKey)) {
         return false;
@@ -400,8 +389,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform ${
                                 isActive
                                   ? 'bg-accent text-white'
-                                  : item.isAi
-                                  ? 'bg-accent/15 text-accent'
                                   : 'bg-surface-2 text-secondary group-hover:text-primary'
                               }`}
                             >
@@ -559,8 +546,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
                         isActive
                           ? 'bg-accent text-white font-semibold shadow-xs'
-                          : item.isAi
-                          ? 'text-primary hover:bg-accent/10 hover:text-accent font-medium'
                           : 'text-secondary hover:text-primary hover:bg-surface-2 font-medium'
                       }`}
                     >

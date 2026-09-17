@@ -4,7 +4,6 @@
 - Node.js >= 20
 - npm >= 10
 - Access to the 4 Google Sheets (ask the team lead)
-- Gemini API key (Google AI Studio — free tier)
 
 ## Setup
 
@@ -27,7 +26,6 @@ npm run dev
 | Tables | TanStack Table | Headless, performant tables |
 | Data | TanStack Query | Server state, caching |
 | Forms | React Hook Form + Zod | Validated forms |
-| AI | Gemini API | Analytics chat |
 | Charts | Recharts | Interactive SVG charts |
 | Maps | D3-Geo | Uzbekistan region map |
 
@@ -37,7 +35,6 @@ npm run dev
 components/
   layout/     # Navigation, Sidebar, Breadcrumbs
   metrics/    # KPI cards, grids, anomaly widgets
-  ai/         # AI chat and insights
   analytics/  # BI charts (gender, age, region)
   map/        # Interactive region map
   data-table/ # TanStack Table data grid

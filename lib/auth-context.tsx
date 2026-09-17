@@ -132,7 +132,6 @@ export function canAccessPage(user: AuthUser | null, pathname: string): boolean 
   else if (pathname.startsWith('/analytics')) pageKey = 'analytics';
   else if (pathname.startsWith('/map')) pageKey = 'map';
   else if (pathname.startsWith('/raw')) pageKey = 'raw';
-  else if (pathname.startsWith('/chat')) pageKey = 'chat';
 
   if (!pageKey) return true;
 

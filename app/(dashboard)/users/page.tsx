@@ -35,7 +35,6 @@ const AVAILABLE_PAGES = [
   { key: 'analytics', label: 'BI-аналитика', desc: 'Демография и образование' },
   { key: 'map', label: 'Карта регионов', desc: 'География 14 областей' },
   { key: 'raw', label: 'Сырые таблицы', desc: 'Все 5 таблиц Google' },
-  { key: 'chat', label: 'ИИ-Аналитик', desc: 'Аудит и нейросетевой чат' },
 ];
 
 export default function UsersManagementPage() {

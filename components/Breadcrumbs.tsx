@@ -35,10 +35,6 @@ const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
     title: 'Статусы звонков',
     subtitle: 'Редактор вариантов фраз и категорий классификатора',
   },
-  '/chat': {
-    title: 'ИИ-Аналитик',
-    subtitle: 'Стратегический консультант и сквозной аудит данных платформы HURMO',
-  },
 };
 
 export const Breadcrumbs: React.FC = () => {
