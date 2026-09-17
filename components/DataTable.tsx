@@ -477,7 +477,11 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       if (exportMode === 'date' && !dateHeader) {
         throw new Error('В активной таблице не найден столбец с датой');
       }
-      const rows = exportMode === 'date' && dateHeader
+      // main_base/not_completed already receive the support flag calculated
+      // by backend for the selected call period, so do not filter them by
+      // registration date a second time during export.
+      const hasSupportFlag = fullData.headers.includes('ОТ поддержки?');
+      const rows = exportMode === 'date' && dateHeader && !hasSupportFlag
         ? fullData.rows.filter((row) => {
             const value = String(row[dateHeader] ?? '');
             const date = new Date(value.split('.').reverse().join('-'));
