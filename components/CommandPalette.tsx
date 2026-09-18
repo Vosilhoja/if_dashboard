@@ -72,7 +72,7 @@ export const CommandPalette: React.FC = () => {
     { id: 'nav-dashboard', title: 'Операционная воронка (Метрики и аномалии)', category: 'Навигация', icon: FileText, action: () => router.push('/dashboard') },
     { id: 'nav-analytics', title: 'BI-аналитика (Демография и срезы)', category: 'Навигация', icon: BarChart2, action: () => router.push('/analytics') },
     { id: 'nav-map', title: 'Интерактивная карта регионов', category: 'Навигация', icon: MapPin, action: () => router.push('/map') },
-    { id: 'nav-raw', title: 'Сырые таблицы Google Sheets', category: 'Навигация', icon: Table, action: () => router.push('/raw') },
+    { id: 'nav-raw', title: 'Таблицы Google Sheets', category: 'Навигация', icon: Table, action: () => router.push('/raw') },
     { id: 'nav-settings', title: 'Настройки системы', category: 'Навигация', icon: Settings, action: () => router.push('/settings') },
 
     // Quick Actions

@@ -4,12 +4,10 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Users, Phone, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { DataTable } from './DataTable';
-import { Button } from './ui/Button';
 import { Dropdown } from './ui/Dropdown';
-import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 
 export const RawDataTabs: React.FC = () => {
-  // Страница "Сырые таблицы" — независимый просмотр всех данных.
+  // Раздел "Таблицы" — независимый просмотр всех данных.
   // НЕ наследует период с дашборда "Операционная воронка": иначе таблица
   // молча показывает 200-300 строк вместо всех ~33 тыс, и это выглядит
   // как потеря данных, хотя данные просто отфильтрованы по чужому периоду.
@@ -54,35 +52,13 @@ export const RawDataTabs: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="sm:hidden">
+      <div className="max-w-xl">
         <Dropdown
           value={activeTab}
           onChange={(value) => router.push(`/raw/${value === 'main' ? 'main-base' : value}`)}
           ariaLabel="Выбор таблицы"
           options={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
         />
-      </div>
-
-      {/* Tab headers — compact dropdown on mobile, pills on desktop */}
-      <div className="hidden sm:flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-border/60">
-        {tabs.map((t) => {
-          const Icon = t.icon;
-          const isActive = activeTab === t.id;
-          return (
-            <Button
-              key={t.id}
-              onClick={() => router.push(`/raw/${t.id === 'main' ? 'main-base' : t.id}`)}
-              className={`active-press rounded-xl whitespace-nowrap shrink-0 ${
-                isActive
-                  ? 'bg-accent text-white border-accent shadow-xs'
-                  : 'bg-surface-2/70 text-secondary hover:text-primary border-border/60 hover:bg-surface-2'
-              }`}
-            >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-secondary'}`} />
-              <span>{t.label}</span>
-            </Button>
-          );
-        })}
       </div>
 
       {/* Active Tab Content */}

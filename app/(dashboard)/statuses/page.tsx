@@ -14,6 +14,7 @@ import {
   Trash2,
   Tags,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 
 interface StatusCategory {
@@ -295,6 +296,9 @@ export default function StatusesPage() {
                 Если в таблице появилась новая формулировка, выберите категорию — она сохранится на backend.
               </p>
             </div>
+            <Link href="/statuses/new" className="inline-flex shrink-0 items-center justify-center rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-400/20">
+              Открыть все ({suggestions.length})
+            </Link>
           </div>
           <div className="mt-4 space-y-2">
             {suggestions.map((suggestion) => (

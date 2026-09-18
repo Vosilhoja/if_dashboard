@@ -24,7 +24,7 @@ const ROUTE_LABELS: Record<string, { title: string; subtitle: string }> = {
     subtitle: 'Интерактивное географическое распределение и drill-down по областям',
   },
   '/raw': {
-    title: 'Сырые таблицы',
+    title: 'Таблицы',
     subtitle: 'Прямой просмотр строк Google Таблиц с поиском и экспортом',
   },
   '/settings': {
@@ -41,7 +41,8 @@ export const Breadcrumbs: React.FC = () => {
   const pathname = usePathname();
   const { hasActiveFilters, resetAllFilters } = useAnalyticsFilter();
 
-  const current = ROUTE_LABELS[pathname] || {
+  const current = ROUTE_LABELS[pathname] || Object.entries(ROUTE_LABELS)
+    .find(([route]) => pathname.startsWith(`${route}/`))?.[1] || {
     title: 'Раздел',
     subtitle: 'Аналитический дашборд',
   };

@@ -109,6 +109,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   const [exportFrom, setExportFrom] = useState('');
   const [exportTo, setExportTo] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
+  const [syncVersion, setSyncVersion] = useState(0);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -193,7 +194,13 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
 
   useEffect(() => {
     fetchData(page, activeSearch, pageSize);
-  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn, startDate, endDate]);
+  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn, startDate, endDate, syncVersion]);
+
+  useEffect(() => {
+    const handleSync = () => setSyncVersion((version) => version + 1);
+    window.addEventListener('hurmo:sync', handleSync);
+    return () => window.removeEventListener('hurmo:sync', handleSync);
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);

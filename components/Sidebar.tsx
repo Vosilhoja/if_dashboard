@@ -76,7 +76,7 @@ const allNavItems: NavItem[] = [
   },
   {
     href: '/raw',
-    label: 'Сырые таблицы',
+    label: 'Таблицы',
     subtitle: 'Все 5 таблиц Google',
     icon: Database,
     minRole: 'operator',
@@ -161,27 +161,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         signal: controller.signal,
       });
       if (!response.ok) throw new Error(`Sync failed: ${response.status}`);
-      let classificationJobId: string | null = null;
-      try {
+      // Refresh all open dashboard/table views as soon as the five sheets are
+      // synchronized; status classification is a separate background task.
+      window.dispatchEvent(new CustomEvent('hurmo:sync'));
+      void (async () => {
+        try {
         const classifyResponse = await fetch('/api/proxy/admin/statuses/classify-unmatched', {
           method: 'POST',
           cache: 'no-store',
           signal: controller.signal,
         });
         const classifyData = await classifyResponse.json().catch(() => ({}));
-        if (classifyResponse.ok && typeof classifyData.jobId === 'string') {
-          classificationJobId = classifyData.jobId;
-        } else if (!classifyResponse.ok) {
+        if (!classifyResponse.ok) {
           console.warn('[Sidebar] unmatched classification was not queued:', classifyData.error);
         }
-      } catch (classificationError) {
-        if (!(classificationError instanceof DOMException && classificationError.name === 'AbortError')) {
-          console.warn('[Sidebar] unmatched classification failed:', classificationError);
+        } catch (classificationError) {
+          if (!(classificationError instanceof DOMException && classificationError.name === 'AbortError')) {
+            console.warn('[Sidebar] unmatched classification failed:', classificationError);
+          }
         }
-      }
-      window.dispatchEvent(new CustomEvent('hurmo:sync', {
-        detail: { classificationJobId },
-      }));
+      })();
       syncSucceeded = true;
     } catch (error) {
       setSyncStatus((current) => ({
@@ -253,7 +252,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       } catch {
         // The sync request itself remains the source of truth if polling is unavailable.
       }
-      if (!cancelled) timer = window.setTimeout(poll, 500);
+      if (!cancelled) timer = window.setTimeout(poll, 2500);
     };
     void poll();
     return () => {
@@ -264,8 +263,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const syncLabel = syncStatus.error
     ? 'Ошибка синхронизации'
-    : !refreshInProgress && syncStatus.current >= syncStatus.total
-      ? 'Загрузка завершена'
+    : !refreshInProgress && syncStatus.current >= syncStatus.total && syncStatus.label === 'Завершено'
+      ? 'Синхронизация завершена'
     : syncStatus.current > 0 && syncStatus.label
       ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
       : refreshInProgress
@@ -657,9 +656,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={toggleSidebarCollapsed}
                 aria-label={isCompact ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
                 title={isCompact ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
-                className={`shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary ${isCompact ? 'hidden' : ''}`}
+                className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
               >
-                <PanelLeftClose className="h-4 w-4" />
+                {isCompact ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
               </button>
             </div>
 
