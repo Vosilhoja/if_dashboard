@@ -568,7 +568,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <div className="flex flex-col min-w-0 text-left">
                               <span className="text-sm tracking-tight leading-tight">{item.label}</span>
                               {item.subtitle && (
-                                <span className="text-[11px] text-secondary/70 leading-none mt-1 truncate">
+                                <span className={`text-[11px] leading-none mt-1 truncate ${isTablesActive ? 'text-white/75' : 'text-secondary/70'}`}>
                                   {item.subtitle}
                                 </span>
                               )}
@@ -804,7 +804,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <Database className="w-4 h-4 shrink-0" />
                       <span className={`flex min-w-0 flex-1 flex-col text-left ${isCompact ? 'hidden' : ''}`}>
                         <span className="truncate text-xs leading-tight">{item.label}</span>
-                        <span className="mt-0.5 truncate text-[10px] leading-tight text-secondary/70">{item.subtitle}</span>
+                        <span className={`mt-0.5 truncate text-[10px] leading-tight ${isTablesActive ? 'text-white/75' : 'text-secondary/70'}`}>{item.subtitle}</span>
                       </span>
                       {!isCompact && (
                         <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${tablesOpen ? 'rotate-90 text-white' : ''}`} />
