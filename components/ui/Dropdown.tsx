@@ -27,6 +27,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
 
   const updatePosition = () => {
@@ -48,7 +49,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent) => {
-      if (buttonRef.current && !buttonRef.current.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      const clickedButton = buttonRef.current?.contains(target) ?? false;
+      const clickedPanel = panelRef.current?.contains(target) ?? false;
+      if (!clickedButton && !clickedPanel) setOpen(false);
     };
     document.addEventListener('mousedown', close);
     window.addEventListener('resize', updatePosition);
@@ -75,6 +79,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       </button>
       {open && position && typeof document !== 'undefined' && createPortal(
         <div
+          ref={panelRef}
           className="fixed z-[2147483647] max-h-64 overflow-y-auto rounded-[6px] border border-border bg-surface p-1 shadow-xl origin-top animate-[dropdownIn_120ms_ease-out]"
           style={{ top: position.top, left: position.left, width: position.width }}
         >
