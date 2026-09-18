@@ -474,7 +474,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className="w-full md:w-[40vw] md:max-w-none h-full bg-surface border-r border-border shadow-2xl flex flex-col transform-gpu will-change-transform"
+              className="w-[min(88vw,360px)] md:w-[min(42vw,420px)] h-full bg-surface border-r border-border shadow-2xl flex flex-col transform-gpu will-change-transform"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Верхняя часть меню: Логотип + Крестик */}
@@ -572,10 +572,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </div>
                         </Link>}
                         {item.href === '/raw' && tablesOpen && (
-                          <div className="ml-10 mr-2 mb-2 space-y-1">
+                          <div className="ml-10 mr-2 mb-3 space-y-1 rounded-xl border border-border/70 bg-surface-2/40 p-1.5">
                             {tableNavItems.map((table) => (
                               <Link key={table.href} href={table.href} onClick={() => setMobileDrawerOpen(false)}
-                                className={`block rounded-lg px-3 py-2 text-xs ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                                className={`flex min-h-11 items-center rounded-lg px-3 text-xs leading-tight transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
                                 {table.label}
                               </Link>
                             ))}
@@ -787,7 +787,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="ml-7 mt-1 mb-2 space-y-1 border-l border-border pl-2">
                         {tableNavItems.map((table) => (
                           <Link key={table.href} href={table.href}
-                            className={`block rounded-lg px-3 py-2 text-[11px] ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                        className={`flex min-h-10 items-center rounded-lg px-3 text-[11px] leading-tight transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
                             {table.label}
                           </Link>
                         ))}
