@@ -477,18 +477,18 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       if (exportMode === 'date' && !dateHeader) {
         throw new Error('В активной таблице не найден столбец с датой');
       }
-      const hasSupportFlag = fullData.headers.includes('ОТ поддержки?');
       const rows = exportMode === 'date' && dateHeader
         ? fullData.rows.filter((row) => {
-            const value = String(row[dateHeader] ?? '');
-            const date = new Date(value.split('.').reverse().join('-'));
-            const iso = Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
-            const inDateRange = iso !== null
-              && (!exportFrom || iso >= exportFrom)
-              && (!exportTo || iso <= exportTo);
-            if (inDateRange) return true;
-            if (hasSupportFlag && row['ОТ поддержки?'] === 'Да') return true;
-            return false;
+            const value = String(row[dateHeader] ?? '').trim();
+            if (!value) return false;
+            const parsed = parseComparableValue(value);
+            if (parsed.kind !== 'date') return false;
+            const rowDate = new Date(parsed.value as number);
+            const yyyy = rowDate.getUTCFullYear();
+            const mm = String(rowDate.getUTCMonth() + 1).padStart(2, '0');
+            const dd = String(rowDate.getUTCDate()).padStart(2, '0');
+            const iso = `${yyyy}-${mm}-${dd}`;
+            return (!exportFrom || iso >= exportFrom) && (!exportTo || iso <= exportTo);
           })
         : fullData.rows;
       const filename = exportMode === 'date'
