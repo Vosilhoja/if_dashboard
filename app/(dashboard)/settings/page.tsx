@@ -596,7 +596,7 @@ export default function SettingsPage() {
     setSyncError(null);
     setSyncSuccess(null);
     try {
-      const res = await fetch('/api/proxy/data/sync/status', {
+      const res = await fetch('/api/proxy/data?sync=1', {
         method: 'POST',
       });
       const data = await res.json().catch(() => ({}));
@@ -609,10 +609,10 @@ export default function SettingsPage() {
         }
         return next;
       });
-      setSyncSuccess(data.message || `Синхронизация статусов запущена. Обработано: ${data.total || 'N/A'}`);
+      setSyncSuccess(data.message || `Синхронизация запущена. Обработано: ${data.total || 'N/A'}`);
       recordAudit('Ручная синхронизация', 'Синхр. статусы запущена');
     } catch (e: unknown) {
-      setSyncError(e instanceof Error ? e.message : 'Эндпоинт синхронизации статусов недоступен. Действие будет отмечено как выполненное локально.');
+      setSyncError(e instanceof Error ? e.message : 'Эндпоинт синхронизации недоступен. Действие будет отмечено как выполненное локально.');
       const now = new Date().toLocaleString('ru-RU');
       setSyncTimestamps((prev) => {
         const next = { ...prev, statusSync: now };

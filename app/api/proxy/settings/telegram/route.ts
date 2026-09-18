@@ -4,16 +4,13 @@ import { cookies } from 'next/headers';
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
 
-async function requestBackend(request: Request, method: 'GET' | 'POST' | 'PUT' | 'DELETE') {
+async function requestBackend(request: Request, method: 'GET' | 'POST' | 'PUT' | 'DELETE', pathSuffix = '') {
   const token = (await cookies()).get('hurmo_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   
   try {
     const url = new URL(request.url);
-    const pathParts = url.pathname.split('/api/proxy/admin/statuses/').filter(Boolean);
-    const backendPath = pathParts.join('/');
-    
-    const response = await fetch(`${BACKEND_URL}/api/admin/${backendPath}${url.search}`, {
+    const response = await fetch(`${BACKEND_URL}/api/settings/telegram${pathSuffix}${url.search}`, {
       method,
       headers: { 
         Authorization: `Bearer ${token}`,
@@ -26,7 +23,7 @@ async function requestBackend(request: Request, method: 'GET' | 'POST' | 'PUT' |
     const data = await response.json().catch(() => ({}));
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка запроса к admin API' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка запроса к настройкам Telegram' }, { status: 500 });
   }
 }
 
@@ -35,6 +32,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const url = new URL(request.url);
+  const idMatch = url.pathname.match(/\/telegram\/(\d+)\/test$/);
+  
+  if (idMatch) {
+    return requestBackend(request, 'POST', `/${idMatch[1]}/test`);
+  }
+  
   return requestBackend(request, 'POST');
 }
 
