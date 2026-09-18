@@ -18,6 +18,11 @@ import {
   ArrowDown,
   Filter,
   ChevronDown,
+  RefreshCw,
+  Settings2,
+  Bookmark,
+  BookmarkPlus,
+  X,
 } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
@@ -88,6 +93,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [autoRefreshVersion, setAutoRefreshVersion] = useState(0);
   const [pageInput, setPageInput] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
@@ -110,6 +116,12 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   const [exportTo, setExportTo] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
   const [syncVersion, setSyncVersion] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const [tableSettingsOpen, setTableSettingsOpen] = useState(false);
+  const [compactRows, setCompactRows] = useState(false);
+  const [showRowNumbers, setShowRowNumbers] = useState(true);
+  const [savedFilters, setSavedFilters] = useState<{ name: string; search: string; column: string; value: string; values: string[] }[]>([]);
+  const [savedFilterName, setSavedFilterName] = useState('');
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -124,7 +136,19 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     setFilterColumn(params.get('filterColumn') || '');
     setFilterValue(params.get('filterValue') || '');
     setSelectedFilterValues((params.get('filterValues') || '').split('|').filter(Boolean));
-  }, []);
+    const settings = localStorage.getItem(`hurmo-table-settings-${sheetType}`);
+    if (settings) {
+      try {
+        const parsed = JSON.parse(settings) as { compactRows?: boolean; showRowNumbers?: boolean };
+        setCompactRows(Boolean(parsed.compactRows));
+        setShowRowNumbers(parsed.showRowNumbers !== false);
+      } catch { /* ignore malformed local settings */ }
+    }
+    const filters = localStorage.getItem(`hurmo-saved-filters-${sheetType}`);
+    if (filters) {
+      try { setSavedFilters(JSON.parse(filters)); } catch { /* ignore malformed saved filters */ }
+    }
+  }, [sheetType]);
 
   const handleSort = (col: string) => {
     if (sortColumn === col) {
@@ -191,6 +215,19 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handleSettingsChange = () => setAutoRefreshVersion((version) => version + 1);
+    window.addEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
+    return () => window.removeEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
+  }, []);
+
+  useEffect(() => {
+    const minutes = Number(localStorage.getItem('hurmo_auto_refresh_interval') || '0');
+    if (!Number.isFinite(minutes) || minutes <= 0) return;
+    const timer = window.setInterval(() => fetchData(page, activeSearch, pageSize), minutes * 60_000);
+    return () => window.clearInterval(timer);
+  }, [page, activeSearch, pageSize, sheetType, syncVersion, autoRefreshVersion]);
 
   useEffect(() => {
     fetchData(page, activeSearch, pageSize);
@@ -267,6 +304,62 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     setSearchInput('');
     setActiveSearch('');
     setPage(1);
+  };
+
+  const syncSheet = async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch(`/api/proxy/data/sheets/${sheetType}?sync=1`, { method: 'POST' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      showToast('Синхронизация запущена', 'success');
+      window.dispatchEvent(new Event('hurmo:sync'));
+      setSyncVersion((version) => version + 1);
+    } catch (syncError) {
+      showToast(syncError instanceof Error ? syncError.message : 'Ошибка синхронизации', 'error');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const persistTableSettings = (next: { compactRows?: boolean; showRowNumbers?: boolean }) => {
+    const settings = {
+      compactRows: next.compactRows ?? compactRows,
+      showRowNumbers: next.showRowNumbers ?? showRowNumbers,
+    };
+    setCompactRows(settings.compactRows);
+    setShowRowNumbers(settings.showRowNumbers);
+    localStorage.setItem(`hurmo-table-settings-${sheetType}`, JSON.stringify(settings));
+  };
+
+  const saveCurrentFilter = () => {
+    const name = savedFilterName.trim();
+    if (!name) return;
+    const next = [...savedFilters.filter((filter) => filter.name !== name), {
+      name,
+      search: activeSearch,
+      column: filterColumn,
+      value: filterValue,
+      values: selectedFilterValues,
+    }];
+    setSavedFilters(next);
+    localStorage.setItem(`hurmo-saved-filters-${sheetType}`, JSON.stringify(next));
+    setSavedFilterName('');
+    showToast('Фильтр сохранён', 'success');
+  };
+
+  const applySavedFilter = (filter: typeof savedFilters[number]) => {
+    setSearchInput(filter.search);
+    setActiveSearch(filter.search);
+    setFilterColumn(filter.column);
+    setFilterValue(filter.value);
+    setSelectedFilterValues(filter.values);
+    setPage(1);
+  };
+
+  const deleteSavedFilter = (name: string) => {
+    const next = savedFilters.filter((filter) => filter.name !== name);
+    setSavedFilters(next);
+    localStorage.setItem(`hurmo-saved-filters-${sheetType}`, JSON.stringify(next));
   };
 
   // Identify column types
@@ -539,6 +632,69 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
 
         {/* Search, Download CSV & Page Size */}
         <div className="flex items-center flex-wrap gap-1.5">
+          {savedFilters.length > 0 && (
+            <select
+              aria-label="Сохранённые фильтры"
+              value=""
+              onChange={(event) => {
+        const selected = savedFilters.find((filter) => filter.name === event.target.value);
+        if (selected) applySavedFilter(selected);
+              }}
+              className="h-10 max-w-40 rounded-[6px] border border-border bg-surface-2 px-2 text-xs text-primary"
+            >
+              <option value="">Сохранённые фильтры</option>
+              {savedFilters.map((filter) => <option key={filter.name} value={filter.name}>{filter.name}</option>)}
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={syncSheet}
+            disabled={syncing}
+            className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-border bg-surface-2 px-2.5 text-xs text-secondary hover:text-primary disabled:opacity-50"
+            title={`Синхронизировать таблицу «${title}»`}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin text-accent' : ''}`} />
+            <span className="hidden lg:inline">{syncing ? 'Синхронизация…' : 'Синхронизировать'}</span>
+          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setTableSettingsOpen((open) => !open)}
+              className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-border bg-surface-2 px-2.5 text-xs text-secondary hover:text-primary"
+              aria-expanded={tableSettingsOpen}
+            >
+              <Settings2 className="h-3.5 w-3.5" /> <span className="hidden lg:inline">Вид</span>
+            </button>
+            {tableSettingsOpen && (
+              <div className="absolute right-0 top-11 z-30 w-56 rounded-lg border border-border bg-surface p-3 text-xs text-primary shadow-xl">
+        <label className="flex items-center justify-between gap-2 py-1.5">
+          <span>Компактные строки</span>
+          <input type="checkbox" checked={compactRows} onChange={(event) => persistTableSettings({ compactRows: event.target.checked })} />
+        </label>
+        <label className="flex items-center justify-between gap-2 py-1.5">
+          <span>Номера строк</span>
+          <input type="checkbox" checked={showRowNumbers} onChange={(event) => persistTableSettings({ showRowNumbers: event.target.checked })} />
+        </label>
+        <div className="mt-2 border-t border-border pt-2">
+          <label className="mb-1 block text-[10px] text-secondary">Название текущего фильтра</label>
+          <div className="flex gap-1">
+            <input value={savedFilterName} onChange={(event) => setSavedFilterName(event.target.value)} placeholder="Например: Просроченные" className="h-8 min-w-0 flex-1 rounded border border-border bg-surface-2 px-2 text-[11px]" />
+            <button type="button" onClick={saveCurrentFilter} className="h-8 rounded bg-accent px-2 text-white" title="Сохранить фильтр"><BookmarkPlus className="h-3.5 w-3.5" /></button>
+          </div>
+        </div>
+        {savedFilters.length > 0 && (
+          <div className="mt-2 space-y-1 border-t border-border pt-2">
+            {savedFilters.map((filter) => (
+              <div key={filter.name} className="flex items-center justify-between gap-2">
+                <button type="button" onClick={() => applySavedFilter(filter)} className="truncate text-left hover:text-accent"><Bookmark className="mr-1 inline h-3 w-3" />{filter.name}</button>
+                <button type="button" onClick={() => deleteSavedFilter(filter.name)} className="text-secondary hover:text-rose-500" title="Удалить"><X className="h-3 w-3" /></button>
+              </div>
+            ))}
+          </div>
+        )}
+              </div>
+            )}
+          </div>
           <form onSubmit={handleSearchSubmit} className="relative flex-1 sm:w-56">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary" />
             <input
@@ -700,9 +856,9 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
           <table className="min-w-max w-full text-left text-sm border-collapse">
             <thead className="sticky top-0 bg-surface-2 text-secondary font-semibold border-b border-border z-10 text-xs uppercase tracking-wide">
               <tr>
-                <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">
-                  #
-                </th>
+                {showRowNumbers && (
+                  <th className="py-3 px-3 w-12 text-center text-secondary sticky left-0 bg-surface-2 z-20 shadow-[1px_0_0_var(--border-color)]">#</th>
+                )}
                 {data.headers.map((header) => {
                   const isPriority = isPriorityMobileColumn(header);
                   const isCurrentSort = sortColumn === header;
@@ -760,9 +916,9 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
                     }}
                     className="hover:bg-surface-2/50 transition-colors odd:bg-surface-2/20 border-b border-border/40 last:border-0 sm:animate-fade-in"
                   >
-                    <td className="py-2.5 px-3 text-center text-secondary font-mono text-xs sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)] tabular-nums">
-                      {rowIndex}
-                    </td>
+                    {showRowNumbers && (
+                      <td className={`${compactRows ? 'py-1.5' : 'py-2.5'} px-3 text-center text-secondary font-mono text-xs sticky left-0 bg-surface z-10 shadow-[1px_0_0_var(--border-color)] tabular-nums`}>{rowIndex}</td>
+                    )}
                     {data.headers.map((header) => {
                       const cellVal = row[header] || '';
                       const isPhone = isPhoneColumn(header);
@@ -800,7 +956,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
                       return (
                         <td
                           key={header}
-                          className={`py-2.5 px-3 text-primary max-w-sm truncate text-xs ${
+                          className={`${compactRows ? 'py-1.5' : 'py-2.5'} px-3 text-primary max-w-sm truncate text-xs ${
                             !isPriority && !showAllColumnsMobile ? 'hidden sm:table-cell' : ''
                           }`}
                           title={cellVal}

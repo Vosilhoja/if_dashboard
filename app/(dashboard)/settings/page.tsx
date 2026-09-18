@@ -73,6 +73,16 @@ const AVAILABLE_PAGES = [
   { key: 'raw', label: 'Сырые таблицы', desc: 'Просмотр 5 таблиц' },
 ];
 
+const AVAILABLE_SECTIONS = [
+  { key: 'raw:numbers', label: 'Таблица numbers' },
+  { key: 'raw:main', label: 'Таблица main_base' },
+  { key: 'raw:eskiz', label: 'Таблица eskiz' },
+  { key: 'raw:not_completed', label: 'Таблица not_completed' },
+  { key: 'raw:survey_attempts', label: 'Таблица survey_attempts' },
+  { key: 'analytics:demographics', label: 'BI: демография' },
+  { key: 'analytics:quality', label: 'BI: качество данных' },
+];
+
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const { weekStartsOn, setWeekStartsOn } = useAnalyticsFilter();
@@ -138,6 +148,7 @@ export default function SettingsPage() {
   const [editingPermissionsUser, setEditingPermissionsUser] = useState<SystemUser | null>(null);
   const [editingPermissionsList, setEditingPermissionsList] = useState<string[]>([]);
   const [savingPermissions, setSavingPermissions] = useState(false);
+  const [auditLog, setAuditLog] = useState<{ timestamp: string; action: string; detail: string }[]>([]);
   const canManageUsers = currentUserRole === 'super_admin';
 
   const loadUsers = async () => {
@@ -332,12 +343,19 @@ export default function SettingsPage() {
 
       const savedFormat = localStorage.getItem('hurmo_export_format');
       if (savedFormat === 'csv' || savedFormat === 'xlsx') setDefaultExportFormat(savedFormat);
+      const savedAudit = localStorage.getItem('hurmo-audit-log');
+      if (savedAudit) {
+        try { setAuditLog(JSON.parse(savedAudit)); } catch { /* ignore malformed audit log */ }
+      }
     }
 
     async function loadSettingsData() {
       try {
         setLoading(true);
-        const settingsRes = await fetch('/api/settings').then((r) => (r.ok ? r.json() : null));
+        const [settingsRes, dataSettingsRes] = await Promise.all([
+          fetch('/api/settings').then((r) => (r.ok ? r.json() : null)),
+          fetch('/api/proxy/data/settings').then((r) => (r.ok ? r.json() : null)),
+        ]);
 
         if (settingsRes?.settingsUrl) {
           setSettingsUrl(settingsRes.settingsUrl);
@@ -349,6 +367,11 @@ export default function SettingsPage() {
           }));
           setSheets(mappedSheets);
         }
+        const interval = dataSettingsRes?.autoRefresh?.intervalMinutes;
+        if (Number.isInteger(interval) && interval >= 0) {
+          setAutoRefreshInterval(interval);
+          localStorage.setItem('hurmo_auto_refresh_interval', String(interval));
+        }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить параметры');
       } finally {
@@ -358,6 +381,12 @@ export default function SettingsPage() {
 
     loadSettingsData();
   }, []);
+
+  const recordAudit = (action: string, detail: string) => {
+    const next = [{ timestamp: new Date().toLocaleString('ru-RU'), action, detail }, ...auditLog].slice(0, 50);
+    setAuditLog(next);
+    localStorage.setItem('hurmo-audit-log', JSON.stringify(next));
+  };
 
   const handleSaveThreshold = (newVal: number) => {
     setAnomalyThreshold(newVal);
@@ -441,7 +470,21 @@ export default function SettingsPage() {
     setAutoRefreshInterval(minutes);
     if (typeof window !== 'undefined') {
       localStorage.setItem('hurmo_auto_refresh_interval', String(minutes));
+      window.dispatchEvent(new Event('hurmo:auto-refresh-changed'));
     }
+    void fetch('/api/proxy/data/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ autoRefresh: { intervalMinutes: minutes } }),
+    }).then(async (response) => {
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+    }).catch((error: unknown) => {
+      setError(error instanceof Error ? error.message : 'Не удалось сохранить автообновление на сервере');
+    });
+    recordAudit('Настройки обновления', minutes ? `Интервал: ${minutes} мин` : 'Автообновление отключено');
   };
 
   const handleSaveQuality = (warn: number, crit: number) => {
@@ -472,6 +515,7 @@ export default function SettingsPage() {
       localStorage.setItem('hurmo_csv_bom', String(bom));
       localStorage.setItem('hurmo_export_format', format);
     }
+    recordAudit('Настройки экспорта', `Формат: ${format.toUpperCase()}, разделитель: ${delim}`);
   };
 
   const handleLogout = async () => {
@@ -894,7 +938,53 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 9. User Management (super_admin only) with Fine-Grained Page Permissions */}
+      {/* 9. Performance and audit observability */}
+      <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-accent" />
+          <h2 className="text-sm font-semibold text-primary">Мониторинг производительности</h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="rounded-[6px] bg-surface-2/60 border border-border/60 p-3">
+            <div className="text-[10px] text-secondary">Проверено таблиц</div>
+            <div className="mt-1 text-lg font-semibold text-primary">{Object.keys(pingResults).length}/{sheets.length || 5}</div>
+          </div>
+          <div className="rounded-[6px] bg-surface-2/60 border border-border/60 p-3">
+            <div className="text-[10px] text-secondary">Средняя задержка</div>
+            <div className="mt-1 text-lg font-semibold text-primary">
+              {Object.values(pingResults).length
+                ? `${Math.round(Object.values(pingResults).reduce((sum, result) => sum + result.latencyMs, 0) / Object.values(pingResults).length)} мс`
+                : '—'}
+            </div>
+          </div>
+          <div className="rounded-[6px] bg-surface-2/60 border border-border/60 p-3">
+            <div className="text-[10px] text-secondary">Ошибки подключения</div>
+            <div className="mt-1 text-lg font-semibold text-primary">{Object.values(pingResults).filter((result) => result.status === 'error').length}</div>
+          </div>
+          <div className="rounded-[6px] bg-surface-2/60 border border-border/60 p-3">
+            <div className="text-[10px] text-secondary">Событий аудита</div>
+            <div className="mt-1 text-lg font-semibold text-primary">{auditLog.length}</div>
+          </div>
+        </div>
+        <div className="border-t border-border/50 pt-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="flex items-center gap-1.5 text-[11px] font-medium text-secondary"><History className="w-3 h-3" />Журнал действий</span>
+            <button type="button" onClick={() => { setAuditLog([]); localStorage.removeItem('hurmo-audit-log'); }} className="text-[11px] text-secondary hover:text-rose-500">Очистить</button>
+          </div>
+          {auditLog.length === 0 ? <p className="text-[11px] text-secondary">Изменения настроек будут отображаться здесь.</p> : (
+            <div className="max-h-40 overflow-y-auto space-y-1.5">
+              {auditLog.slice(0, 10).map((item, index) => (
+                <div key={`${item.timestamp}-${index}`} className="flex items-center justify-between gap-3 text-[11px]">
+                  <span className="text-primary">{item.action}: {item.detail}</span>
+                  <span className="shrink-0 text-secondary">{item.timestamp}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 10. User Management (super_admin only) with Fine-Grained Page Permissions */}
       {canManageUsers && (
         <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
@@ -1137,6 +1227,26 @@ export default function SettingsPage() {
                     </label>
                   );
                 })}
+              </div>
+
+              <div className="pt-2 border-t border-border/50">
+                <div className="text-[11px] font-medium text-secondary mb-2">Разрешения по разделам</div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {AVAILABLE_SECTIONS.map((section) => {
+                    const isChecked = editingPermissionsList.includes(section.key);
+                    return (
+                      <label key={section.key} className={`flex items-center gap-2 p-2 rounded-[6px] border cursor-pointer transition-all ${isChecked ? 'bg-accent/10 border-accent text-primary' : 'bg-surface border-border text-secondary'}`}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(event) => setEditingPermissionsList((prev) => event.target.checked ? [...prev, section.key] : prev.filter((key) => key !== section.key))}
+                          className="accent-accent"
+                        />
+                        <span className="text-[10px] leading-tight">{section.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

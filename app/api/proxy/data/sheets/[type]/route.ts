@@ -12,8 +12,15 @@ async function proxyRequest(
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
 
   const { type } = await params;
-  const query = method === 'GET' ? `?${new URL(request.url).searchParams.toString()}` : '';
-  const backendRes = await fetch(`${BACKEND_URL}/api/data/sheets/${type}${method === 'POST' ? '/full-reload' : ''}${query}`, {
+  const requestUrl = new URL(request.url);
+  const syncOnly = method === 'POST' && requestUrl.searchParams.get('sync') === '1';
+  const query = method === 'GET'
+    ? `?${requestUrl.searchParams.toString()}`
+    : '';
+  const backendPath = method === 'POST'
+    ? (syncOnly ? '/sync' : '/full-reload')
+    : '';
+  const backendRes = await fetch(`${BACKEND_URL}/api/data/sheets/${type}${backendPath}${query}`, {
     method,
     cache: 'no-store',
     headers: { Authorization: `Bearer ${token}` },

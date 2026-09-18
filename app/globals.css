@@ -49,7 +49,8 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  font-family: inherit;
+  font-weight: 700;
 }
 
 /* Tabular numbers for clean numeric alignments across tables & metrics */
@@ -218,6 +219,17 @@ button:not([data-icon-button]) {
 .app-content {
   width: min(100%, 1440px);
   margin-inline: auto;
+}
+
+.app-main > * {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+}
+
+.app-main h1,
+.app-main h2,
+.app-main h3 {
+  letter-spacing: -0.025em;
 }
 
 .surface-card {

@@ -41,9 +41,7 @@ export default function DashboardLayout({
               animate="animate"
               exit="exit"
               transition={pageTransition}
-              className={
-                'flex-1 min-h-0 flex flex-col w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 gap-4 sm:gap-6 overflow-y-auto overflow-x-hidden'
-              }
+              className="app-main flex-1 min-h-0 flex flex-col w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 gap-4 sm:gap-6 overflow-y-auto overflow-x-hidden"
             >
               {children}
             </motion.main>

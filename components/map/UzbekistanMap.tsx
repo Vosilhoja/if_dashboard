@@ -240,6 +240,9 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   };
 
   const handleWheel = (e: React.WheelEvent) => {
+    // Let the page scroll normally when the pointer is over the map. Zoom is
+    // explicit (Ctrl/Cmd + wheel), matching browser map conventions.
+    if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
     setTransform((prev) => ({
@@ -435,7 +438,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'pan-y' }}
       >
         <svg
           viewBox={`0 0 ${width} ${height}`}

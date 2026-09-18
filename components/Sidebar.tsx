@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  ChevronDown,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
@@ -103,6 +104,22 @@ const allNavItems: NavItem[] = [
   },
 ];
 
+const tableNavItems = [
+  { href: '/raw/numbers', label: 'Номера поддержки' },
+  { href: '/raw/main-base', label: 'Main base' },
+  { href: '/raw/eskiz', label: 'Eskiz' },
+  { href: '/raw/not_completed', label: 'Не завершили' },
+  { href: '/raw/survey_attempts', label: 'Попытки опроса' },
+];
+
+const syncTableLabels: Record<string, string> = {
+  main: 'Main base',
+  numbers: 'Номера поддержки',
+  eskiz: 'Eskiz',
+  not_completed: 'Не завершили',
+  survey_attempts: 'Попытки опроса',
+};
+
 // Nav item micro-interaction variants
 const navItemVariants = {
   rest: { x: 0 },
@@ -128,10 +145,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [brandHovered, setBrandHovered] = useState(false);
   const [syncNoticeVisible, setSyncNoticeVisible] = useState(false);
+  const [autoRefreshVersion, setAutoRefreshVersion] = useState(0);
+  const [tablesOpen, setTablesOpen] = useState(() => pathname.startsWith('/raw'));
   const resizingRef = useRef(false);
   const syncNoticeTimerRef = useRef<number | null>(null);
   const refreshInProgress = isRefreshing || localRefreshInProgress;
   const isCompact = sidebarCollapsed;
+  const isTablesActive = pathname.startsWith('/raw');
 
   const handleRefresh = async () => {
     if (refreshInProgress) return;
@@ -261,12 +281,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [refreshInProgress]);
 
+  useEffect(() => {
+    const handleSettingsChange = () => setAutoRefreshVersion((version) => version + 1);
+    window.addEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
+    return () => window.removeEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
+  }, []);
+
+  useEffect(() => {
+    const intervalMinutes = Number(window.localStorage.getItem('hurmo_auto_refresh_interval') || '0');
+    if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) return;
+
+    const timer = window.setInterval(() => {
+      if (!refreshInProgress) void handleRefresh();
+    }, intervalMinutes * 60_000);
+
+    return () => window.clearInterval(timer);
+  }, [autoRefreshVersion, refreshInProgress]);
+
   const syncLabel = syncStatus.error
     ? 'Ошибка синхронизации'
     : !refreshInProgress && syncStatus.current >= syncStatus.total && syncStatus.label === 'Завершено'
       ? 'Синхронизация завершена'
     : syncStatus.current > 0 && syncStatus.label
-      ? `Загрузка ${syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
+      ? `Загрузка таблицы: ${syncTableLabels[syncStatus.label] || syncStatus.label} ${syncStatus.current}/${syncStatus.total}`
       : refreshInProgress
         ? `Подготовка синхронизации 0/${syncStatus.total}`
         : 'Синхронизация завершена';
@@ -478,7 +515,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div
                         key={item.href}
                       >
-                        <Link
+                        {item.href === '/raw' ? (
+                        <button
+                          type="button"
+                          onClick={() => setTablesOpen((open) => !open)}
+                          className={`flex w-full items-center justify-between py-3.5 px-2 transition-all active:bg-surface-2/80 group ${
+                            isTablesActive ? 'text-accent font-bold' : 'text-primary font-medium'
+                          }`}
+                        >
+                          <span className="flex items-center gap-3 min-w-0">
+                            <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isTablesActive ? 'bg-accent text-white' : 'bg-surface-2 text-secondary'}`}>
+                              <Database className="w-4 h-4" />
+                            </span>
+                            <span className="text-sm tracking-tight">{item.label}</span>
+                          </span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${tablesOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        ) : <Link
                           href={item.href}
                           prefetch={false}
                           onClick={() => setMobileDrawerOpen(false)}
@@ -517,7 +570,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             )}
                             <ChevronRight className="w-4 h-4 text-secondary/50 group-hover:translate-x-0.5 transition-transform" />
                           </div>
-                        </Link>
+                        </Link>}
+                        {item.href === '/raw' && tablesOpen && (
+                          <div className="ml-10 mr-2 mb-2 space-y-1">
+                            {tableNavItems.map((table) => (
+                              <Link key={table.href} href={table.href} onClick={() => setMobileDrawerOpen(false)}
+                                className={`block rounded-lg px-3 py-2 text-xs ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                                {table.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -679,7 +742,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     whileTap="tap"
                     transition={{ duration: 0.12 }}
                   >
-                    <Link
+                    {item.href === '/raw' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isCompact) setSidebarCollapsed(false);
+                        setTablesOpen((open) => !open);
+                      }}
+                      title={isCompact ? 'Таблицы' : undefined}
+                      className={`w-full flex items-center gap-3 ${isCompact ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
+                        isTablesActive ? 'bg-accent text-white font-semibold shadow-xs' : 'text-secondary hover:text-primary hover:bg-surface-2 font-medium'
+                      }`}
+                    >
+                      <Database className="w-4 h-4 shrink-0" />
+                      <span className={`text-xs truncate flex-1 ${isCompact ? 'hidden' : ''}`}>{item.label}</span>
+                      {!isCompact && <ChevronDown className={`w-4 h-4 transition-transform ${tablesOpen ? 'rotate-180' : ''}`} />}
+                    </button>
+                    ) : <Link
                       href={item.href}
                       prefetch={false}
                       draggable={false}
@@ -703,7 +782,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           {item.badge}
                         </span>
                       )}
-                    </Link>
+                    </Link>}
+                    {item.href === '/raw' && tablesOpen && !isCompact && (
+                      <div className="ml-7 mt-1 mb-2 space-y-1 border-l border-border pl-2">
+                        {tableNavItems.map((table) => (
+                          <Link key={table.href} href={table.href}
+                            className={`block rounded-lg px-3 py-2 text-[11px] ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                            {table.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}
