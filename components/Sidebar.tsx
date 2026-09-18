@@ -22,6 +22,9 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
+  ListTodo,
+  HeartPulse,
+  Grid3X3,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
@@ -65,6 +68,26 @@ const allNavItems: NavItem[] = [
     label: 'BI-аналитика',
     subtitle: 'Демография и образование',
     icon: BarChart3,
+  },
+  {
+    href: '/analytics/heatmap',
+    label: 'Тепловая карта',
+    subtitle: 'Нагрузка по дням и часам',
+    icon: Grid3X3,
+    minRole: 'operator',
+  },
+  {
+    href: '/tasks',
+    label: 'Задачи',
+    subtitle: 'Напоминания и работа команды',
+    icon: ListTodo,
+  },
+  {
+    href: '/health',
+    label: 'Состояние системы',
+    subtitle: 'Backend и интеграции',
+    icon: HeartPulse,
+    minRole: 'operator',
   },
   {
     href: '/map',
@@ -378,6 +401,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (item.href === '/overview') pageKey = 'overview';
       else if (item.href === '/dashboard') pageKey = 'dashboard';
       else if (item.href === '/analytics') pageKey = 'analytics';
+      else if (item.href === '/analytics/heatmap') pageKey = 'analytics';
+      else if (item.href === '/tasks') pageKey = 'tasks';
+      else if (item.href === '/health') pageKey = 'health';
       else if (item.href === '/map') pageKey = 'map';
       else if (item.href === '/raw') pageKey = 'raw';
 

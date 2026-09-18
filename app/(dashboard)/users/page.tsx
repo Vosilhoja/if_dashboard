@@ -13,6 +13,7 @@ import {
   Check,
   X,
   RefreshCw,
+  History,
 } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
@@ -33,6 +34,9 @@ const AVAILABLE_PAGES = [
   { key: 'overview', label: 'Главная', desc: 'Сводный обзор и KPI' },
   { key: 'dashboard', label: 'Операционная воронка', desc: 'Контроль звонков и конверсий' },
   { key: 'analytics', label: 'BI-аналитика', desc: 'Демография и образование' },
+  { key: 'tasks', label: 'Задачи', desc: 'Напоминания и работа команды' },
+  { key: 'health', label: 'Состояние системы', desc: 'Backend и интеграции' },
+  { key: 'heatmap', label: 'Тепловая карта', desc: 'Нагрузка по часам' },
   { key: 'map', label: 'Карта регионов', desc: 'География 14 областей' },
   { key: 'raw', label: 'Сырые таблицы', desc: 'Все 5 таблиц Google' },
 ];
@@ -63,6 +67,9 @@ export default function UsersManagementPage() {
 
   // Loading states per user
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [historyUser, setHistoryUser] = useState<SystemUser | null>(null);
+  const [historyRows, setHistoryRows] = useState<Record<string, unknown>[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const canAccess = currentUserRole === 'super_admin' || currentUserRole === 'admin';
 
@@ -251,6 +258,19 @@ export default function UsersManagementPage() {
       const exists = prev.includes(pageKey);
       return exists ? prev.filter((k) => k !== pageKey) : [...prev, pageKey];
     });
+  };
+
+  const openHistory = async (target: SystemUser) => {
+    setHistoryUser(target);
+    setHistoryRows([]);
+    setHistoryLoading(true);
+    try {
+      const response = await fetch(`/api/proxy/data/history?sheet=main&query=${encodeURIComponent(target.username)}`);
+      const data = await response.json().catch(() => ({}));
+      setHistoryRows(data.rows || []);
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   if (!currentUserRole) {
@@ -470,6 +490,13 @@ export default function UsersManagementPage() {
                       <td data-label="Действия" className="py-3.5 px-4 text-right">
                         {!isSuperAdmin && (
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => openHistory(u)}
+                              className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-border text-secondary hover:text-accent transition-colors cursor-pointer"
+                              title="История записей пользователя"
+                            >
+                              <History className="w-3.5 h-3.5" />
+                            </button>
                             <button
                               onClick={() => handleOpenPermissions(u)}
                               className="p-1.5 rounded-lg bg-surface-2 hover:bg-surface border border-border text-secondary hover:text-accent transition-colors cursor-pointer"
@@ -720,6 +747,19 @@ export default function UsersManagementPage() {
                 {savingPermissions ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 <span>{savingPermissions ? 'Сохранение...' : 'Сохранить права'}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {historyUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setHistoryUser(null)}>
+          <div className="w-full max-w-3xl max-h-[80vh] overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-border p-5">
+              <div><h3 className="font-bold text-primary">История: @{historyUser.username}</h3><p className="text-xs text-secondary">Совпадения в листе Main base</p></div>
+              <button onClick={() => setHistoryUser(null)} className="rounded-lg p-2 text-secondary hover:text-primary"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto p-5">
+              {historyLoading ? <div className="py-10 text-center text-secondary"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div> : historyRows.length === 0 ? <p className="py-10 text-center text-secondary">Записи не найдены</p> : <div className="space-y-2">{historyRows.map((row, index) => <pre key={index} className="overflow-x-auto rounded-xl bg-surface-2 p-3 text-[11px] text-secondary">{JSON.stringify(row, null, 2)}</pre>)}</div>}
             </div>
           </div>
         </div>
