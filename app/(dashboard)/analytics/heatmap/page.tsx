@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { TrendingUp, Clock, Activity, AlertCircle } from 'lucide-react';
 
 type Point = { day: string; hour: number; calls?: number; registrations?: number; errors?: number };
 type MetricKey = 'calls' | 'registrations' | 'all';
@@ -14,10 +15,11 @@ const METRIC_LABELS: Record<MetricKey, string> = {
 
 const COLOR_STOPS = [
   { stop: 0, color: '#F1F5F9', label: '0' },
-  { stop: 0.25, color: '#BFDBFE', label: '' },
-  { stop: 0.5, color: '#60A5FA', label: '' },
-  { stop: 0.75, color: '#3B82F6', label: '' },
-  { stop: 1, color: '#1D4ED8', label: 'max' },
+  { stop: 0.2, color: '#DBEAFE', label: '' },
+  { stop: 0.4, color: '#93C5FD', label: '' },
+  { stop: 0.6, color: '#3B82F6', label: '' },
+  { stop: 0.8, color: '#1D4ED8', label: '' },
+  { stop: 1, color: '#1E3A8A', label: 'max' },
 ];
 
 function interpolateColor(ratio: number): string {
@@ -180,6 +182,55 @@ export default function HeatmapPage() {
         <h1 className="text-2xl font-black text-primary">Тепловая карта нагрузки</h1>
         <p className="text-sm text-secondary">Количество обращений по дням и часам.</p>
       </div>
+
+      {/* KPI Cards */}
+      {days.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="p-4 rounded-xl border border-border bg-surface shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-4 h-4 text-accent" />
+              <span className="text-xs font-semibold text-secondary">Всего за период</span>
+            </div>
+            <p className="text-2xl font-black text-primary tabular-nums">{grandTotal.toLocaleString('ru-RU')}</p>
+            <p className="text-[10px] text-secondary mt-1">{days.length} дней</p>
+          </div>
+          <div className="p-4 rounded-xl border border-border bg-surface shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-semibold text-secondary">Среднее в день</span>
+            </div>
+            <p className="text-2xl font-black text-primary tabular-nums">
+              {Math.round(grandTotal / days.length).toLocaleString('ru-RU')}
+            </p>
+            <p className="text-[10px] text-secondary mt-1">за 24 часа</p>
+          </div>
+          <div className="p-4 rounded-xl border border-border bg-surface shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-semibold text-secondary">Пиковый час</span>
+            </div>
+            <p className="text-2xl font-black text-primary tabular-nums">
+              {Math.max(...rowTotals).toLocaleString('ru-RU')}
+            </p>
+            <p className="text-[10px] text-secondary mt-1">
+              {rowTotals.indexOf(Math.max(...rowTotals))}:00
+            </p>
+          </div>
+          <div className="p-4 rounded-xl border border-border bg-surface shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-rose-500" />
+              <span className="text-xs font-semibold text-secondary">Пиковый день</span>
+            </div>
+            <p className="text-lg font-black text-primary tabular-nums">
+              {Math.max(...colTotals).toLocaleString('ru-RU')}
+            </p>
+            <p className="text-[10px] text-secondary mt-1">
+              {days[colTotals.indexOf(Math.max(...colTotals))]}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-border bg-surface p-4 shadow-xs overflow-x-auto">
         {days.length === 0 ? (
           <p className="p-10 text-center text-secondary">Недостаточно данных для визуализации.</p>

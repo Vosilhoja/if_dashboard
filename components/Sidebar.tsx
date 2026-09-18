@@ -617,7 +617,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </div>
                         </Link>}
                         {item.href === '/raw' && tablesOpen && (
-                          <div id="mobile-table-navigation" className="mx-10 mb-2 space-y-1 border-l border-border pl-2">
+                          <div id="mobile-table-navigation" className="mx-10 mb-2 space-y-1 pl-2">
                             {tableNavItems.map((table) => (
                               <Link key={table.href} href={table.href} onClick={() => setMobileDrawerOpen(false)}
                                 className={`flex min-h-10 items-center rounded-lg px-2 text-xs transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
@@ -759,15 +759,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </span>
                 </div>
               </Link>
-              <button
-                type="button"
-                onClick={toggleSidebarCollapsed}
-                aria-label={isCompact ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
-                title={isCompact ? 'Развернуть боковую панель' : 'Свернуть боковую панель'}
-                className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
-              >
-                {isCompact ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              </button>
+              {!isCompact && (
+                <button
+                  type="button"
+                  onClick={toggleSidebarCollapsed}
+                  aria-label="Свернуть боковую панель"
+                  title="Свернуть боковую панель"
+                  className="shrink-0 rounded-lg p-1.5 text-secondary transition-colors hover:bg-surface-2 hover:text-primary"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             {/* Desktop Navigation */}
@@ -836,7 +838,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       )}
                     </Link>}
                     {item.href === '/raw' && tablesOpen && !isCompact && (
-                      <div id="desktop-table-navigation" className="ml-7 mt-1 mb-2 space-y-1 border-l border-border pl-2">
+                      <div id="desktop-table-navigation" className="ml-7 mt-1 mb-2 space-y-1 pl-2">
                         {tableNavItems.map((table) => (
                           <Link key={table.href} href={table.href}
                             className={`block rounded-lg px-3 py-2 text-[11px] ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
