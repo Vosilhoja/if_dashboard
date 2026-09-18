@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { Select } from '@/components/ui/FormControls';
 
 interface Category {
   id: string;
@@ -22,6 +23,7 @@ export default function NewStatusesPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -93,18 +95,41 @@ export default function NewStatusesPage() {
         </div>
         <div className="space-y-2">
           {!loading && suggestions.length === 0 && <p className="rounded-xl bg-surface px-3 py-4 text-sm text-secondary">Новых статусов нет.</p>}
-          {suggestions.map((suggestion) => (
-            <div key={suggestion.id} className="flex flex-col gap-3 rounded-xl border border-border/70 bg-surface px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="break-words text-sm font-medium text-primary">«{suggestion.phrase}»</p>
-                <p className="mt-1 text-xs text-secondary">Встречается: {suggestion.occurrences}</p>
-              </div>
-              <select defaultValue="" onChange={(event) => { if (event.target.value) void assign(suggestion, event.target.value); }} className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-primary">
-                <option value="" disabled>Выберите категорию</option>
-                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-            </div>
-          ))}
+          {(() => {
+            const sorted = [...suggestions].sort((a, b) => b.occurrences - a.occurrences);
+            const visible = showAll ? sorted : sorted.slice(0, 3); // Show only 3 by default instead of 6
+            return (
+              <>
+                {visible.map((suggestion) => (
+                  <div key={suggestion.id} className="flex flex-col gap-3 rounded-xl border border-border/70 bg-surface px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="break-words text-sm font-medium text-primary">«{suggestion.phrase}»</p>
+                      <p className="mt-1 text-xs text-secondary">Встречается: {suggestion.occurrences}</p>
+                    </div>
+                    <Select
+                      defaultValue=""
+                      onChange={(event) => { if (event.target.value) void assign(suggestion, event.target.value); }}
+                      className="sm:w-56"
+                    >
+                      <option value="" disabled>Выберите категорию</option>
+                      {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    </Select>
+                  </div>
+                ))}
+                {suggestions.length > 3 && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowAll((current) => !current)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-xs text-primary hover:bg-surface-2"
+                    >
+                      {showAll ? 'Скрыть' : `Показать все ${suggestions.length}`}
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </section>
     </div>

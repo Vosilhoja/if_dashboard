@@ -37,7 +37,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-light: var(--accent-light);
   --color-accent-border: var(--accent-border);
-}
+} /* @ts-expect-error - Tailwind CSS v4 experimental @theme rule */
 
 body {
   background-color: var(--bg-page);
@@ -206,6 +206,45 @@ button.btn {
   min-height: 40px;
   display: inline-flex;
   align-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  padding: 0 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+/* Unified button variants */
+.btn-primary {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-color);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
 }
 
 /* Keep the height of every standard action control consistent across pages. */
@@ -214,6 +253,60 @@ button:not([data-icon-button]) {
   min-height: 40px;
   align-items: center;
   justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  padding: 0 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+/* Unified dropdown/select styling */
+select,
+.custom-dropdown {
+  height: 40px;
+  min-height: 40px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+}
+
+select:focus,
+.custom-dropdown:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.15);
+  outline: none;
+}
+
+/* Unified input styling */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+input[type="email"],
+input[type="date"],
+textarea {
+  height: 40px;
+  min-height: 40px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-size: 0.875rem;
+  transition: all 0.15s ease;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.15);
+  outline: none;
 }
 
 .app-content {

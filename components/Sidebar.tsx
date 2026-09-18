@@ -538,16 +538,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {/* Список навигации */}
               <nav className="flex-1 overflow-y-auto flex flex-col divide-y divide-border/40 px-5">
                   {navItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive =
-                      pathname === item.href.split('#')[0] ||
-                      (item.href !== '/overview' && pathname.startsWith(item.href.split('#')[0]));
+                const Icon = item.icon;
+                const hrefClean = item.href.split('#')[0];
+                // Simple exact match for active state
+                const isActive = pathname === hrefClean;
 
-                    return (
-                      <div
-                        key={item.href}
-                      >
-                        {item.href === '/raw' ? (
+                return (
+                  <div
+                    key={item.href}
+                  >
+                    {item.href === '/raw' ? (
                         <button
                           type="button"
                           onClick={() => setTablesOpen((open) => !open)}
@@ -774,9 +774,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive =
-                  pathname === item.href.split('#')[0] ||
-                  (item.href !== '/overview' && pathname.startsWith(item.href.split('#')[0]));
+                const hrefClean = item.href.split('#')[0];
+                // Simple exact match for active state
+                const isActive = pathname === hrefClean;
 
                 return (
                   <motion.div

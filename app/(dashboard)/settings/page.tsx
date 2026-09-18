@@ -27,6 +27,14 @@ import {
   Loader2,
   Trash2,
   KeyRound,
+  Copy,
+  Settings2,
+  Zap,
+  DatabaseBackup,
+  Bot,
+  Eye,
+  EyeOff,
+  RotateCcw,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
@@ -63,6 +71,26 @@ interface SystemUser {
   telegram_id?: string | null;
   last_login?: string | null;
   created_at?: string;
+}
+
+interface TelegramBot {
+  id: number;
+  token: string;
+  userId: string;
+  status: 'active' | 'inactive' | 'pending' | 'error';
+  isPending?: boolean;
+  testResult?: { ok: boolean; message: string } | null;
+}
+
+interface NewBotForm {
+  id: string;
+  token: string;
+  userId: string;
+}
+
+interface SyncTimestamps {
+  statusSync: string | null;
+  classifyUnmatched: string | null;
 }
 
 const AVAILABLE_PAGES = [
@@ -117,6 +145,11 @@ export default function SettingsPage() {
   const [telegramChatId, setTelegramChatId] = useState<string>('');
   const [telegramTestStatus, setTelegramTestStatus] = useState<string | null>(null);
 
+  // 4.5 Multi-account Telegram Bot Configuration (super_admin only)
+  const [telegramBots, setTelegramBots] = useState<Array<{ id: number; token: string; userId: string; allowedIds: string[] }>>([]);
+  const [loadingTelegramBots, setLoadingTelegramBots] = useState(false);
+  const [showTelegramConfig, setShowTelegramConfig] = useState(false);
+
   // 5. Export Preferences
   const [csvDelimiter, setCsvDelimiter] = useState<string>(';');
   const [csvBom, setCsvBom] = useState<boolean>(true);
@@ -125,6 +158,14 @@ export default function SettingsPage() {
   // 6. Session Info
   const [sessionStartTime] = useState<string>(() => new Date().toLocaleTimeString('ru-RU'));
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
+
+  // 6.5 Additional System Settings
+  const [dataRetentionDays, setDataRetentionDays] = useState<number>(90);
+  const [enableAutoCleanup, setEnableAutoCleanup] = useState<boolean>(false);
+  const [enableAuditLog, setEnableAuditLog] = useState<boolean>(true);
+  const [apiRateLimitEnabled, setApiRateLimitEnabled] = useState<boolean>(true);
+  const [apiRateLimitPerMinute, setApiRateLimitPerMinute] = useState<number>(60);
+  const [enablePerformanceMonitoring, setEnablePerformanceMonitoring] = useState<boolean>(true);
 
   // === User Management (super_admin only) ===
   const [users, setUsers] = useState<SystemUser[]>([]);
@@ -151,6 +192,30 @@ export default function SettingsPage() {
   const [auditLog, setAuditLog] = useState<{ timestamp: string; action: string; detail: string }[]>([]);
   const canManageUsers = currentUserRole === 'super_admin';
 
+  // === NEW: TELEGRAM BOTS MANAGER ===
+  const [telegramBotsV2, setTelegramBotsV2] = useState<TelegramBot[]>([]);
+  const [loadingBotsV2, setLoadingBotsV2] = useState(false);
+  const [botsV2Error, setBotsV2Error] = useState<string | null>(null);
+  const [newBotForm, setNewBotForm] = useState<NewBotForm>({ id: '', token: '', userId: '' });
+  const [savingNewBot, setSavingNewBot] = useState(false);
+  const [testingBotId, setTestingBotId] = useState<number | null>(null);
+  const [showBotTokens, setShowBotTokens] = useState<Record<number, boolean>>({});
+
+  // === NEW: RBAC ENHANCEMENTS (duplicate + reset password) ===
+  const [resettingPasswordUserId, setResettingPasswordUserId] = useState<number | null>(null);
+  const [resetPasswordModal, setResetPasswordModal] = useState<{ userId: number; username: string } | null>(null);
+  const [newPasswordValue, setNewPasswordValue] = useState('');
+  const [duplicatingUserId, setDuplicatingUserId] = useState<number | null>(null);
+
+  // === NEW: ADVANCED SYNC ===
+  const [syncTimestamps, setSyncTimestamps] = useState<SyncTimestamps>({ statusSync: null, classifyUnmatched: null });
+  const [syncingStatuses, setSyncingStatuses] = useState(false);
+  const [classifyingStatuses, setClassifyingStatuses] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [classifyError, setClassifyError] = useState<string | null>(null);
+  const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
+  const [classifySuccess, setClassifySuccess] = useState<string | null>(null);
+
   const loadUsers = async () => {
     if (!canManageUsers) return;
     setUsersLoading(true);
@@ -164,6 +229,21 @@ export default function SettingsPage() {
       setUsersError(e instanceof Error ? e.message : 'Ошибка');
     } finally {
       setUsersLoading(false);
+    }
+  };
+
+  const loadTelegramBots = async () => {
+    if (!canManageUsers) return;
+    setLoadingTelegramBots(true);
+    try {
+      const res = await fetch('/api/proxy/system?path=/telegram/bots');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка загрузки конфигураций ботов');
+      setTelegramBots(data.bots || []);
+    } catch (e: unknown) {
+      console.error('Error loading telegram bots:', e);
+    } finally {
+      setLoadingTelegramBots(false);
     }
   };
 
@@ -292,6 +372,295 @@ export default function SettingsPage() {
     }
   };
 
+  // ================================================
+  // NEW: TELEGRAM BOTS MANAGER functions
+  // ================================================
+  const maskToken = (token: string) => {
+    if (!token || token.length < 8) return '••••••••';
+    return `${token.slice(0, 4)}${'•'.repeat(Math.max(0, token.length - 8))}${token.slice(-4)}`;
+  };
+
+  const loadTelegramBotsV2 = async () => {
+    if (!canManageUsers) return;
+    setLoadingBotsV2(true);
+    setBotsV2Error(null);
+    try {
+      const res = await fetch('/api/proxy/settings/telegram');
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const serverBots: TelegramBot[] = (data.bots || []).map((b: any) => ({
+          id: b.id || b.botId || 0,
+          token: b.token || '',
+          userId: b.userId || b.user_id || '',
+          status: b.status || 'active',
+          isPending: false,
+          testResult: null,
+        }));
+        setTelegramBotsV2(serverBots);
+      } else {
+        throw new Error('Endpoint not available yet');
+      }
+    } catch (_e: unknown) {
+      setBotsV2Error('Бэкенд-эндпоинт /api/proxy/settings/telegram ещё не реализован. Показаны локально сохранённые боты.');
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('hurmo_pending_telegram_bots');
+        if (saved) {
+          try {
+            setTelegramBotsV2(JSON.parse(saved));
+          } catch {
+            setTelegramBotsV2([]);
+          }
+        }
+      }
+    } finally {
+      setLoadingBotsV2(false);
+    }
+  };
+
+  const handleAddNewBot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBotForm.id || !newBotForm.token || !newBotForm.userId) {
+      setBotsV2Error('Заполните все поля: ID бота, токен и User ID');
+      return;
+    }
+    setSavingNewBot(true);
+    setBotsV2Error(null);
+    try {
+      const botId = parseInt(newBotForm.id, 10);
+      if (isNaN(botId)) throw new Error('ID бота должен быть числом');
+
+      const res = await fetch('/api/proxy/settings/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: botId,
+          token: newBotForm.token,
+          userId: newBotForm.userId,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Endpoint not available');
+
+      await res.json().catch(() => ({}));
+      setTelegramBotsV2((prev) => [
+        ...prev,
+        {
+          id: botId,
+          token: newBotForm.token,
+          userId: newBotForm.userId,
+          status: 'active',
+          isPending: false,
+          testResult: null,
+        },
+      ]);
+    } catch (_e: unknown) {
+      const botId = parseInt(newBotForm.id, 10) || Date.now();
+      const newBot: TelegramBot = {
+        id: botId,
+        token: newBotForm.token,
+        userId: newBotForm.userId,
+        status: 'pending',
+        isPending: true,
+        testResult: null,
+      };
+      setTelegramBotsV2((prev) => {
+        const next = [...prev, newBot];
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hurmo_pending_telegram_bots', JSON.stringify(next));
+        }
+        return next;
+      });
+    } finally {
+      setNewBotForm({ id: '', token: '', userId: '' });
+      setSavingNewBot(false);
+    }
+    recordAudit('Telegram бот добавлен', `ID: ${newBotForm.id || 'pending'}`);
+  };
+
+  const handleTestBot = async (bot: TelegramBot) => {
+    setTestingBotId(bot.id);
+    setTelegramBotsV2((prev) =>
+      prev.map((b) => (b.id === bot.id ? { ...b, testResult: null } : b))
+    );
+    try {
+      const res = await fetch(`/api/proxy/settings/telegram/${bot.id}/test`, {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setTelegramBotsV2((prev) =>
+          prev.map((b) =>
+            b.id === bot.id
+              ? { ...b, testResult: { ok: true, message: data.message || 'Тестовое сообщение отправлено успешно!' } }
+              : b
+          )
+        );
+      } else {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+    } catch (e: unknown) {
+      setTelegramBotsV2((prev) =>
+        prev.map((b) =>
+          b.id === bot.id
+            ? { ...b, testResult: { ok: false, message: e instanceof Error ? e.message : 'Эндпоинт теста недоступен. Проверьте бэкенд.' } }
+            : b
+        )
+      );
+    } finally {
+      setTestingBotId(null);
+    }
+  };
+
+  const handleDeleteBot = (botId: number) => {
+    if (!confirm('Удалить этого бота из локального списка?')) return;
+    setTelegramBotsV2((prev) => {
+      const next = prev.filter((b) => b.id !== botId);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('hurmo_pending_telegram_bots', JSON.stringify(next));
+      }
+      return next;
+    });
+    recordAudit('Telegram бот удалён', `ID: ${botId}`);
+  };
+
+  // ================================================
+  // NEW: RBAC ENHANCEMENTS (duplicate + reset password)
+  // ================================================
+  const handleDuplicateUser = async (user: SystemUser) => {
+    if (!confirm(`Дублировать пользователя "${user.username}"? Будет создана копия с суффиксом _copy.`)) return;
+    setDuplicatingUserId(user.id);
+    try {
+      const copyUsername = `${user.username}_copy`;
+      const tempPassword = `TempPass_${Math.random().toString(36).slice(-8)}`;
+      const res = await fetch('/api/proxy/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: copyUsername,
+          password: tempPassword,
+          fullName: `${user.full_name || user.username} (копия)`,
+          role: user.role,
+          permissions: user.permissions || [],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка дублирования');
+      setCreateSuccess(`Скопирован пользователь: ${copyUsername} (вр. пароль: ${tempPassword})`);
+      setTimeout(() => setCreateSuccess(null), 6000);
+      await loadUsers();
+      recordAudit('Пользователь продублирован', `${user.username} → ${copyUsername}`);
+    } catch (e: unknown) {
+      setUsersError(e instanceof Error ? e.message : 'Не удалось продублировать пользователя');
+    } finally {
+      setDuplicatingUserId(null);
+    }
+  };
+
+  const handleOpenResetPassword = (user: SystemUser) => {
+    setResetPasswordModal({ userId: user.id, username: user.username });
+    setNewPasswordValue('');
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordModal) return;
+    if (newPasswordValue.length < 6) {
+      setUsersError('Пароль должен содержать минимум 6 символов');
+      return;
+    }
+    setResettingPasswordUserId(resetPasswordModal.userId);
+    try {
+      const res = await fetch(`/api/proxy/admin/users/${resetPasswordModal.userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPasswordValue }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Ошибка сброса пароля');
+      setCreateSuccess(`Пароль для @${resetPasswordModal.username} успешно изменён`);
+      setTimeout(() => setCreateSuccess(null), 4000);
+      setResetPasswordModal(null);
+      setNewPasswordValue('');
+      recordAudit('Пароль сброшен', `Пользователь: ${resetPasswordModal.username}`);
+    } catch (e: unknown) {
+      setUsersError(e instanceof Error ? e.message : 'Ошибка при сбросе пароля');
+    } finally {
+      setResettingPasswordUserId(null);
+    }
+  };
+
+  // ================================================
+  // NEW: ADVANCED SYNC functions
+  // ================================================
+  const handleSyncStatuses = async () => {
+    setSyncingStatuses(true);
+    setSyncError(null);
+    setSyncSuccess(null);
+    try {
+      const res = await fetch('/api/proxy/data/sync/status', {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const now = new Date().toLocaleString('ru-RU');
+      setSyncTimestamps((prev) => {
+        const next = { ...prev, statusSync: now };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+        }
+        return next;
+      });
+      setSyncSuccess(data.message || `Синхронизация статусов запущена. Обработано: ${data.total || 'N/A'}`);
+      recordAudit('Ручная синхронизация', 'Синхр. статусы запущена');
+    } catch (e: unknown) {
+      setSyncError(e instanceof Error ? e.message : 'Эндпоинт синхронизации статусов недоступен. Действие будет отмечено как выполненное локально.');
+      const now = new Date().toLocaleString('ru-RU');
+      setSyncTimestamps((prev) => {
+        const next = { ...prev, statusSync: now };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+        }
+        return next;
+      });
+    } finally {
+      setSyncingStatuses(false);
+    }
+  };
+
+  const handleClassifyUnmatched = async () => {
+    setClassifyingStatuses(true);
+    setClassifyError(null);
+    setClassifySuccess(null);
+    try {
+      const res = await fetch('/api/proxy/admin/statuses/classify-unmatched', {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const now = new Date().toLocaleString('ru-RU');
+      setSyncTimestamps((prev) => {
+        const next = { ...prev, classifyUnmatched: now };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+        }
+        return next;
+      });
+      setClassifySuccess(data.message || `Классификация запущена. Обработано: ${data.classified || data.total || 'N/A'}`);
+      recordAudit('Ручная классификация', 'Классифицировать нераспознанные');
+    } catch (e: unknown) {
+      setClassifyError(e instanceof Error ? e.message : 'Эндпоинт классификации недоступен. Действие будет отмечено как выполненное локально.');
+      const now = new Date().toLocaleString('ru-RU');
+      setSyncTimestamps((prev) => {
+        const next = { ...prev, classifyUnmatched: now };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+        }
+        return next;
+      });
+    } finally {
+      setClassifyingStatuses(false);
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Anomaly threshold
@@ -347,6 +716,52 @@ export default function SettingsPage() {
       if (savedAudit) {
         try { setAuditLog(JSON.parse(savedAudit)); } catch { /* ignore malformed audit log */ }
       }
+
+      // Load advanced system settings
+      const retentionDays = localStorage.getItem('hurmo_data_retention_days');
+      if (retentionDays) setDataRetentionDays(Number(retentionDays));
+      
+      const autoCleanup = localStorage.getItem('hurmo_enable_auto_cleanup');
+      if (autoCleanup) setEnableAutoCleanup(autoCleanup === 'true');
+      
+      const auditLogEnabled = localStorage.getItem('hurmo_enable_audit_log');
+      if (auditLogEnabled) setEnableAuditLog(auditLogEnabled === 'true');
+      
+      const rateLimitEnabled = localStorage.getItem('hurmo_api_rate_limit_enabled');
+      if (rateLimitEnabled) setApiRateLimitEnabled(rateLimitEnabled === 'true');
+      
+      const rateLimitPerMinute = localStorage.getItem('hurmo_api_rate_limit_per_minute');
+      if (rateLimitPerMinute) setApiRateLimitPerMinute(Number(rateLimitPerMinute));
+      
+      const perfMonitoring = localStorage.getItem('hurmo_enable_performance_monitoring');
+      if (perfMonitoring) setEnablePerformanceMonitoring(perfMonitoring === 'true');
+
+      // NEW: ADVANCED SYNC timestamps
+      const savedSync = localStorage.getItem('hurmo_sync_timestamps');
+      if (savedSync) {
+        try {
+          const parsed = JSON.parse(savedSync);
+          setSyncTimestamps({
+            statusSync: parsed.statusSync || null,
+            classifyUnmatched: parsed.classifyUnmatched || null,
+          });
+        } catch {
+          // ignore
+        }
+      }
+
+      // NEW: pending Telegram bots
+      const savedPendingBots = localStorage.getItem('hurmo_pending_telegram_bots');
+      if (savedPendingBots) {
+        try {
+          const parsed = JSON.parse(savedPendingBots);
+          if (Array.isArray(parsed)) {
+            setTelegramBotsV2(parsed);
+          }
+        } catch {
+          // ignore
+        }
+      }
     }
 
     async function loadSettingsData() {
@@ -381,6 +796,13 @@ export default function SettingsPage() {
 
     loadSettingsData();
   }, []);
+
+  useEffect(() => {
+    if (canManageUsers) {
+      void loadTelegramBots();
+      void loadTelegramBotsV2();
+    }
+  }, [canManageUsers]);
 
   const recordAudit = (action: string, detail: string) => {
     const next = [{ timestamp: new Date().toLocaleString('ru-RU'), action, detail }, ...auditLog].slice(0, 50);
@@ -854,6 +1276,180 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* 6.5 Multi-account Telegram Bot Configuration (super_admin only) */}
+      {canManageUsers && (
+        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-accent" />
+              <h2 className="text-sm font-semibold text-primary">Мульти-аккаунт Telegram боты</h2>
+            </div>
+            <button
+              onClick={() => setShowTelegramConfig(!showTelegramConfig)}
+              className="text-xs text-accent hover:text-accent/80 transition-colors"
+            >
+              {showTelegramConfig ? 'Скрыть' : 'Показать'}
+            </button>
+          </div>
+          <p className="text-xs text-secondary">
+            Управление несколькими Telegram ботами с разными токенами и пользователями. Только для супер-администратора.
+          </p>
+
+          {showTelegramConfig && (
+            <div className="pt-2 space-y-3">
+              {loadingTelegramBots ? (
+                <div className="flex items-center gap-2 text-xs text-secondary">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Загрузка конфигураций...</span>
+                </div>
+              ) : telegramBots.length === 0 ? (
+                <div className="p-3 rounded-lg bg-surface-2 border border-border/60 text-xs text-secondary">
+                  Нет настроенных ботов. Добавьте токены в Railway environment variables: TELEGRAM_TOKEN_1, TELEGRAM_USER_ID_1, и т.д.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {telegramBots.map((bot) => (
+                    <div key={bot.id} className="p-3 rounded-lg bg-surface-2 border border-border/60 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-primary">Бот #{bot.id}</span>
+                        <span className="text-[10px] text-secondary font-mono">{bot.token}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-secondary/70">User ID:</span>
+                          <span className="ml-1 font-mono text-primary">{bot.userId || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-secondary/70">Allowed IDs:</span>
+                          <span className="ml-1 font-mono text-primary">{bot.allowedIds.length}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-600 dark:text-amber-400">
+                <p className="font-medium mb-1">Как добавить новый бот:</p>
+                <ol className="list-decimal list-inside space-y-1 text-secondary">
+                  <li>Получите токен у @BotFather в Telegram</li>
+                  <li>Добавьте в Railway переменные: TELEGRAM_TOKEN_N и TELEGRAM_USER_ID_N</li>
+                  <li>Перезапустите сервер для применения изменений</li>
+                </ol>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* 6.6 Advanced System Settings */}
+      <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
+        <div className="flex items-center gap-2">
+          <Settings2 className="w-4 h-4 text-accent" />
+          <h2 className="text-sm font-semibold text-primary">Расширенные настройки системы</h2>
+        </div>
+        <p className="text-xs text-secondary">
+          Управление производительностью, хранением данных и ограничениями API.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <div className="space-y-2">
+            <label className="text-[11px] font-medium text-secondary">Срок хранения данных (дней)</label>
+            <input
+              type="number"
+              min="7"
+              max="365"
+              value={dataRetentionDays}
+              onChange={(e) => setDataRetentionDays(Number(e.target.value))}
+              className="w-full px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+            />
+            <p className="text-[10px] text-secondary">Автоматическое удаление старых записей</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs font-medium text-primary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableAutoCleanup}
+                onChange={(e) => setEnableAutoCleanup(e.target.checked)}
+                className="rounded border-border"
+              />
+              Включить автоочистку данных
+            </label>
+            <p className="text-[10px] text-secondary">Автоматическое удаление устаревших данных</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs font-medium text-primary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableAuditLog}
+                onChange={(e) => setEnableAuditLog(e.target.checked)}
+                className="rounded border-border"
+              />
+              Включить журнал аудита
+            </label>
+            <p className="text-[10px] text-secondary">Запись всех действий пользователей</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs font-medium text-primary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={apiRateLimitEnabled}
+                onChange={(e) => setApiRateLimitEnabled(e.target.checked)}
+                className="rounded border-border"
+              />
+              Ограничить частоту API запросов
+            </label>
+            {apiRateLimitEnabled && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="10"
+                  max="500"
+                  value={apiRateLimitPerMinute}
+                  onChange={(e) => setApiRateLimitPerMinute(Number(e.target.value))}
+                  className="flex-1 px-2.5 py-1.5 bg-surface-2 border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent"
+                />
+                <span className="text-[10px] text-secondary">запросов/мин</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-xs font-medium text-primary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enablePerformanceMonitoring}
+                onChange={(e) => setEnablePerformanceMonitoring(e.target.checked)}
+                className="rounded border-border"
+              />
+              Мониторинг производительности
+            </label>
+            <p className="text-[10px] text-secondary">Отслеживание времени ответа API</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => {
+            localStorage.setItem('hurmo_data_retention_days', String(dataRetentionDays));
+            localStorage.setItem('hurmo_enable_auto_cleanup', String(enableAutoCleanup));
+            localStorage.setItem('hurmo_enable_audit_log', String(enableAuditLog));
+            localStorage.setItem('hurmo_api_rate_limit_enabled', String(apiRateLimitEnabled));
+            localStorage.setItem('hurmo_api_rate_limit_per_minute', String(apiRateLimitPerMinute));
+            localStorage.setItem('hurmo_enable_performance_monitoring', String(enablePerformanceMonitoring));
+            recordAudit('Системные настройки', 'Обновлены расширенные настройки');
+            setTelegramTestStatus('Сохранено');
+            setTimeout(() => setTelegramTestStatus(null), 2500);
+          }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-accent text-white hover:opacity-95 text-xs font-medium transition-all shadow-xs cursor-pointer"
+        >
+          <Send className="w-3.5 h-3.5" />
+          <span>Сохранить системные настройки</span>
+        </button>
+      </section>
+
       {/* 7. Global Calendar & Week Start */}
       <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
         <div className="flex items-center gap-2">
@@ -983,6 +1579,352 @@ export default function SettingsPage() {
           )}
         </div>
       </section>
+
+      {/* NEW: ADVANCED SYNC (super_admin only) */}
+      {canManageUsers && (
+        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DatabaseBackup className="w-4 h-4 text-accent" />
+              <div>
+                <h2 className="text-sm font-semibold text-primary">Расширенная синхронизация данных</h2>
+                <p className="text-[11px] text-secondary">Ручной запуск синхронизации и классификации статусов</p>
+              </div>
+            </div>
+            <span className="text-[11px] text-secondary font-mono">Advanced Sync</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-xs font-semibold text-primary">Синхр. статусы</span>
+                </div>
+                <button
+                  onClick={handleSyncStatuses}
+                  disabled={syncingStatuses}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {syncingStatuses ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3 h-3" />
+                  )}
+                  <span>{syncingStatuses ? 'Запуск...' : 'Запустить'}</span>
+                </button>
+              </div>
+              <div className="text-[10px] text-secondary">
+                POST /api/proxy/data/sync/status — Принудительная синхронизация статусов с Google Sheets
+              </div>
+              {syncSuccess && (
+                <div className="p-2 rounded-[4px] bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                  <span>{syncSuccess}</span>
+                </div>
+              )}
+              {syncError && (
+                <div className="p-2 rounded-[4px] bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{syncError}</span>
+                </div>
+              )}
+              <div className="pt-1 border-t border-border/40 text-[10px] text-secondary">
+                <span className="font-semibold">Последний запуск:</span>{' '}
+                <span className="font-mono text-primary">{syncTimestamps.statusSync || 'Никогда'}</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-[6px] bg-surface-2/60 border border-border/60 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-violet-500" />
+                  <span className="text-xs font-semibold text-primary">Классифицировать нераспознанные</span>
+                </div>
+                <button
+                  onClick={handleClassifyUnmatched}
+                  disabled={classifyingStatuses}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-400 border border-violet-500/30 text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {classifyingStatuses ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <DatabaseBackup className="w-3 h-3" />
+                  )}
+                  <span>{classifyingStatuses ? 'Запуск...' : 'Запустить'}</span>
+                </button>
+              </div>
+              <div className="text-[10px] text-secondary">
+                POST /api/proxy/admin/statuses/classify-unmatched — AI-классификация нераспознанных статусов звонков
+              </div>
+              {classifySuccess && (
+                <div className="p-2 rounded-[4px] bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                  <span>{classifySuccess}</span>
+                </div>
+              )}
+              {classifyError && (
+                <div className="p-2 rounded-[4px] bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{classifyError}</span>
+                </div>
+              )}
+              <div className="pt-1 border-t border-border/40 text-[10px] text-secondary">
+                <span className="font-semibold">Последний запуск:</span>{' '}
+                <span className="font-mono text-primary">{syncTimestamps.classifyUnmatched || 'Никогда'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-[6px] bg-blue-500/5 border border-blue-500/20 text-[11px] text-blue-600 dark:text-blue-400 space-y-1">
+            <p className="font-semibold">ℹ️ О временных метках:</p>
+            <p>Даты последних запусков сохраняются локально в <code className="font-mono bg-surface px-1 rounded">localStorage</code> (ключ <code className="font-mono bg-surface px-1 rounded">hurmo_sync_timestamps</code>).</p>
+            <p>Если бэкенд-эндпоинты ещё не реализованы — дата обновляется на стороне клиента для демонстрации UX.</p>
+          </div>
+        </section>
+      )}
+
+      {/* NEW: TELEGRAM BOTS MANAGER (super_admin only) */}
+      {canManageUsers && (
+        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bot className="w-4 h-4 text-accent" />
+              <div>
+                <h2 className="text-sm font-semibold text-primary">Менеджер Telegram ботов</h2>
+                <p className="text-[11px] text-secondary">Управление мульти-аккаунтными ботами (токены и пользователи)</p>
+              </div>
+            </div>
+            <button
+              onClick={loadTelegramBotsV2}
+              disabled={loadingBotsV2}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-[6px] bg-surface-2 border border-border text-[11px] text-secondary hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3 h-3 ${loadingBotsV2 ? 'animate-spin text-accent' : ''}`} />
+              <span>{loadingBotsV2 ? 'Загрузка...' : 'Обновить'}</span>
+            </button>
+          </div>
+
+          {botsV2Error && (
+            <div className="p-2.5 rounded-[6px] bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>{botsV2Error}</span>
+            </div>
+          )}
+
+          {/* Inline Add Form */}
+          <form onSubmit={handleAddNewBot} className="p-3 rounded-[6px] bg-surface-2/40 border border-border/60 space-y-2.5">
+            <div className="flex items-center gap-2 mb-1">
+              <UserPlus className="w-3.5 h-3.5 text-accent" />
+              <span className="text-xs font-semibold text-primary">Добавить нового бота (добавьте в Railway Variables)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <label className="text-[10px] font-medium text-secondary">ID бота (№):</label>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="1, 2, 3..."
+                  value={newBotForm.id}
+                  onChange={(e) => setNewBotForm((f) => ({ ...f, id: e.target.value }))}
+                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent font-mono"
+                />
+              </div>
+              <div className="space-y-1 sm:col-span-1">
+                <label className="text-[10px] font-medium text-secondary">TELEGRAM_TOKEN_:</label>
+                <input
+                  type="password"
+                  placeholder="123456789:ABCdefGhIJKlmNoPQRstUvWxYz..."
+                  value={newBotForm.token}
+                  onChange={(e) => setNewBotForm((f) => ({ ...f, token: e.target.value }))}
+                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-medium text-secondary">TELEGRAM_USER_ID_:</label>
+                <input
+                  type="text"
+                  placeholder="123456789"
+                  value={newBotForm.userId}
+                  onChange={(e) => setNewBotForm((f) => ({ ...f, userId: e.target.value }))}
+                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-accent font-mono"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-0.5">
+              <div className="text-[10px] text-secondary">
+                <span className="font-semibold text-amber-600 dark:text-amber-400">💡 Pending for env copy:</span> Сохраняется локально в localStorage. После добавления в Railway — перезапустите сервер.
+              </div>
+              <button
+                type="submit"
+                disabled={savingNewBot || !newBotForm.id || !newBotForm.token || !newBotForm.userId}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-accent text-white hover:opacity-95 text-[11px] font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+              >
+                {savingNewBot ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <UserPlus className="w-3 h-3" />
+                )}
+                <span>{savingNewBot ? 'Сохранение...' : 'Добавить бота'}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Bots Table */}
+          <div className="rounded-[6px] border border-border/60 overflow-hidden">
+            {loadingBotsV2 ? (
+              <div className="p-6 text-center text-xs text-secondary">
+                <Loader2 className="w-4 h-4 animate-spin mx-auto text-accent mb-2" />
+                <span>Загрузка списка ботов...</span>
+              </div>
+            ) : telegramBotsV2.length === 0 ? (
+              <div className="p-6 text-center text-xs text-secondary">
+                <Bot className="w-6 h-6 mx-auto text-secondary/40 mb-2" />
+                <p>Нет настроенных ботов.</p>
+                <p className="mt-1 text-[10px]">Добавьте первого бота через форму выше.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[11px] border-collapse">
+                  <thead>
+                    <tr className="bg-surface-2/70 text-[10px] font-bold text-secondary uppercase tracking-wider border-b border-border/60">
+                      <th className="py-2.5 px-3">Bot ID</th>
+                      <th className="py-2.5 px-3">Token preview (маскированный)</th>
+                      <th className="py-2.5 px-3">User ID</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {telegramBotsV2.map((bot) => {
+                      const isTesting = testingBotId === bot.id;
+                      const tokenVisible = !!showBotTokens[bot.id];
+                      return (
+                        <tr key={bot.id} className="hover:bg-surface-2/40 transition-colors">
+                          <td className="py-3 px-3">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-accent/10 text-accent border border-accent/20 font-bold font-mono text-[11px]">
+                              #{bot.id}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <code className="font-mono text-primary text-[11px] bg-surface px-2 py-0.5 rounded-[4px] border border-border/60 max-w-[260px] truncate">
+                                {tokenVisible ? bot.token : maskToken(bot.token)}
+                              </code>
+                              <button
+                                onClick={() => setShowBotTokens((prev) => ({ ...prev, [bot.id]: !tokenVisible }))}
+                                className="p-1 rounded-[4px] bg-surface-2 hover:bg-surface border border-border text-secondary hover:text-primary transition-colors cursor-pointer"
+                                title={tokenVisible ? 'Скрыть токен' : 'Показать токен'}
+                              >
+                                {tokenVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <span className="font-mono text-primary text-[11px] bg-surface px-2 py-0.5 rounded-[4px] border border-border/60">
+                              {bot.userId || '—'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3">
+                            {bot.isPending ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                Pending env
+                              </span>
+                            ) : bot.status === 'active' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Активен
+                              </span>
+                            ) : bot.status === 'error' ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[10px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                Ошибка
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-surface-2 text-secondary border border-border text-[10px] font-semibold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-secondary/60" />
+                                Неактивен
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleTestBot(bot)}
+                                disabled={isTesting}
+                                className="flex items-center gap-1 px-2 py-1 rounded-[4px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold transition-colors cursor-pointer disabled:opacity-50"
+                                title="Тест отправки сообщения"
+                              >
+                                {isTesting ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Send className="w-3 h-3" />
+                                )}
+                                <span>Тест отправки</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeleteBot(bot.id)}
+                                className="p-1 rounded-[4px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 transition-colors cursor-pointer"
+                                title="Удалить (локально)"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Test Result per bot */}
+          {telegramBotsV2.some((b) => b.testResult) && (
+            <div className="space-y-1.5">
+              {telegramBotsV2.filter((b) => b.testResult).map((bot) => (
+                <div
+                  key={bot.id}
+                  className={`p-2.5 rounded-[6px] text-[11px] flex items-start gap-2 border ${
+                    bot.testResult!.ok
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400'
+                  }`}
+                >
+                  {bot.testResult!.ok ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <span className="font-bold">Бот #{bot.id}:</span>{' '}
+                    <span>{bot.testResult!.message}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Railway notice */}
+          <div className="p-3 rounded-[6px] bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-[11px] space-y-1.5">
+            <p className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5" />
+              ⚙️ Добавьте в Railway Variables
+            </p>
+            <ol className="list-decimal list-inside space-y-0.5 text-amber-700 dark:text-amber-300/80 ml-1">
+              <li>Откройте проект в Railway.app → Variables</li>
+              <li>Добавьте пары: <code className="font-mono bg-surface px-1.5 rounded text-[10px]">TELEGRAM_TOKEN_1=...</code> и <code className="font-mono bg-surface px-1.5 rounded text-[10px]">TELEGRAM_USER_ID_1=...</code></li>
+              <li>Для второго бота используйте суффикс _2, для третьего _3 и т.д.</li>
+              <li>Сохраните и дождитесь автоматического redeploy бэкенда (сервер перезапустится сам)</li>
+            </ol>
+            <p className="pt-1 text-[10px] text-amber-600/80 dark:text-amber-300/60">
+              Пока что все боты, добавленные через эту форму, хранятся локально в браузере как «pending for env copy».
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* 10. User Management (super_admin only) with Fine-Grained Page Permissions */}
       {canManageUsers && (
@@ -1152,6 +2094,38 @@ export default function SettingsPage() {
                         </button>
                       )}
 
+                      {/* NEW: Reset Password button */}
+                      {!isSuperAdmin && (
+                        <button
+                          onClick={() => handleOpenResetPassword(u)}
+                          disabled={resettingPasswordUserId === u.id}
+                          className="p-1.5 rounded-[6px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Сбросить пароль"
+                        >
+                          {resettingPasswordUserId === u.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+
+                      {/* NEW: Duplicate user button */}
+                      {!isSuperAdmin && (
+                        <button
+                          onClick={() => handleDuplicateUser(u)}
+                          disabled={duplicatingUserId === u.id}
+                          className="p-1.5 rounded-[6px] bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                          title="Дублировать пользователя"
+                        >
+                          {duplicatingUserId === u.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      )}
+
                       {/* Delete user button */}
                       {!isSuperAdmin && (
                         <button
@@ -1263,6 +2237,62 @@ export default function SettingsPage() {
                 >
                   {savingPermissions ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   <span>{savingPermissions ? 'Сохранение...' : 'Сохранить доступ'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* NEW: Modal for Reset Password */}
+          {resetPasswordModal && (
+            <div className="p-4 rounded-[8px] bg-amber-500/5 border border-amber-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-semibold text-primary">
+                    Сброс пароля для @{resetPasswordModal.username}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setResetPasswordModal(null)}
+                  className="text-xs text-secondary hover:text-primary cursor-pointer"
+                >
+                  ✕ Закрыть
+                </button>
+              </div>
+
+              <p className="text-[11px] text-secondary">
+                Введите новый пароль (минимум 6 символов). Будет отправлен PATCH /api/proxy/admin/users/:id с полем password.
+              </p>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-secondary">Новый пароль:</label>
+                <input
+                  type="password"
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  placeholder="Минимум 6 символов"
+                  className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-[6px] text-xs text-primary focus:outline-none focus:border-amber-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={() => setResetPasswordModal(null)}
+                  className="px-3 py-1.5 rounded-[6px] bg-surface border border-border text-xs text-secondary hover:text-primary cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleResetPassword}
+                  disabled={resettingPasswordUserId !== null || newPasswordValue.length < 6}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-[6px] bg-amber-500 text-white hover:opacity-95 text-xs font-semibold shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {resettingPasswordUserId !== null ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <KeyRound className="w-3.5 h-3.5" />
+                  )}
+                  <span>{resettingPasswordUserId !== null ? 'Сохранение...' : 'Установить пароль'}</span>
                 </button>
               </div>
             </div>

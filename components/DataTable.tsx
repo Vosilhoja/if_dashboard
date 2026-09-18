@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react';
+import React, { useState, useEffect, useTransition, useMemo, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Search,
@@ -23,6 +23,8 @@ import {
   Bookmark,
   BookmarkPlus,
   X,
+  Loader2,
+  RotateCcw,
 } from 'lucide-react';
 import { SheetPaginatedResponse } from '@/lib/types';
 import { formatPhoneDisplay, normalizePhoneWithDiagnostics } from '@/lib/phone-utils';
@@ -42,6 +44,10 @@ const STATUS_CATEGORY_OPTIONS: { id: string; name: string; config: StatusCategor
   { id: 'already_registered', name: 'Уже зарегистрирован', config: STATUS_CONFIG.alreadyRegistered },
   { id: 'wrong_person', name: 'Не тот человек', config: STATUS_CONFIG.wrongPerson },
 ];
+
+const CACHE_TTL_MS = 30_000;
+const DEBOUNCE_MS = 400;
+const SESSION_CACHE_PREFIX = 'hurmo-datatable-cache-';
 
 const parseComparableValue = (value: string): { kind: 'empty' | 'number' | 'date' | 'text'; value: number | string } => {
   const text = value.trim();
@@ -78,6 +84,35 @@ const compareComparableValues = (left: string, right: string): number => {
     return a.value < b.value ? -1 : a.value > b.value ? 1 : 0;
   }
   return String(a.value).localeCompare(String(b.value), 'ru', { numeric: true, sensitivity: 'base' });
+};
+
+interface SessionCacheEntry {
+  value: SheetPaginatedResponse;
+  timestamp: number;
+}
+
+const readCache = (key: string): SheetPaginatedResponse | null => {
+  try {
+    const raw = sessionStorage.getItem(SESSION_CACHE_PREFIX + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SessionCacheEntry;
+    if (Date.now() - parsed.timestamp > CACHE_TTL_MS) {
+      sessionStorage.removeItem(SESSION_CACHE_PREFIX + key);
+      return null;
+    }
+    return parsed.value;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (key: string, value: SheetPaginatedResponse) => {
+  try {
+    const entry: SessionCacheEntry = { value, timestamp: Date.now() };
+    sessionStorage.setItem(SESSION_CACHE_PREFIX + key, JSON.stringify(entry));
+  } catch {
+    /* ignore quota errors */
+  }
 };
 
 interface DataTableProps {
@@ -122,14 +157,146 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   const [showRowNumbers, setShowRowNumbers] = useState(true);
   const [savedFilters, setSavedFilters] = useState<{ name: string; search: string; column: string; value: string; values: string[] }[]>([]);
   const [savedFilterName, setSavedFilterName] = useState('');
+  const [loadProgress, setLoadProgress] = useState<number>(0);
   const [, startTransition] = useTransition();
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastQueryKeyRef = useRef<string>('');
+  const lastFetchTimestampRef = useRef<number>(0);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const manualRetryRef = useRef<{ params: URLSearchParams } | null>(null);
+
+  const buildQueryString = useCallback((p = page, search = activeSearch, size = pageSize) => {
+    const params = new URLSearchParams({
+      page: String(p),
+      pageSize: String(size),
+    });
+    if (search) params.append('search', search);
+    if (sortColumn) {
+      params.append('sortBy', sortColumn);
+      params.append('sortDirection', sortDirection);
+    }
+    if (filterColumn && filterValue.trim()) {
+      params.append('filterColumn', filterColumn);
+      params.append('filterValue', filterValue.trim());
+    }
+    if (filterColumn && selectedFilterValues.length > 0) {
+      params.append('filterValues', selectedFilterValues.join('|'));
+    }
+    if (filterMenuColumn) params.append('filterOptionsColumn', filterMenuColumn);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return params;
+  }, [page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn, startDate, endDate]);
+
+  const startProgressAnimation = () => {
+    setLoadProgress(0);
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    let progress = 0;
+    progressTimerRef.current = setInterval(() => {
+      progress = Math.min(progress + Math.random() * 18, 92);
+      setLoadProgress(progress);
+    }, 250);
+  };
+
+  const stopProgressAnimation = (final = 100) => {
+    if (progressTimerRef.current) {
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+    setLoadProgress(final);
+    setTimeout(() => setLoadProgress(0), 300);
+  };
+
+  const fetchData = useCallback(async (p = page, search = activeSearch, size = pageSize) => {
+    const params = buildQueryString(p, search, size);
+    const queryKey = `${sheetType}:${params.toString()}`;
+    const now = Date.now();
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const doFetch = async () => {
+      if (queryKey === lastQueryKeyRef.current && now - lastFetchTimestampRef.current < DEBOUNCE_MS) {
+        return;
+      }
+
+      const cached = readCache(queryKey);
+      if (cached) {
+        setData(cached);
+        setError(null);
+        setLoading(false);
+        stopProgressAnimation(100);
+        lastQueryKeyRef.current = queryKey;
+        lastFetchTimestampRef.current = now;
+        return;
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
+      manualRetryRef.current = { params };
+
+      setLoading(true);
+      setError(null);
+      startProgressAnimation();
+
+      try {
+        const res = await fetch(`/api/proxy/data/sheets/${sheetType}?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error || `HTTP ${res.status}`);
+        }
+        const json: SheetPaginatedResponse = await res.json();
+        if (controller.signal.aborted) return;
+        setData(json);
+        setError(null);
+        writeCache(queryKey, json);
+        lastQueryKeyRef.current = queryKey;
+        lastFetchTimestampRef.current = now;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+        const message = err instanceof Error ? err.message : 'Ошибка загрузки данных';
+        setError(message);
+      } finally {
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null;
+        }
+        setLoading(false);
+        stopProgressAnimation(100);
+      }
+    };
+
+    debounceTimerRef.current = setTimeout(doFetch, data ? DEBOUNCE_MS : 0);
+  }, [page, activeSearch, pageSize, buildQueryString, sheetType, data]);
+
+  const retryLastFetch = () => {
+    if (!manualRetryRef.current) {
+      fetchData();
+      return;
+    }
+    const { params } = manualRetryRef.current;
+    const p = Number(params.get('page')) || page;
+    const search = params.get('search') || activeSearch;
+    const size = Number(params.get('pageSize')) || pageSize;
+    fetchData(p, search, size);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlPage = Number(params.get('page'));
     const urlPageSize = Number(params.get('pageSize'));
     if (Number.isFinite(urlPage) && urlPage > 0) setPage(urlPage);
-    if ([25, 50, 100].includes(urlPageSize)) setPageSize(urlPageSize);
+    if ([10, 15, 25, 50, 100, 250, 500].includes(urlPageSize)) setPageSize(urlPageSize);
     setActiveSearch(params.get('search') || '');
     setSortColumn(params.get('sortBy'));
     setSortDirection(params.get('sortDirection') === 'desc' ? 'desc' : 'asc');
@@ -178,44 +345,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     setPageInput('');
   };
 
-  const fetchData = async (p = page, search = activeSearch, size = pageSize) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({
-        page: String(p),
-        pageSize: String(size),
-      });
-      if (search) params.append('search', search);
-      if (sortColumn) {
-        params.append('sortBy', sortColumn);
-        params.append('sortDirection', sortDirection);
-      }
-      if (filterColumn && filterValue.trim()) {
-        params.append('filterColumn', filterColumn);
-        params.append('filterValue', filterValue.trim());
-      }
-      if (filterColumn && selectedFilterValues.length > 0) {
-        params.append('filterValues', selectedFilterValues.join('|'));
-      }
-      if (filterMenuColumn) params.append('filterOptionsColumn', filterMenuColumn);
-      if (startDate) params.append('startDate', startDate);
-      if (endDate) params.append('endDate', endDate);
-
-      const res = await fetch(`/api/proxy/data/sheets/${sheetType}?${params.toString()}`);
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `HTTP ${res.status}`);
-      }
-      const json: SheetPaginatedResponse = await res.json();
-      setData(json);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     const handleSettingsChange = () => setAutoRefreshVersion((version) => version + 1);
     window.addEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
@@ -225,13 +354,21 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   useEffect(() => {
     const minutes = Number(localStorage.getItem('hurmo_auto_refresh_interval') || '0');
     if (!Number.isFinite(minutes) || minutes <= 0) return;
-    const timer = window.setInterval(() => fetchData(page, activeSearch, pageSize), minutes * 60_000);
+    const timer = window.setInterval(() => {
+      const queryKey = lastQueryKeyRef.current;
+      if (queryKey) {
+        try {
+          sessionStorage.removeItem(SESSION_CACHE_PREFIX + queryKey);
+        } catch { /* ignore */ }
+      }
+      fetchData(page, activeSearch, pageSize);
+    }, minutes * 60_000);
     return () => window.clearInterval(timer);
-  }, [page, activeSearch, pageSize, sheetType, syncVersion, autoRefreshVersion]);
+  }, [page, activeSearch, pageSize, sheetType, syncVersion, autoRefreshVersion, fetchData]);
 
   useEffect(() => {
     fetchData(page, activeSearch, pageSize);
-  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn, startDate, endDate, syncVersion]);
+  }, [sheetType, page, activeSearch, pageSize, sortColumn, sortDirection, filterColumn, filterValue, selectedFilterValues, filterMenuColumn, startDate, endDate, syncVersion, fetchData]);
 
   useEffect(() => {
     const handleSync = () => setSyncVersion((version) => version + 1);
@@ -291,6 +428,14 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       window.removeEventListener('resize', closeOnResize);
     };
   }, [filterMenuColumn]);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,7 +507,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     localStorage.setItem(`hurmo-saved-filters-${sheetType}`, JSON.stringify(next));
   };
 
-  // Identify column types
   const isPhoneColumn = (header: string) => {
     const h = header.toLowerCase();
     return h.includes('phone') || h.includes('телефон') || h.includes('номер');
@@ -373,7 +517,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     return h.includes('статус') || h.includes('status');
   };
 
-  // Determine priority mobile columns
   const isPriorityMobileColumn = (header: string) => {
     const h = header.toLowerCase();
     return (
@@ -386,7 +529,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     );
   };
 
-  // Compute phone occurrences across the current batch to detect duplicates
   const phoneCounts = useMemo(() => {
     const counts = new Map<string, number>();
     if (!data?.rows) return counts;
@@ -526,7 +668,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     if (!data?.rows) return [];
     let rows = [...data.rows];
 
-    // Filter by status category if selected
     if (selectedStatusCategory !== 'all') {
       const catOption = STATUS_CATEGORY_OPTIONS.find((c) => c.id === selectedStatusCategory);
       if (catOption) {
@@ -537,7 +678,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       }
     }
 
-    // Filter by duplicates only if enabled
     if (onlyDuplicates) {
       rows = rows.filter((r) => {
         for (const [k, v] of Object.entries(r)) {
@@ -605,16 +745,39 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     }
   };
 
+  const showProgressBar = loading && loadProgress > 0;
+
   return (
     <div className="w-full min-w-0 max-w-full bg-surface border border-border rounded-[8px] overflow-visible flex flex-col">
+      {/* Progress bar overlay in header */}
+      {showProgressBar && (
+        <div className="h-[2px] w-full bg-surface-2 overflow-hidden rounded-t-[8px]">
+          <div
+            className="h-full bg-accent transition-all duration-200 ease-out"
+            style={{ width: `${Math.round(loadProgress)}%` }}
+          />
+        </div>
+      )}
       {/* Controls Bar */}
       <div className="p-3 border-b border-border flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-surface">
         <div className="flex items-center justify-between sm:justify-start gap-2">
           <div className="flex items-center gap-2">
-            <Database className="w-3.5 h-3.5 text-secondary" />
-            <h3 className="text-xs font-semibold text-primary">{title}</h3>
+            <div className="relative">
+              <Database className={`w-3.5 h-3.5 text-secondary ${loading ? 'opacity-30' : ''}`} />
+              {loading && (
+                <Loader2 className="w-3.5 h-3.5 text-accent absolute top-0 left-0 animate-spin" />
+              )}
+            </div>
+            <h3 className="text-xs font-semibold text-primary flex items-center gap-2">
+              {title}
+              {loading && data && (
+                <span className="text-[10px] text-accent font-normal tabular-nums">
+                  {Math.round(loadProgress)}%
+                </span>
+              )}
+            </h3>
             {data && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-[4px] bg-surface-2 text-secondary border border-border tabular-nums">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-[4px] bg-surface-2 text-secondary border border-border tabular-nums ${loading && !showProgressBar ? 'opacity-50' : ''}`}>
                 {data.total.toLocaleString()} строк
               </span>
             )}
@@ -830,16 +993,29 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
             }}
             ariaLabel="Количество строк на странице"
             className="w-20"
-            options={[15, 25, 50, 100, 250, 500].map((value) => ({ value: String(value), label: String(value) }))}
+            options={[10, 15, 25, 50, 100, 250, 500].map((value) => ({ value: String(value), label: String(value) }))}
           />
         </div>
       </div>
 
-      {/* Error state */}
+      {/* Error state with retry */}
       {error && (
-        <div className="m-3 p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <div>{error}</div>
+        <div className="m-3 p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+          <div className="flex items-center gap-2 flex-1">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 sm:mt-0" />
+            <div className="flex-1">
+              <div className="font-semibold text-rose-700 dark:text-rose-300 mb-0.5">Ошибка загрузки данных</div>
+              <div className="text-[11px] opacity-90">{error}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={retryLastFetch}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Повторить
+          </button>
         </div>
       )}
 
@@ -847,12 +1023,26 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       <div className="relative min-h-[400px] overflow-visible">
         {loading && !data ? (
           <div className="p-3 space-y-2">
+            {/* Header skeleton row */}
+            <div className="flex gap-2 mb-3">
+              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <Skeleton key={`hdr-${i}`} className="h-6 w-24 rounded-[4px]" />
+              ))}
+            </div>
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-8 w-full rounded-[4px]" />
+              <div key={i} className="flex items-center gap-2">
+                <div className="text-[10px] text-secondary tabular-nums w-10 text-center shrink-0">
+                  {Math.round(loadProgress) > 0 ? `${Math.min(Math.round(loadProgress + (i * 5)), 95)}%` : `—`}
+                </div>
+                <Skeleton className="h-8 flex-1 rounded-[4px]" />
+                <Skeleton className="h-8 w-32 rounded-[4px] hidden sm:block" />
+                <Skeleton className="h-8 w-40 rounded-[4px] hidden md:block" />
+                <Skeleton className="h-8 w-20 rounded-[4px] hidden lg:block" />
+              </div>
             ))}
           </div>
         ) : data && processedRows.length > 0 ? (
-          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-gutter:stable]">
+          <div className={`w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain touch-pan-x [scrollbar-gutter:stable] ${loading ? 'opacity-70 pointer-events-none select-none' : ''} transition-opacity duration-200`}>
           <table className="min-w-max w-full text-left text-sm border-collapse">
             <thead className="sticky top-0 bg-surface-2 text-secondary font-semibold border-b border-border z-10 text-xs uppercase tracking-wide">
               <tr>
@@ -930,7 +1120,6 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
                         phoneDiag = normalizePhoneWithDiagnostics(cellVal);
                       }
 
-                      // Use fuzzy semantic matching for status badge coloring (same logic as backend)
                       let statusBadgeColor = '';
                       if (isStatus && cellVal) {
                         if (matchesCategory(cellVal, STATUS_CONFIG.declined) || matchesCategory(cellVal, STATUS_CONFIG.wrongPerson)) {
