@@ -89,7 +89,13 @@ export default function OverviewPage() {
         attemptStatus,
         signal,
       });
-      const analyticsPromise = fetch('/api/proxy/data/analytics?summary=true', { cache: 'no-store', signal });
+      const analyticsPromise = fetch('/api/proxy/data/analytics?summary=true', { cache: 'no-store', signal })
+        .catch((error: unknown) => {
+          if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
+            return null;
+          }
+          throw error;
+        });
       const metricsPayload = await metricsPromise;
       setMetrics(metricsPayload);
       setLoading(false);
@@ -102,6 +108,7 @@ export default function OverviewPage() {
         });
       }
       const analyticsRes = await analyticsPromise;
+      if (!analyticsRes) return;
       const analyticsPayload = await analyticsRes.json().catch(() => ({}));
       if (analyticsRes.ok) {
         setAnalyticsData(analyticsPayload);
@@ -113,6 +120,7 @@ export default function OverviewPage() {
       }
       else setDataError(analyticsPayload.error || `Аналитика: HTTP ${analyticsRes.status}`);
     } catch (e) {
+      if (signal?.aborted) return;
       if (e instanceof DOMException && e.name === 'AbortError') return;
       if (e instanceof Error && e.name === 'CanceledError') return;
       console.error('Error loading overview data:', e);

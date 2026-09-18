@@ -22,7 +22,6 @@ import {
   ShieldCheck,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronDown,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
@@ -347,6 +346,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setMobileDrawerOpen(false);
   }, [pathname]);
 
+  // Keep the tables section visible whenever a table page is active.
+  useEffect(() => {
+    if (pathname.startsWith('/raw')) {
+      setTablesOpen(true);
+    }
+  }, [pathname]);
+
   // Filter nav items based on user role and granular page permissions
   const navItems = allNavItems.filter((item) => {
     // 1. super_admin has unconditional access to all 8 pages
@@ -519,20 +525,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                           type="button"
                           onClick={() => setTablesOpen((open) => !open)}
-                          className={`flex w-full items-center justify-between gap-3 py-3.5 px-2 transition-all active:bg-surface-2/80 group ${
+                          aria-expanded={tablesOpen}
+                          aria-controls="mobile-table-navigation"
+                          className={`relative flex w-full items-center justify-start gap-3 py-8 px-2 text-left transition-all active:bg-surface-2/80 group ${
                             isTablesActive ? 'text-accent font-bold' : 'text-primary font-medium'
                           }`}
                         >
-                          <span className="flex items-center gap-3 min-w-0">
-                            <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isTablesActive ? 'bg-accent text-white' : 'bg-surface-2 text-secondary'}`}>
+                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform ${
+                              isTablesActive
+                                ? 'bg-accent text-white'
+                                : 'bg-surface-2 text-secondary group-hover:text-primary'
+                            }`}>
                               <Database className="w-4 h-4" />
-                            </span>
-                            <span className="flex min-w-0 flex-col text-left">
+                            </div>
+                            <div className="flex flex-col min-w-0 text-left">
                               <span className="text-sm tracking-tight leading-tight">{item.label}</span>
-                              <span className="mt-1 truncate text-[11px] leading-none text-secondary/70">{item.subtitle}</span>
-                            </span>
-                          </span>
-                          <ChevronRight className={`h-4 w-4 shrink-0 text-secondary/50 transition-transform ${tablesOpen ? 'rotate-90 text-accent' : 'group-hover:translate-x-0.5'}`} />
+                              {item.subtitle && (
+                                <span className="text-[11px] text-secondary/70 leading-none mt-1 truncate">
+                                  {item.subtitle}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className={`absolute right-2 w-4 h-4 shrink-0 text-secondary/50 transition-transform ${tablesOpen ? 'rotate-90 text-accent' : 'group-hover:translate-x-0.5'}`} />
                         </button>
                         ) : <Link
                           href={item.href}
@@ -575,10 +591,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </div>
                         </Link>}
                         {item.href === '/raw' && tablesOpen && (
-                          <div className="ml-10 mr-2 mb-2 space-y-1 border-l border-border pl-2">
+                          <div id="mobile-table-navigation" className="mx-10 mb-2 space-y-1 border-l border-border pl-2">
                             {tableNavItems.map((table) => (
                               <Link key={table.href} href={table.href} onClick={() => setMobileDrawerOpen(false)}
-                                className={`flex min-h-10 items-center rounded-lg px-3 text-xs transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                                className={`flex min-h-10 items-center rounded-lg px-2 text-xs transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
                                 {table.label}
                               </Link>
                             ))}
@@ -752,14 +768,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         if (isCompact) setSidebarCollapsed(false);
                         setTablesOpen((open) => !open);
                       }}
+                      aria-expanded={tablesOpen}
+                      aria-controls="desktop-table-navigation"
                       title={isCompact ? 'Таблицы' : undefined}
                       className={`w-full flex items-center gap-3 ${isCompact ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
                         isTablesActive ? 'bg-accent text-white font-semibold shadow-xs' : 'text-secondary hover:text-primary hover:bg-surface-2 font-medium'
                       }`}
                     >
                       <Database className="w-4 h-4 shrink-0" />
-                      <span className={`text-xs truncate flex-1 ${isCompact ? 'hidden' : ''}`}>{item.label}</span>
-                      {!isCompact && <ChevronDown className={`w-4 h-4 transition-transform ${tablesOpen ? 'rotate-180' : ''}`} />}
+                      <span className={`flex min-w-0 flex-1 flex-col text-left ${isCompact ? 'hidden' : ''}`}>
+                        <span className="truncate text-xs leading-tight">{item.label}</span>
+                        <span className="mt-0.5 truncate text-[10px] leading-tight text-secondary/70">{item.subtitle}</span>
+                      </span>
+                      {!isCompact && (
+                        <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${tablesOpen ? 'rotate-90 text-white' : ''}`} />
+                      )}
                     </button>
                     ) : <Link
                       href={item.href}
@@ -787,7 +810,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       )}
                     </Link>}
                     {item.href === '/raw' && tablesOpen && !isCompact && (
-                      <div className="ml-7 mt-1 mb-2 space-y-1 border-l border-border pl-2">
+                      <div id="desktop-table-navigation" className="ml-7 mt-1 mb-2 space-y-1 border-l border-border pl-2">
                         {tableNavItems.map((table) => (
                           <Link key={table.href} href={table.href}
                             className={`block rounded-lg px-3 py-2 text-[11px] ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
