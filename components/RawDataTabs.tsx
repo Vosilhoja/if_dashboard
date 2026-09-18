@@ -14,40 +14,20 @@ export const RawDataTabs: React.FC = () => {
   const slugToType = { 'main-base': 'main', numbers: 'numbers', eskiz: 'eskiz', not_completed: 'not_completed', survey_attempts: 'survey_attempts' } as const;
   const activeTab = slugToType[pathTab as keyof typeof slugToType] || 'numbers';
 
-  const tables = [
-    {
-      id: 'numbers' as const,
-      label: 'Номера поддержки (numbers)',
-      description: 'Журнал обзвонов, статусы, комментарии и время разговоров',
-    },
-    {
-      id: 'main' as const,
-      label: 'Основная база (main_base)',
-      description: 'Все зарегистрированные респонденты платформы HURMO UZ',
-    },
-    {
-      id: 'eskiz' as const,
-      label: 'SMS-шлюз (eskiz)',
-      description: 'Отправленные сообщения, статусы доставки и списания',
-    },
-    {
-      id: 'not_completed' as const,
-      label: 'Не завершили регистрацию (not_completed)',
-      description: 'Пользователи, начавшие регистрацию, но не завершившие её',
-    },
-    {
-      id: 'survey_attempts' as const,
-      label: 'Попытки опроса (survey_attempts)',
-      description: 'История попыток прохождения опроса по неделям и статусам',
-    },
-  ];
+  const tableLabels: Record<typeof activeTab, string> = {
+    numbers: 'Номера поддержки (numbers)',
+    main: 'Основная база (main_base)',
+    eskiz: 'SMS-шлюз (eskiz)',
+    not_completed: 'Не завершили регистрацию (not_completed)',
+    survey_attempts: 'Попытки опроса (survey_attempts)',
+  };
 
   return (
     <div className="space-y-4">
       <DataTable
         key={activeTab}
         sheetType={activeTab}
-        title={tables.find((table) => table.id === activeTab)?.label || ''}
+        title={tableLabels[activeTab]}
         startDate=""
         endDate=""
       />

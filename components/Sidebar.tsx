@@ -474,7 +474,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ duration: 0.16, ease: 'easeOut' }}
-              className="w-[min(88vw,360px)] md:w-[min(42vw,420px)] h-full bg-surface border-r border-border shadow-2xl flex flex-col transform-gpu will-change-transform"
+              className="w-full md:w-[40vw] md:max-w-none h-full bg-surface border-r border-border shadow-2xl flex flex-col transform-gpu will-change-transform"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Верхняя часть меню: Логотип + Крестик */}
@@ -519,7 +519,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                           type="button"
                           onClick={() => setTablesOpen((open) => !open)}
-                          className={`flex w-full items-center justify-between py-3.5 px-2 transition-all active:bg-surface-2/80 group ${
+                          className={`flex w-full items-center justify-between gap-3 py-3.5 px-2 transition-all active:bg-surface-2/80 group ${
                             isTablesActive ? 'text-accent font-bold' : 'text-primary font-medium'
                           }`}
                         >
@@ -527,9 +527,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <span className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isTablesActive ? 'bg-accent text-white' : 'bg-surface-2 text-secondary'}`}>
                               <Database className="w-4 h-4" />
                             </span>
-                            <span className="text-sm tracking-tight">{item.label}</span>
+                            <span className="flex min-w-0 flex-col text-left">
+                              <span className="text-sm tracking-tight leading-tight">{item.label}</span>
+                              <span className="mt-1 truncate text-[11px] leading-none text-secondary/70">{item.subtitle}</span>
+                            </span>
                           </span>
-                          <ChevronDown className={`w-4 h-4 transition-transform ${tablesOpen ? 'rotate-180' : ''}`} />
+                          <ChevronRight className={`h-4 w-4 shrink-0 text-secondary/50 transition-transform ${tablesOpen ? 'rotate-90 text-accent' : 'group-hover:translate-x-0.5'}`} />
                         </button>
                         ) : <Link
                           href={item.href}
@@ -572,10 +575,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           </div>
                         </Link>}
                         {item.href === '/raw' && tablesOpen && (
-                          <div className="ml-10 mr-2 mb-3 space-y-1 rounded-xl border border-border/70 bg-surface-2/40 p-1.5">
+                          <div className="ml-10 mr-2 mb-2 space-y-1 border-l border-border pl-2">
                             {tableNavItems.map((table) => (
                               <Link key={table.href} href={table.href} onClick={() => setMobileDrawerOpen(false)}
-                                className={`flex min-h-11 items-center rounded-lg px-3 text-xs leading-tight transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                                className={`flex min-h-10 items-center rounded-lg px-3 text-xs transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
                                 {table.label}
                               </Link>
                             ))}
@@ -787,7 +790,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <div className="ml-7 mt-1 mb-2 space-y-1 border-l border-border pl-2">
                         {tableNavItems.map((table) => (
                           <Link key={table.href} href={table.href}
-                        className={`flex min-h-10 items-center rounded-lg px-3 text-[11px] leading-tight transition-colors ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
+                            className={`block rounded-lg px-3 py-2 text-[11px] ${pathname === table.href ? 'bg-accent/15 text-accent font-semibold' : 'text-secondary hover:bg-surface-2 hover:text-primary'}`}>
                             {table.label}
                           </Link>
                         ))}
