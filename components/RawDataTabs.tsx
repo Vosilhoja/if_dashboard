@@ -4,7 +4,6 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Users, Phone, MessageSquare, ClipboardCheck } from 'lucide-react';
 import { DataTable } from './DataTable';
-import { Dropdown } from './ui/Dropdown';
 
 export const RawDataTabs: React.FC = () => {
   // Раздел "Таблицы" — независимый просмотр всех данных.
@@ -52,13 +51,26 @@ export const RawDataTabs: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="max-w-xl">
-        <Dropdown
-          value={activeTab}
-          onChange={(value) => router.push(`/raw/${value === 'main' ? 'main-base' : value}`)}
-          ariaLabel="Выбор таблицы"
-          options={tabs.map((tab) => ({ value: tab.id, label: tab.label }))}
-        />
+      <div className="no-scrollbar flex gap-1 overflow-x-auto border-b border-border pb-px">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = tab.id === activeTab;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => router.push(`/raw/${tab.id === 'main' ? 'main-base' : tab.id}`)}
+              className={`flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-xs font-medium transition-colors ${
+                isActive
+                  ? 'border-accent bg-accent-soft text-accent'
+                  : 'border-transparent text-secondary hover:border-border hover:text-primary'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Active Tab Content */}

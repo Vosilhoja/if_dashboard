@@ -535,7 +535,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-10">
+    <div className="space-y-6 pb-10">
       <div>
         <h1 className="text-xl font-bold text-primary tracking-tight">Настройки системы HURMO UZ</h1>
         <p className="text-xs text-secondary mt-0.5">

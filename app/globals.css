@@ -239,6 +239,11 @@ button:not([data-icon-button]) {
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
 }
 
+@keyframes dropdownIn {
+  from { opacity: 0; transform: scaleY(0.95); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
 @media (max-width: 767px) {
   .responsive-data-table {
     overflow: visible;
