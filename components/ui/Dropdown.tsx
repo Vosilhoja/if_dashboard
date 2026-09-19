@@ -80,7 +80,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       {open && position && typeof document !== 'undefined' && createPortal(
         <div
           ref={panelRef}
-          className="fixed z-[2147483647] max-h-64 overflow-y-auto rounded-[6px] border border-border bg-surface p-1 shadow-xl origin-top animate-[dropdownIn_120ms_ease-out]"
+          className="fixed z-[2147483647] max-h-64 overflow-y-auto rounded-[6px] bg-surface p-1 shadow-xl origin-top animate-[dropdownIn_120ms_ease-out]"
           style={{ top: position.top, left: position.left, width: position.width }}
         >
           {options.map((option) => (

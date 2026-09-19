@@ -553,11 +553,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           onClick={() => setTablesOpen((open) => !open)}
                           aria-expanded={tablesOpen}
                           aria-controls="mobile-table-navigation"
-                          className={`relative flex w-full items-center justify-start gap-3 py-8 px-2 text-left transition-all active:bg-surface-2/80 group ${
+                          data-sidebar-tables-button
+                          className={`flex w-full items-center justify-between py-3.5 px-2 text-left outline-none focus:outline-none focus-visible:!shadow-none transition-all active:bg-surface-2/80 group ${
                             isTablesActive ? 'text-accent font-bold' : 'text-primary font-medium'
                           }`}
                         >
-                          <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
                             <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform ${
                               isTablesActive
                                 ? 'bg-accent text-white'
@@ -565,7 +566,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             }`}>
                               <Database className="w-4 h-4" />
                             </div>
-                            <div className="flex flex-col min-w-0 text-left">
+                            <div className="flex flex-col min-w-0">
                               <span className="text-sm tracking-tight leading-tight">{item.label}</span>
                               {item.subtitle && (
                                 <span className={`text-[11px] leading-none mt-1 truncate ${isTablesActive ? 'text-white/75' : 'text-secondary/70'}`}>
@@ -574,7 +575,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               )}
                             </div>
                           </div>
-                          <ChevronRight className={`absolute right-2 w-4 h-4 shrink-0 text-secondary/50 transition-transform ${tablesOpen ? 'rotate-90 text-accent' : 'group-hover:translate-x-0.5'}`} />
+                          <div className="flex items-center gap-2 shrink-0">
+                            <ChevronRight className={`w-4 h-4 text-secondary/50 transition-transform ${tablesOpen ? 'rotate-90 text-accent' : 'group-hover:translate-x-0.5'}`} />
+                          </div>
                         </button>
                         ) : <Link
                           href={item.href}
@@ -799,7 +802,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       aria-expanded={tablesOpen}
                       aria-controls="desktop-table-navigation"
                       title={isCompact ? 'Таблицы' : undefined}
-                      className={`w-full flex items-center gap-3 ${isCompact ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl text-left transition-colors duration-150 cursor-pointer group ${
+                      data-sidebar-tables-button
+                      className={`w-full flex items-center gap-3 ${isCompact ? 'justify-center px-2' : 'px-3'} py-2.5 rounded-xl text-left outline-none focus:outline-none focus-visible:!shadow-none transition-colors duration-150 cursor-pointer group ${
                         isTablesActive ? 'bg-accent text-white font-semibold shadow-xs' : 'text-secondary hover:text-primary hover:bg-surface-2 font-medium'
                       }`}
                     >

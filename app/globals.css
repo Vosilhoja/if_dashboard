@@ -141,6 +141,14 @@ a:focus,
   outline: none;
 }
 
+button[data-sidebar-tables-button],
+button[data-sidebar-tables-button]:focus,
+button[data-sidebar-tables-button]:focus-visible {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* SVG elements inside recharts (Pie/Bar cells) — remove default outline on click */
 svg *:focus {
   outline: none !important;
@@ -248,7 +256,7 @@ button.btn {
 }
 
 /* Keep the height of every standard action control consistent across pages. */
-button:not([data-icon-button]) {
+button:not([data-icon-button]):not([data-sidebar-tables-button]) {
   height: 40px;
   min-height: 40px;
   align-items: center;
@@ -260,6 +268,18 @@ button:not([data-icon-button]) {
   font-weight: 500;
   transition: all 0.15s ease;
   cursor: pointer;
+}
+
+/* Ranking rows contain a full-width label and progress bar; do not apply the
+   centered action-button layout to them. */
+button[data-map-ranking-row] {
+  height: auto !important;
+  min-height: 64px !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
 }
 
 /* Unified dropdown/select styling */

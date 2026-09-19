@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const controlClassName =
-  'h-10 min-h-10 rounded-[6px] border border-border bg-surface-2 px-3 text-xs text-primary outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/15';
+  'h-10 min-h-10 rounded-[6px] bg-surface-2 px-3 text-xs text-primary outline-none transition-colors focus:ring-2 focus:ring-accent/15';
 
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className = '', ...props }, ref) => (

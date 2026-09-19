@@ -166,6 +166,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   const lastFetchTimestampRef = useRef<number>(0);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const manualRetryRef = useRef<{ params: URLSearchParams } | null>(null);
+  const dataRef = useRef<SheetPaginatedResponse | null>(null);
 
   const buildQueryString = useCallback((p = page, search = activeSearch, size = pageSize) => {
     const params = new URLSearchParams({
@@ -226,6 +227,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       const cached = readCache(queryKey);
       if (cached) {
         setData(cached);
+        dataRef.current = cached;
         setError(null);
         setLoading(false);
         stopProgressAnimation(100);
@@ -257,6 +259,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
         const json: SheetPaginatedResponse = await res.json();
         if (controller.signal.aborted) return;
         setData(json);
+        dataRef.current = json;
         setError(null);
         writeCache(queryKey, json);
         lastQueryKeyRef.current = queryKey;
@@ -276,8 +279,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       }
     };
 
-    debounceTimerRef.current = setTimeout(doFetch, data ? DEBOUNCE_MS : 0);
-  }, [page, activeSearch, pageSize, buildQueryString, sheetType, data]);
+    debounceTimerRef.current = setTimeout(doFetch, dataRef.current ? DEBOUNCE_MS : 0);
+  }, [page, activeSearch, pageSize, buildQueryString, sheetType]);
 
   const retryLastFetch = () => {
     if (!manualRetryRef.current) {

@@ -190,7 +190,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
   const panPointerId = useRef<number | null>(null);
   const startPan = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   const isPanningRef = useRef(false);
@@ -203,7 +202,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const [flashRegion, setFlashRegion] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const interactionRef = useRef<HTMLDivElement>(null);
   const mapBBoxRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
 
   const activeHoveredRegion = useRef<string | null>(null);
@@ -544,26 +542,27 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   }, [applyTransform, transform]);
 
   useEffect(() => {
-    const element = interactionRef.current;
+    const element = containerRef.current;
     if (!element) return;
 
     const handleNativeWheel = (event: WheelEvent) => {
       if (!event.altKey) return;
       event.preventDefault();
+      event.stopPropagation();
       handleWheel(event as unknown as React.WheelEvent);
     };
 
-    element.addEventListener('wheel', handleNativeWheel, { passive: false });
-    return () => element.removeEventListener('wheel', handleNativeWheel);
+    element.addEventListener('wheel', handleNativeWheel, { passive: false, capture: true });
+    return () => element.removeEventListener('wheel', handleNativeWheel, true);
   }, [handleWheel]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     panPointerId.current = e.pointerId;
     isPanningRef.current = true;
     didPanRef.current = false;
-    setIsPanning(true);
     startPan.current = {
       x: e.clientX,
       y: e.clientY,
@@ -574,6 +573,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isPanningRef.current || panPointerId.current !== e.pointerId) return;
+    e.preventDefault();
     const svgEl = containerRef.current?.querySelector('svg');
     let ratioX = 1;
     let ratioY = 1;
@@ -597,7 +597,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     }
     panPointerId.current = null;
     isPanningRef.current = false;
-    setIsPanning(false);
   };
 
   const handleRegionHoverEnter = (
@@ -693,7 +692,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
           <span className="font-semibold text-primary">14 административных регионов</span>
           <span className="text-secondary text-[11px] hidden sm:inline">
-            • Кликните по области для приближения, Ctrl/Cmd + колесо — зум
+            • Кликните по области для приближения, Alt + колесо — зум, перетаскивание — панорама
           </span>
         </div>
 
@@ -704,7 +703,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
       <div className="relative min-h-[560px] w-full flex-1">
         <div
-          ref={interactionRef}
           className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3 cursor-grab active:cursor-grabbing"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
