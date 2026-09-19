@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export async function GET(request: Request) {
   const token = request.headers.get('cookie')?.match(/hurmo_jwt_token=([^;]+)/)?.[1];

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('hurmo_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });

@@ -8,7 +8,7 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // Базовый URL бэкенда (по умолчанию Fly.io или localhost в dev)
 export const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
+  process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const api = axios.create({
   baseURL: '/api/proxy',

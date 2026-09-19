@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 async function proxy(request: NextRequest, method: 'GET' | 'POST') {
   const token = request.cookies.get('hurmo_jwt_token')?.value;
