@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 /** DELETE /api/proxy/admin/users/[id] — удаление пользователя */
 export async function DELETE(
@@ -15,7 +14,7 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const backendRes = await fetch(`${BACKEND_URL}/api/admin/users/${id}`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/admin/users/${id}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

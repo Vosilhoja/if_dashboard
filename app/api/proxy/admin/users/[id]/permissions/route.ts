@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 /** PATCH /api/proxy/admin/users/[id]/permissions — обновление разрешенных страниц/прав пользователя */
 export async function PATCH(
@@ -16,7 +15,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
 
-    const backendRes = await fetch(`${BACKEND_URL}/api/admin/users/${id}/permissions`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/admin/users/${id}/permissions`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${token}`,

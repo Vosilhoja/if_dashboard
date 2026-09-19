@@ -1,7 +1,7 @@
 // lib/dashboard-cache.ts
 import { DashboardMetrics } from './types';
 
-const CACHE_KEY = 'hurmo-dashboard-cache-v2';
+const CACHE_KEY = 'talvera-dashboard-cache-v2';
 const STALE_AFTER_MS = 4 * 60 * 1000;
 
 export interface CachedDashboard {
@@ -31,7 +31,7 @@ export function loadCachedDashboard(): CachedDashboard | null {
   try {
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) {
-      window.localStorage.removeItem('hurmo-dashboard-cache-v1');
+      window.localStorage.removeItem('talvera-dashboard-cache-v1');
       return null;
     }
     const parsed = JSON.parse(raw) as CachedDashboard;
@@ -62,7 +62,7 @@ export function clearCachedDashboard(): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(CACHE_KEY);
-    window.localStorage.removeItem('hurmo-dashboard-cache-v1');
+    window.localStorage.removeItem('talvera-dashboard-cache-v1');
   } catch {
     // ignore
   }

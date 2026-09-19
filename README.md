@@ -1,6 +1,6 @@
-# HURMO UZ Dashboard
+# Talvera Dashboard
 
-Responsive Next.js dashboard for HURMO RESEARCH call-center operations and registration funnel analytics.
+Responsive Next.js dashboard for Talvera call-center operations and registration funnel analytics.
 
 ## Features
 
@@ -29,7 +29,7 @@ Responsive Next.js dashboard for HURMO RESEARCH call-center operations and regis
 ## Quick start
 
 ```bash
-cd if_dashboard_site
+cd talvera-web
 npm ci
 copy .env.example .env.local
 ```
@@ -40,7 +40,7 @@ Set only the public backend URL:
 NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 ```
 
-Run the backend separately from `if_dashboard_backend`.
+Run the backend separately from `talvera-api`.
 
 ```bash
 npm run dev          # http://localhost:3000
@@ -192,7 +192,7 @@ Desktop sidebar имеет ширину от `76px` до `360px`. Перетас
 - браузерное выделение текста отключается;
 - весь курсор получает `col-resize`;
 - ссылки и кнопки не становятся случайно активными;
-- ширина сохраняется в `localStorage` под ключом `hurmo-sidebar-width`.
+- ширина сохраняется в `localStorage` под ключом `talvera-sidebar-width`.
 
 При ширине до `100px` включается compact mode: отображаются логотип-буква, иконки навигации, sync, theme и logout; подписи и badges скрываются. На mobile используется отдельный drawer и burger-кнопка. Синхронизация не закрывает drawer автоматически.
 

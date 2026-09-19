@@ -1,6 +1,7 @@
 /**
  * Authentication token helper with migration fallback
  * Reads talvera_jwt_token, falls back to hurmo_jwt_token for smooth migration
+ * TODO: Remove hurmo_jwt_token fallback after migration period (e.g., 30 days)
  */
 
 export function getAuthToken(request: Request): string | null {

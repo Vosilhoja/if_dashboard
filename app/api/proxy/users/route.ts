@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,7 +7,7 @@ export async function GET(request: NextRequest) {
     if (!token) {
       return NextResponse.json([], { status: 200 });
     }
-    const backendRes = await fetch(`${BACKEND_URL}/api/admin/users`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await backendRes.json().catch(() => ({}));

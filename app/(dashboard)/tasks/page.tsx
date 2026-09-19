@@ -728,7 +728,7 @@ export default function TasksPage() {
                   <input
                     value={form.linkedUserId}
                     onChange={(e) => setForm({ ...form, linkedUserId: e.target.value })}
-                    placeholder="ID пользователя Hurmo CRM"
+                    placeholder="ID пользователя Talvera CRM"
                     className="w-full rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-primary outline-none focus:border-accent/70 placeholder:text-secondary/60 transition-colors"
                   />
                 </div>

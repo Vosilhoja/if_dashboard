@@ -599,7 +599,7 @@ export default function SettingsPage() {
       setSyncTimestamps((prev) => {
         const next = { ...prev, statusSync: now };
         if (typeof window !== 'undefined') {
-          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+          localStorage.setItem('talvera_sync_timestamps', JSON.stringify(next));
         }
         return next;
       });
@@ -611,7 +611,7 @@ export default function SettingsPage() {
       setSyncTimestamps((prev) => {
         const next = { ...prev, statusSync: now };
         if (typeof window !== 'undefined') {
-          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+          localStorage.setItem('talvera_sync_timestamps', JSON.stringify(next));
         }
         return next;
       });
@@ -634,7 +634,7 @@ export default function SettingsPage() {
       setSyncTimestamps((prev) => {
         const next = { ...prev, classifyUnmatched: now };
         if (typeof window !== 'undefined') {
-          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+          localStorage.setItem('talvera_sync_timestamps', JSON.stringify(next));
         }
         return next;
       });
@@ -646,7 +646,7 @@ export default function SettingsPage() {
       setSyncTimestamps((prev) => {
         const next = { ...prev, classifyUnmatched: now };
         if (typeof window !== 'undefined') {
-          localStorage.setItem('hurmo_sync_timestamps', JSON.stringify(next));
+          localStorage.setItem('talvera_sync_timestamps', JSON.stringify(next));
         }
         return next;
       });
@@ -658,14 +658,14 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       // Anomaly threshold
-      const savedThreshold = localStorage.getItem('hurmo_anomaly_threshold');
+      const savedThreshold = localStorage.getItem('talvera_anomaly_threshold');
       if (savedThreshold) {
         const val = parseInt(savedThreshold, 10);
         if (!isNaN(val) && val > 0) setAnomalyThreshold(val);
       }
 
       // History
-      const savedHistory = localStorage.getItem('hurmo_threshold_history');
+      const savedHistory = localStorage.getItem('talvera_threshold_history');
       if (savedHistory) {
         try {
           setThresholdHistory(JSON.parse(savedHistory));
@@ -675,63 +675,63 @@ export default function SettingsPage() {
       }
 
       // Auto-refresh interval
-      const savedInterval = localStorage.getItem('hurmo_auto_refresh_interval');
+      const savedInterval = localStorage.getItem('talvera_auto_refresh_interval');
       if (savedInterval !== null) {
         setAutoRefreshInterval(parseInt(savedInterval, 10));
       }
 
       // Quality thresholds
-      const savedWarn = localStorage.getItem('hurmo_quality_warn');
+      const savedWarn = localStorage.getItem('talvera_quality_warn');
       if (savedWarn) setQualityWarningThreshold(parseInt(savedWarn, 10));
 
-      const savedCrit = localStorage.getItem('hurmo_quality_crit');
+      const savedCrit = localStorage.getItem('talvera_quality_crit');
       if (savedCrit) setQualityCriticalThreshold(parseInt(savedCrit, 10));
 
       // Notifications
-      const savedBanner = localStorage.getItem('hurmo_show_anomaly_banner');
+      const savedBanner = localStorage.getItem('talvera_show_anomaly_banner');
       if (savedBanner !== null) setShowAnomalyBanner(savedBanner === 'true');
 
-      const savedTgUrl = localStorage.getItem('hurmo_tg_webhook');
+      const savedTgUrl = localStorage.getItem('talvera_tg_webhook');
       if (savedTgUrl) setTelegramWebhookUrl(savedTgUrl);
 
-      const savedTgChat = localStorage.getItem('hurmo_tg_chat_id');
+      const savedTgChat = localStorage.getItem('talvera_tg_chat_id');
       if (savedTgChat) setTelegramChatId(savedTgChat);
 
       // Export settings
-      const savedDelim = localStorage.getItem('hurmo_csv_delimiter');
+      const savedDelim = localStorage.getItem('talvera_csv_delimiter');
       if (savedDelim) setCsvDelimiter(savedDelim);
 
-      const savedBom = localStorage.getItem('hurmo_csv_bom');
+      const savedBom = localStorage.getItem('talvera_csv_bom');
       if (savedBom !== null) setCsvBom(savedBom === 'true');
 
-      const savedFormat = localStorage.getItem('hurmo_export_format');
+      const savedFormat = localStorage.getItem('talvera_export_format');
       if (savedFormat === 'csv' || savedFormat === 'xlsx') setDefaultExportFormat(savedFormat);
-      const savedAudit = localStorage.getItem('hurmo-audit-log');
+      const savedAudit = localStorage.getItem('talvera-audit-log');
       if (savedAudit) {
         try { setAuditLog(JSON.parse(savedAudit)); } catch { /* ignore malformed audit log */ }
       }
 
       // Load advanced system settings
-      const retentionDays = localStorage.getItem('hurmo_data_retention_days');
+      const retentionDays = localStorage.getItem('talvera_data_retention_days');
       if (retentionDays) setDataRetentionDays(Number(retentionDays));
       
-      const autoCleanup = localStorage.getItem('hurmo_enable_auto_cleanup');
+      const autoCleanup = localStorage.getItem('talvera_enable_auto_cleanup');
       if (autoCleanup) setEnableAutoCleanup(autoCleanup === 'true');
       
-      const auditLogEnabled = localStorage.getItem('hurmo_enable_audit_log');
+      const auditLogEnabled = localStorage.getItem('talvera_enable_audit_log');
       if (auditLogEnabled) setEnableAuditLog(auditLogEnabled === 'true');
       
-      const rateLimitEnabled = localStorage.getItem('hurmo_api_rate_limit_enabled');
+      const rateLimitEnabled = localStorage.getItem('talvera_api_rate_limit_enabled');
       if (rateLimitEnabled) setApiRateLimitEnabled(rateLimitEnabled === 'true');
       
-      const rateLimitPerMinute = localStorage.getItem('hurmo_api_rate_limit_per_minute');
+      const rateLimitPerMinute = localStorage.getItem('talvera_api_rate_limit_per_minute');
       if (rateLimitPerMinute) setApiRateLimitPerMinute(Number(rateLimitPerMinute));
       
-      const perfMonitoring = localStorage.getItem('hurmo_enable_performance_monitoring');
+      const perfMonitoring = localStorage.getItem('talvera_enable_performance_monitoring');
       if (perfMonitoring) setEnablePerformanceMonitoring(perfMonitoring === 'true');
 
       // NEW: ADVANCED SYNC timestamps
-      const savedSync = localStorage.getItem('hurmo_sync_timestamps');
+      const savedSync = localStorage.getItem('talvera_sync_timestamps');
       if (savedSync) {
         try {
           const parsed = JSON.parse(savedSync);
@@ -768,7 +768,7 @@ export default function SettingsPage() {
         const interval = dataSettingsRes?.autoRefresh?.intervalMinutes;
         if (Number.isInteger(interval) && interval >= 0) {
           setAutoRefreshInterval(interval);
-          localStorage.setItem('hurmo_auto_refresh_interval', String(interval));
+          localStorage.setItem('talvera_auto_refresh_interval', String(interval));
         }
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить параметры');
@@ -790,13 +790,13 @@ export default function SettingsPage() {
   const recordAudit = (action: string, detail: string) => {
     const next = [{ timestamp: new Date().toLocaleString('ru-RU'), action, detail }, ...auditLog].slice(0, 50);
     setAuditLog(next);
-    localStorage.setItem('hurmo-audit-log', JSON.stringify(next));
+    localStorage.setItem('talvera-audit-log', JSON.stringify(next));
   };
 
   const handleSaveThreshold = (newVal: number) => {
     setAnomalyThreshold(newVal);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hurmo_anomaly_threshold', newVal.toString());
+      localStorage.setItem('talvera_anomaly_threshold', newVal.toString());
 
       const updatedHistory: ThresholdLogItem[] = [
         {
@@ -806,7 +806,7 @@ export default function SettingsPage() {
         ...thresholdHistory.slice(0, 4),
       ];
       setThresholdHistory(updatedHistory);
-      localStorage.setItem('hurmo_threshold_history', JSON.stringify(updatedHistory));
+      localStorage.setItem('talvera_threshold_history', JSON.stringify(updatedHistory));
 
       setIsSavedThreshold(true);
       setTimeout(() => setIsSavedThreshold(false), 2000);
@@ -863,7 +863,7 @@ export default function SettingsPage() {
         ...prev,
         [sheetKey]: `Загружено строк: ${(data.total || 0).toLocaleString('ru-RU')}`,
       }));
-      window.dispatchEvent(new Event('hurmo:sync'));
+      window.dispatchEvent(new Event('talvera:sync'));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Не удалось загрузить таблицу полностью');
     } finally {
@@ -874,8 +874,8 @@ export default function SettingsPage() {
   const handleSaveAutoRefresh = (minutes: number) => {
     setAutoRefreshInterval(minutes);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hurmo_auto_refresh_interval', String(minutes));
-      window.dispatchEvent(new Event('hurmo:auto-refresh-changed'));
+      localStorage.setItem('talvera_auto_refresh_interval', String(minutes));
+      window.dispatchEvent(new Event('talvera:auto-refresh-changed'));
     }
     void fetch('/api/proxy/data/settings', {
       method: 'PUT',
@@ -896,16 +896,16 @@ export default function SettingsPage() {
     setQualityWarningThreshold(warn);
     setQualityCriticalThreshold(crit);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hurmo_quality_warn', String(warn));
-      localStorage.setItem('hurmo_quality_crit', String(crit));
+      localStorage.setItem('talvera_quality_warn', String(warn));
+      localStorage.setItem('talvera_quality_crit', String(crit));
     }
   };
 
   const handleSaveTelegram = () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hurmo_show_anomaly_banner', String(showAnomalyBanner));
-      localStorage.setItem('hurmo_tg_webhook', telegramWebhookUrl);
-      localStorage.setItem('hurmo_tg_chat_id', telegramChatId);
+      localStorage.setItem('talvera_show_anomaly_banner', String(showAnomalyBanner));
+      localStorage.setItem('talvera_tg_webhook', telegramWebhookUrl);
+      localStorage.setItem('talvera_tg_chat_id', telegramChatId);
       setTelegramTestStatus('Сохранено');
       setTimeout(() => setTelegramTestStatus(null), 2500);
     }
@@ -916,9 +916,9 @@ export default function SettingsPage() {
     setCsvBom(bom);
     setDefaultExportFormat(format);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hurmo_csv_delimiter', delim);
-      localStorage.setItem('hurmo_csv_bom', String(bom));
-      localStorage.setItem('hurmo_export_format', format);
+      localStorage.setItem('talvera_csv_delimiter', delim);
+      localStorage.setItem('talvera_csv_bom', String(bom));
+      localStorage.setItem('talvera_export_format', format);
     }
     recordAudit('Настройки экспорта', `Формат: ${format.toUpperCase()}, разделитель: ${delim}`);
   };
@@ -942,7 +942,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-xl font-bold text-primary tracking-tight">Настройки системы HURMO UZ</h1>
+        <h1 className="text-xl font-bold text-primary tracking-tight">Настройки системы Talvera</h1>
         <p className="text-xs text-secondary mt-0.5">
           Управление источниками данных, порогами аномалий, интервалами синхронизации и параметрами экспорта
         </p>
@@ -1358,12 +1358,12 @@ export default function SettingsPage() {
 
         <button
           onClick={() => {
-            localStorage.setItem('hurmo_data_retention_days', String(dataRetentionDays));
-            localStorage.setItem('hurmo_enable_auto_cleanup', String(enableAutoCleanup));
-            localStorage.setItem('hurmo_enable_audit_log', String(enableAuditLog));
-            localStorage.setItem('hurmo_api_rate_limit_enabled', String(apiRateLimitEnabled));
-            localStorage.setItem('hurmo_api_rate_limit_per_minute', String(apiRateLimitPerMinute));
-            localStorage.setItem('hurmo_enable_performance_monitoring', String(enablePerformanceMonitoring));
+            localStorage.setItem('talvera_data_retention_days', String(dataRetentionDays));
+            localStorage.setItem('talvera_enable_auto_cleanup', String(enableAutoCleanup));
+            localStorage.setItem('talvera_enable_audit_log', String(enableAuditLog));
+            localStorage.setItem('talvera_api_rate_limit_enabled', String(apiRateLimitEnabled));
+            localStorage.setItem('talvera_api_rate_limit_per_minute', String(apiRateLimitPerMinute));
+            localStorage.setItem('talvera_enable_performance_monitoring', String(enablePerformanceMonitoring));
             recordAudit('Системные настройки', 'Обновлены расширенные настройки');
             setTelegramTestStatus('Сохранено');
             setTimeout(() => setTelegramTestStatus(null), 2500);
@@ -1490,7 +1490,7 @@ export default function SettingsPage() {
         <div className="border-t border-border/50 pt-3">
           <div className="flex items-center justify-between mb-2">
             <span className="flex items-center gap-1.5 text-[11px] font-medium text-secondary"><History className="w-3 h-3" />Журнал действий</span>
-            <button type="button" onClick={() => { setAuditLog([]); localStorage.removeItem('hurmo-audit-log'); }} className="text-[11px] text-secondary hover:text-rose-500">Очистить</button>
+            <button type="button" onClick={() => { setAuditLog([]); localStorage.removeItem('talvera-audit-log'); }} className="text-[11px] text-secondary hover:text-rose-500">Очистить</button>
           </div>
           {auditLog.length === 0 ? <p className="text-[11px] text-secondary">Изменения настроек будут отображаться здесь.</p> : (
             <div className="max-h-40 overflow-y-auto space-y-1.5">
@@ -1603,7 +1603,7 @@ export default function SettingsPage() {
 
           <div className="p-3 rounded-[6px] bg-blue-500/5 border border-blue-500/20 text-[11px] text-blue-600 dark:text-blue-400 space-y-1">
             <p className="font-semibold">ℹ️ О временных метках:</p>
-            <p>Даты последних запусков сохраняются локально в <code className="font-mono bg-surface px-1 rounded">localStorage</code> (ключ <code className="font-mono bg-surface px-1 rounded">hurmo_sync_timestamps</code>).</p>
+            <p>Даты последних запусков сохраняются локально в <code className="font-mono bg-surface px-1 rounded">localStorage</code> (ключ <code className="font-mono bg-surface px-1 rounded">talvera_sync_timestamps</code>).</p>
             <p>Если бэкенд-эндпоинты ещё не реализованы — дата обновляется на стороне клиента для демонстрации UX.</p>
           </div>
         </section>

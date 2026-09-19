@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/data/sync`, {
+    const response = await fetch(`${getBackendUrl()}/api/data/sync`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',

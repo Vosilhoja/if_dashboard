@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
     try {
       // Read custom anomaly threshold from localStorage if configured in settings
-      const customThreshold = typeof window !== 'undefined' ? localStorage.getItem('hurmo_anomaly_threshold') : null;
+      const customThreshold = typeof window !== 'undefined' ? localStorage.getItem('talvera_anomaly_threshold') : null;
 
       const data = await getMetrics({
         startDate: filterMode !== 'alltime' ? start : undefined,
@@ -138,9 +138,9 @@ export default function DashboardPage() {
       attemptStatus,
       controller.signal,
     );
-    window.addEventListener('hurmo:sync', handleSync);
+    window.addEventListener('talvera:sync', handleSync);
     return () => {
-      window.removeEventListener('hurmo:sync', handleSync);
+      window.removeEventListener('talvera:sync', handleSync);
       controller.abort();
     };
   }, [startDate, endDate, attemptFilter, attemptRegion, attemptStatus]);

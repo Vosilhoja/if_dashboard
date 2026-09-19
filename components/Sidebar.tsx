@@ -221,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (!response.ok) throw new Error(`Sync failed: ${response.status}`);
       // Refresh all open dashboard/table views as soon as the five sheets are
       // synchronized; status classification is a separate background task.
-      window.dispatchEvent(new CustomEvent('hurmo:sync'));
+      window.dispatchEvent(new CustomEvent('talvera:sync'));
       void (async () => {
         try {
         const classifyResponse = await fetch('/api/proxy/admin/statuses/classify-unmatched', {
@@ -277,15 +277,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   useEffect(() => {
-    const savedWidth = Number(window.localStorage.getItem('hurmo-sidebar-width'));
+    const savedWidth = Number(window.localStorage.getItem('talvera-sidebar-width'));
     if (Number.isFinite(savedWidth)) setSidebarWidth(Math.min(400, Math.max(240, savedWidth)));
-    setSidebarCollapsed(window.localStorage.getItem('hurmo-sidebar-collapsed') === 'true');
+    setSidebarCollapsed(window.localStorage.getItem('talvera-sidebar-collapsed') === 'true');
   }, []);
 
   const toggleSidebarCollapsed = () => {
     setSidebarCollapsed((collapsed) => {
       const next = !collapsed;
-      window.localStorage.setItem('hurmo-sidebar-collapsed', String(next));
+      window.localStorage.setItem('talvera-sidebar-collapsed', String(next));
       return next;
     });
   };
@@ -321,12 +321,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   useEffect(() => {
     const handleSettingsChange = () => setAutoRefreshVersion((version) => version + 1);
-    window.addEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
-    return () => window.removeEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
+    window.addEventListener('talvera:auto-refresh-changed', handleSettingsChange);
+    return () => window.removeEventListener('talvera:auto-refresh-changed', handleSettingsChange);
   }, []);
 
   useEffect(() => {
-    const intervalMinutes = Number(window.localStorage.getItem('hurmo_auto_refresh_interval') || '0');
+    const intervalMinutes = Number(window.localStorage.getItem('talvera_auto_refresh_interval') || '0');
     if (!Number.isFinite(intervalMinutes) || intervalMinutes <= 0) return;
 
     const timer = window.setInterval(() => {
@@ -354,7 +354,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (!resizingRef.current) return;
       const next = Math.min(400, Math.max(240, event.clientX));
       setSidebarWidth(next);
-      window.localStorage.setItem('hurmo-sidebar-width', String(next));
+      window.localStorage.setItem('talvera-sidebar-width', String(next));
     };
     const stop = () => {
       if (!resizingRef.current) return;
@@ -458,7 +458,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="font-extrabold text-sm text-primary tracking-tight">
-              hurmo<span className="text-accent">uz</span>
+              talvera
             </span>
             <span className="px-1.5 py-0.2 rounded-full bg-accent/15 text-accent text-[9px] font-bold font-mono">
               PRO
@@ -536,7 +536,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className="flex items-center gap-2"
                   >
                     <span className="font-black text-xl text-primary tracking-tight">
-                      hurmo<span className="text-accent">uz</span>
+                      talvera
                     </span>
                   </Link>
 
@@ -767,7 +767,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className={`flex flex-col min-w-0 ${isCompact ? 'hidden' : ''}`}>
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold text-primary tracking-tight leading-none">
-                      HURMO UZ
+                      Talvera
                     </span>
                     <span className="px-1.5 py-0.2 rounded-full bg-accent/15 text-accent text-[9px] font-bold font-mono border border-accent/20">
                       PRO

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 async function proxy(request: NextRequest, method: 'GET' | 'POST') {
   const token = request.cookies.get('talvera_jwt_token')?.value;
@@ -9,8 +8,8 @@ async function proxy(request: NextRequest, method: 'GET' | 'POST') {
     const body = method === 'POST' ? JSON.stringify(await request.json()) : undefined;
     const queryString = request.nextUrl.searchParams.toString();
     const endpointPath = method === 'POST'
-      ? `${BACKEND_URL}/api/admin/statuses/suggestions/${request.nextUrl.searchParams.get('id') || ''}/assign`
-      : `${BACKEND_URL}/api/admin/statuses/suggestions${queryString ? `?${queryString}` : ''}`;
+      ? `${getBackendUrl()}/api/admin/statuses/suggestions/${request.nextUrl.searchParams.get('id') || ''}/assign`
+      : `${getBackendUrl()}/api/admin/statuses/suggestions${queryString ? `?${queryString}` : ''}`;
     const response = await fetch(
       endpointPath,
       {

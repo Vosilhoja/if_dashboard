@@ -11,7 +11,7 @@ export interface ToastMessage {
 
 export function showToast(title: string, type: 'success' | 'error' | 'info' = 'success') {
   if (typeof window !== 'undefined') {
-    const event = new CustomEvent('hurmo_toast', {
+    const event = new CustomEvent('talvera_toast', {
       detail: { id: Math.random().toString(36).slice(2), title, type },
     });
     window.dispatchEvent(event);
@@ -31,8 +31,8 @@ export const ToastContainer: React.FC = () => {
       }, 3500);
     };
 
-    window.addEventListener('hurmo_toast', handleToast);
-    return () => window.removeEventListener('hurmo_toast', handleToast);
+    window.addEventListener('talvera_toast', handleToast);
+    return () => window.removeEventListener('talvera_toast', handleToast);
   }, []);
 
   if (toasts.length === 0) return null;

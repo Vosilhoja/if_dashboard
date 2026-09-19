@@ -71,7 +71,7 @@ function LoginForm() {
           </div>
           <div>
             <h1 className="text-lg font-semibold text-primary tracking-tight">
-              HURMO UZ Analytics
+              Talvera Analytics
             </h1>
             <p className="text-[11px] text-secondary mt-0.5">
               Внутренний аналитический инструмент. Введите учетные данные для доступа.

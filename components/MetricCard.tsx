@@ -224,7 +224,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           </div>
         ) : (
           <div className="text-secondary font-mono text-[10px]">
-            HURMO Research
+            Talvera
           </div>
         )}
 

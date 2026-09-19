@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 async function requestBackend(request: Request, method: 'GET' | 'POST' | 'PUT' | 'DELETE') {
   const token = (await cookies()).get('talvera_jwt_token')?.value;
@@ -12,7 +11,7 @@ async function requestBackend(request: Request, method: 'GET' | 'POST' | 'PUT' |
     const pathParts = url.pathname.split('/api/proxy/admin/statuses/').filter(Boolean);
     const backendPath = pathParts.join('/');
     
-    const response = await fetch(`${BACKEND_URL}/api/admin/${backendPath}${url.search}`, {
+    const response = await fetch(`${getBackendUrl()}/api/admin/${backendPath}${url.search}`, {
       method,
       headers: { 
         Authorization: `Bearer ${token}`,

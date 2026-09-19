@@ -168,10 +168,10 @@ export default function StatusesPage() {
       };
       void pollJob();
     };
-    window.addEventListener('hurmo:sync', refreshSuggestions);
+    window.addEventListener('talvera:sync', refreshSuggestions);
 
     return () => {
-      window.removeEventListener('hurmo:sync', refreshSuggestions);
+      window.removeEventListener('talvera:sync', refreshSuggestions);
       cancelled = true;
       if (pollTimeout !== null) window.clearTimeout(pollTimeout);
     };

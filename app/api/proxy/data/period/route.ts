@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendErrorResponse } from '@/lib/proxy-response';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const backendUrl = `${BACKEND_URL}/api/data/period?${searchParams.toString()}`;
+    const backendUrl = `${getBackendUrl()}/api/data/period?${searchParams.toString()}`;
 
     const backendRes = await fetch(backendUrl, {
       cache: 'no-store',

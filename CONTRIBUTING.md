@@ -1,4 +1,4 @@
-﻿# Contributing to HURMO UZ Dashboard
+﻿# Contributing to Talvera Dashboard
 
 ## Prerequisites
 - Node.js >= 20
@@ -8,8 +8,8 @@
 ## Setup
 
 ```bash
-git clone https://github.com/Vosilhoja/if_dashboard.git
-cd if_dashboard
+git clone https://github.com/Vosilhoja/talvera-web.git
+cd talvera-web
 npm install
 cp .env.example .env.local
 # Fill in .env.local with real credentials

@@ -24,9 +24,9 @@ export const DataQualityCard: React.FC<Props> = ({ quality, loading }) => {
 
   React.useEffect(() => {
     try {
-      const savedWarn = localStorage.getItem('hurmo_quality_warn');
+      const savedWarn = localStorage.getItem('talvera_quality_warn');
       if (savedWarn) setWarnThreshold(parseInt(savedWarn, 10));
-      const savedCrit = localStorage.getItem('hurmo_quality_crit');
+      const savedCrit = localStorage.getItem('talvera_quality_crit');
       if (savedCrit) setCritThreshold(parseInt(savedCrit, 10));
     } catch {
       // ignore in SSR

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 /** GET /api/proxy/admin/users — список пользователей */
 export async function GET(request: NextRequest) {
@@ -10,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
 
-    const backendRes = await fetch(`${BACKEND_URL}/api/admin/users`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/admin/users`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
 
-    const backendRes = await fetch(`${BACKEND_URL}/api/admin/users`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/admin/users`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

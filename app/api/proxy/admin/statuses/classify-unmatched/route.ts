@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 async function requestBackend(request: Request, method: 'GET' | 'POST') {
   const token = (await cookies()).get('talvera_jwt_token')?.value;
@@ -9,7 +8,7 @@ async function requestBackend(request: Request, method: 'GET' | 'POST') {
   try {
     const url = new URL(request.url);
     const jobId = url.searchParams.get('jobId');
-    const response = await fetch(`${BACKEND_URL}/api/admin/statuses/classify-unmatched${jobId ? `/${encodeURIComponent(jobId)}` : ''}`, {
+    const response = await fetch(`${getBackendUrl()}/api/admin/statuses/classify-unmatched${jobId ? `/${encodeURIComponent(jobId)}` : ''}`, {
       method,
       headers: { 
         Authorization: `Bearer ${token}`,

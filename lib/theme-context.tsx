@@ -8,7 +8,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    const saved = localStorage.getItem('hurmo-theme') as Theme | null;
+    const saved = localStorage.getItem('talvera-theme') as Theme | null;
     const initial = saved ?? 'dark';
     setTheme(initial);
     document.documentElement.classList.toggle('dark', initial === 'dark');
@@ -17,7 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     setTheme((prev) => {
       const next = prev === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('hurmo-theme', next);
+      localStorage.setItem('talvera-theme', next);
       document.documentElement.classList.toggle('dark', next === 'dark');
       return next;
     });

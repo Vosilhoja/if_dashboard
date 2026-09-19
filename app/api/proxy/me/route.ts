@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +9,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
 
-    const backendRes = await fetch(`${BACKEND_URL}/api/auth/me`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

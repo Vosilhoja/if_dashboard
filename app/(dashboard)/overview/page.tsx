@@ -45,7 +45,7 @@ interface SheetHealth {
   lastSync: string;
 }
 
-const OVERVIEW_ANALYTICS_CACHE_KEY = 'hurmo-overview-analytics-v1';
+const OVERVIEW_ANALYTICS_CACHE_KEY = 'talvera-overview-analytics-v1';
 
 export default function OverviewPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -63,7 +63,7 @@ export default function OverviewPage() {
 
   useEffect(() => {
     try {
-      const pref = localStorage.getItem('hurmo_show_anomaly_banner') ?? localStorage.getItem('hurmo_anomaly_notifications');
+      const pref = localStorage.getItem('talvera_show_anomaly_banner') ?? localStorage.getItem('talvera_anomaly_notifications');
       if (pref !== null) {
         setAnomalyAlertsEnabled(pref === 'true');
       }
@@ -149,9 +149,9 @@ export default function OverviewPage() {
     void loadOverviewData(false, controller.signal);
 
     const handleSync = () => void loadOverviewData(false, controller.signal);
-    window.addEventListener('hurmo:sync', handleSync);
+    window.addEventListener('talvera:sync', handleSync);
     return () => {
-      window.removeEventListener('hurmo:sync', handleSync);
+      window.removeEventListener('talvera:sync', handleSync);
       controller.abort();
     };
      
@@ -551,7 +551,7 @@ export default function OverviewPage() {
       <section className="hidden" aria-hidden="true">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-primary tracking-tight">
-            Почему выбирают hurmouz
+            Почему выбирают Talvera
           </h2>
           <p className="text-xs sm:text-sm text-secondary mt-1">
             Ключевые инструменты и модули для анализа колл-центра и базы респондентов

@@ -8,7 +8,7 @@ export default function NotFound() {
       </div>
       <h1 className="text-3xl font-extrabold tracking-tight mb-2">Страница не найдена</h1>
       <p className="text-gray-400 max-w-md mb-8 text-sm leading-relaxed">
-        У вас нет доступа к этой странице или запрашиваемый адрес не существует в системе HURMO UZ.
+        У вас нет доступа к этой странице или запрашиваемый адрес не существует в системе Talvera.
       </p>
       <Link
         href="/overview"

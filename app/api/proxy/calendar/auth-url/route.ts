@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
-  const response = await fetch(`${BACKEND_URL}/api/calendar/auth-url`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+  const response = await fetch(`${getBackendUrl()}/api/calendar/auth-url`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
   return NextResponse.json(await response.json().catch(() => ({})), { status: response.status });
 }

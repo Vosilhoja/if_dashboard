@@ -234,7 +234,7 @@ export const CommandPalette: React.FC = () => {
             <span>↵ Выбор</span>
           </div>
           <div className="flex items-center gap-1 font-mono text-[10px]">
-            <span>HURMO UZ</span>
+            <span>Talvera</span>
           </div>
         </div>
       </div>

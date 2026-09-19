@@ -48,7 +48,7 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),
     {
-      name: 'hurmo-theme',
+      name: 'talvera-theme',
       partialize: (state) => ({ theme: state.theme }),
     }
   )

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendErrorResponse } from '@/lib/proxy-response';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(request: NextRequest) {
   const token = request.cookies.get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/data/sync/status`, {
+    const response = await fetch(`${getBackendUrl()}/api/data/sync/status`, {
       cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,

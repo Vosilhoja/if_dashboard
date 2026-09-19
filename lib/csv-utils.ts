@@ -12,9 +12,9 @@ export function getExportSettings(): { delimiter: string; withBOM: boolean; defa
   if (typeof window === 'undefined') {
     return { delimiter: ';', withBOM: true, defaultFormat: 'xlsx' };
   }
-  const delimiter = localStorage.getItem('hurmo_csv_delimiter') || ';';
-  const withBOM = localStorage.getItem('hurmo_csv_bom') !== 'false';
-  const defaultFormat = (localStorage.getItem('hurmo_export_format') as 'csv' | 'xlsx') || 'xlsx';
+  const delimiter = localStorage.getItem('talvera_csv_delimiter') || ';';
+  const withBOM = localStorage.getItem('talvera_csv_bom') !== 'false';
+  const defaultFormat = (localStorage.getItem('talvera_export_format') as 'csv' | 'xlsx') || 'xlsx';
   return { delimiter, withBOM, defaultFormat };
 }
 

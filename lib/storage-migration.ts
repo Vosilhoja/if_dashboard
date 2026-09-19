@@ -1,6 +1,7 @@
 /**
  * One-time migration for localStorage/sessionStorage keys
  * Migrates hurmo_* and hurmo-* keys to talvera_* and talvera-*
+ * TODO: Remove this migration after migration period (e.g., 30 days)
  */
 
 const MIGRATIONS: Record<string, string> = {

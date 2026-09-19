@@ -66,7 +66,7 @@ export const useFilterStore = create<FilterState>()(
       resetFilters: () => set(DEFAULT_STATE),
     }),
     {
-      name: 'hurmo-analytics-filter',
+      name: 'talvera-analytics-filter',
       // Only persist date range — region/demographic filters reset on page load
       partialize: (state) => ({
         startDate: state.startDate,

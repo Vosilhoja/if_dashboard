@@ -14,7 +14,12 @@ export function middleware(request: NextRequest) {
   }
 
   // Check presence of JWT token
-  const token = request.cookies.get('talvera_jwt_token')?.value;
+  let token = request.cookies.get('talvera_jwt_token')?.value;
+
+  // Fallback to old cookie for migration (TODO: remove after migration period, e.g., 30 days)
+  if (!token) {
+    token = request.cookies.get('hurmo_jwt_token')?.value;
+  }
 
   if (!token) {
     // If requesting API, return 401 Unauthorized

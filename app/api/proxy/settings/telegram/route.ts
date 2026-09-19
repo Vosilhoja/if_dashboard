@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 async function requestBackend(
   request: Request,
@@ -13,7 +12,7 @@ async function requestBackend(
 
   try {
     const url = new URL(request.url);
-    const response = await fetch(`${BACKEND_URL}/api/settings/telegram${pathSuffix}${url.search}`, {
+    const response = await fetch(`${getBackendUrl()}/api/settings/telegram${pathSuffix}${url.search}`, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,

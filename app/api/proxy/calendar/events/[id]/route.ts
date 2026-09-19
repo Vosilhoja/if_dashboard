@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 async function proxy(request: NextRequest, id: string, method: 'PATCH' | 'DELETE') {
   const token = request.cookies.get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
-  const response = await fetch(`${BACKEND_URL}/api/calendar/events/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getBackendUrl()}/api/calendar/events/${encodeURIComponent(id)}`, {
     method,
     headers: { Authorization: `Bearer ${token}`, ...(method === 'PATCH' ? { 'Content-Type': 'application/json' } : {}) },
     body: method === 'PATCH' ? JSON.stringify(await request.json()) : undefined,

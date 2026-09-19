@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function GET(
   request: NextRequest,
@@ -11,7 +10,7 @@ export async function GET(
     if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
 
     const { type } = await params;
-    const backendRes = await fetch(`${BACKEND_URL}/api/data/sheets/${type}/connection`, {
+    const backendRes = await fetch(`${getBackendUrl()}/api/data/sheets/${type}/connection`, {
       cache: 'no-store',
       headers: { Authorization: `Bearer ${token}` },
     });

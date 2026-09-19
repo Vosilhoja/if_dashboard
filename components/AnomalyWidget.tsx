@@ -14,7 +14,7 @@ export const AnomalyWidget: React.FC<AnomalyWidgetProps> = ({ metrics, loading }
 
   React.useEffect(() => {
     try {
-      const saved = localStorage.getItem('hurmo_anomaly_threshold');
+      const saved = localStorage.getItem('talvera_anomaly_threshold');
       if (saved) {
         const val = parseInt(saved, 10);
         if (!isNaN(val) && val > 0) setThreshold(val);

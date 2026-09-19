@@ -55,7 +55,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedWeekStart = localStorage.getItem('hurmo_week_starts_on');
+      const savedWeekStart = localStorage.getItem('talvera_week_starts_on');
       if (savedWeekStart === '0' || savedWeekStart === '1') {
         setWeekStartsOnState(parseInt(savedWeekStart, 10) as 0 | 1);
       }
@@ -65,7 +65,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
   const setWeekStartsOn = (w: 0 | 1) => {
     setWeekStartsOnState(w);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hurmo_week_starts_on', String(w));
+      localStorage.setItem('talvera_week_starts_on', String(w));
     }
   };
 
@@ -83,7 +83,7 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
   // Restore the shared date view immediately so every page uses the same period.
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('hurmo-analytics-date-filter');
+      const saved = localStorage.getItem('talvera-analytics-date-filter');
       if (!saved) return;
       const parsed = JSON.parse(saved) as {
         startDate?: string;
@@ -98,14 +98,14 @@ export function AnalyticsFilterProvider({ children }: { children: ReactNode }) {
       if (parsed.filterMode) setFilterMode(parsed.filterMode);
       if (parsed.currentDate) setCurrentDate(new Date(parsed.currentDate));
     } catch {
-      localStorage.removeItem('hurmo-analytics-date-filter');
+      localStorage.removeItem('talvera-analytics-date-filter');
     }
   }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem(
-        'hurmo-analytics-date-filter',
+        'talvera-analytics-date-filter',
         JSON.stringify({
           startDate,
           endDate,

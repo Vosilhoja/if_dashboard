@@ -2,7 +2,7 @@ import { STATUS_CONFIG, StatusCategoryConfig } from './status-config';
 
 /**
  * WARNING: this is a second copy of the status-classification logic.
- * The backend source of truth is if_dashboard_backend/src/utils/statusMatcher.ts.
+ * The backend source of truth is talvera-api/src/utils/statusMatcher.ts.
  * Keep semantic roots and STATUS_CONFIG synchronized so UI filtering/highlighting
  * does not classify comments differently from the API.
  */

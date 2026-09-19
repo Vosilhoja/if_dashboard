@@ -58,7 +58,7 @@ export const Breadcrumbs: React.FC = () => {
               className="hover:text-primary transition-colors flex items-center gap-1"
             >
               <Home className="w-3.5 h-3.5" />
-              <span>HURMO</span>
+              <span>Talvera</span>
             </Link>
             <ChevronRight className="w-3 h-3 text-secondary/60 shrink-0" />
             <span className="text-primary font-semibold">{current.title}</span>

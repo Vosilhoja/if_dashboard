@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 async function proxyRequest(
   request: NextRequest,
@@ -19,7 +18,7 @@ async function proxyRequest(
   const backendPath = method === 'POST'
     ? (syncOnly ? '/sync' : '/full-reload')
     : '';
-  const backendRes = await fetch(`${BACKEND_URL}/api/data/sheets/${type}${backendPath}${query}`, {
+  const backendRes = await fetch(`${getBackendUrl()}/api/data/sheets/${type}${backendPath}${query}`, {
     method,
     cache: 'no-store',
     headers: { Authorization: `Bearer ${token}` },

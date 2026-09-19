@@ -47,7 +47,7 @@ const STATUS_CATEGORY_OPTIONS: { id: string; name: string; config: StatusCategor
 
 const CACHE_TTL_MS = 30_000;
 const DEBOUNCE_MS = 400;
-const SESSION_CACHE_PREFIX = 'hurmo-datatable-cache-';
+const SESSION_CACHE_PREFIX = 'talvera-datatable-cache-';
 
 const parseComparableValue = (value: string): { kind: 'empty' | 'number' | 'date' | 'text'; value: number | string } => {
   const text = value.trim();
@@ -306,7 +306,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     setFilterColumn(params.get('filterColumn') || '');
     setFilterValue(params.get('filterValue') || '');
     setSelectedFilterValues((params.get('filterValues') || '').split('|').filter(Boolean));
-    const settings = localStorage.getItem(`hurmo-table-settings-${sheetType}`);
+    const settings = localStorage.getItem(`talvera-table-settings-${sheetType}`);
     if (settings) {
       try {
         const parsed = JSON.parse(settings) as { compactRows?: boolean; showRowNumbers?: boolean };
@@ -314,7 +314,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
         setShowRowNumbers(parsed.showRowNumbers !== false);
       } catch { /* ignore malformed local settings */ }
     }
-    const filters = localStorage.getItem(`hurmo-saved-filters-${sheetType}`);
+    const filters = localStorage.getItem(`talvera-saved-filters-${sheetType}`);
     if (filters) {
       try { setSavedFilters(JSON.parse(filters)); } catch { /* ignore malformed saved filters */ }
     }
@@ -350,12 +350,12 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
 
   useEffect(() => {
     const handleSettingsChange = () => setAutoRefreshVersion((version) => version + 1);
-    window.addEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
-    return () => window.removeEventListener('hurmo:auto-refresh-changed', handleSettingsChange);
+    window.addEventListener('talvera:auto-refresh-changed', handleSettingsChange);
+    return () => window.removeEventListener('talvera:auto-refresh-changed', handleSettingsChange);
   }, []);
 
   useEffect(() => {
-    const minutes = Number(localStorage.getItem('hurmo_auto_refresh_interval') || '0');
+    const minutes = Number(localStorage.getItem('talvera_auto_refresh_interval') || '0');
     if (!Number.isFinite(minutes) || minutes <= 0) return;
     const timer = window.setInterval(() => {
       const queryKey = lastQueryKeyRef.current;
@@ -375,8 +375,8 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
 
   useEffect(() => {
     const handleSync = () => setSyncVersion((version) => version + 1);
-    window.addEventListener('hurmo:sync', handleSync);
-    return () => window.removeEventListener('hurmo:sync', handleSync);
+    window.addEventListener('talvera:sync', handleSync);
+    return () => window.removeEventListener('talvera:sync', handleSync);
   }, []);
 
   useEffect(() => {
@@ -460,7 +460,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       const response = await fetch(`/api/proxy/data/sheets/${sheetType}?sync=1`, { method: 'POST' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       showToast('Синхронизация запущена', 'success');
-      window.dispatchEvent(new Event('hurmo:sync'));
+      window.dispatchEvent(new Event('talvera:sync'));
       setSyncVersion((version) => version + 1);
     } catch (syncError) {
       showToast(syncError instanceof Error ? syncError.message : 'Ошибка синхронизации', 'error');
@@ -476,7 +476,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
     };
     setCompactRows(settings.compactRows);
     setShowRowNumbers(settings.showRowNumbers);
-    localStorage.setItem(`hurmo-table-settings-${sheetType}`, JSON.stringify(settings));
+    localStorage.setItem(`talvera-table-settings-${sheetType}`, JSON.stringify(settings));
   };
 
   const saveCurrentFilter = () => {
@@ -490,7 +490,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
       values: selectedFilterValues,
     }];
     setSavedFilters(next);
-    localStorage.setItem(`hurmo-saved-filters-${sheetType}`, JSON.stringify(next));
+    localStorage.setItem(`talvera-saved-filters-${sheetType}`, JSON.stringify(next));
     setSavedFilterName('');
     showToast('Фильтр сохранён', 'success');
   };
@@ -507,7 +507,7 @@ export const DataTable: React.FC<DataTableProps> = ({ sheetType, title, startDat
   const deleteSavedFilter = (name: string) => {
     const next = savedFilters.filter((filter) => filter.name !== name);
     setSavedFilters(next);
-    localStorage.setItem(`hurmo-saved-filters-${sheetType}`, JSON.stringify(next));
+    localStorage.setItem(`talvera-saved-filters-${sheetType}`, JSON.stringify(next));
   };
 
   const isPhoneColumn = (header: string) => {

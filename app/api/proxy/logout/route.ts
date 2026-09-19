@@ -28,7 +28,7 @@ export async function POST() {
     maxAge: 0,
   });
 
-  // Clean old cookies for migration fallback
+  // Clean old cookies for migration fallback (TODO: remove after migration period, e.g., 30 days)
   response.cookies.set({
     name: 'hurmo_jwt_token',
     value: '',

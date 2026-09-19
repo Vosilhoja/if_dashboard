@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { backendErrorResponse } from '@/lib/proxy-response';
 import { getAuthTokenFromCookies } from '@/lib/auth-token';
 import { cookies } from 'next/headers';
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+import { getBackendUrl } from '@/lib/backend-url';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = getAuthTokenFromCookies(await cookies());
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
   const { id } = await params;
-  const response = await fetch(`${BACKEND_URL}/api/tasks/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getBackendUrl()}/api/tasks/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     cache: 'no-store',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -24,7 +23,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const token = getAuthTokenFromCookies(await cookies());
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
   const { id } = await params;
-  const response = await fetch(`${BACKEND_URL}/api/tasks/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getBackendUrl()}/api/tasks/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     cache: 'no-store',
     headers: { Authorization: `Bearer ${token}` },
