@@ -476,11 +476,13 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
       // This focus intentionally uses the left map viewport; the normal
       // full-width bounds would clamp the translation underneath the panel.
-      setTransform({
+      const focusedTransform = {
         k: scale,
         x: translate[0] - pad,
         y: translate[1] - pad,
-      });
+      };
+      transformRef.current = focusedTransform;
+      setTransform(focusedTransform);
     },
     [featureBounds, width, height]
   );
@@ -519,7 +521,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   };
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!e.altKey) return;
     e.preventDefault();
     const delta = e.deltaY;
     const factor = delta < 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
@@ -567,7 +568,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     if (!element) return;
 
     const handleNativeWheel = (event: WheelEvent) => {
-      if (!event.altKey) return;
       event.preventDefault();
       event.stopPropagation();
       handleWheel(event as unknown as React.WheelEvent);
@@ -734,7 +734,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
           <span className="font-semibold text-primary">14 административных регионов</span>
           <span className="text-secondary text-[11px] hidden sm:inline">
-            • Кликните по области для приближения, Alt + колесо — зум, перетаскивание — панорама
+            • Клик — выбрать регион, колесо — зум вокруг курсора, перетаскивание — панорама
           </span>
         </div>
 
@@ -749,6 +749,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3 cursor-grab active:cursor-grabbing"
           onPointerDown={handlePointerDown}
           style={{ touchAction: 'none' }}
+          onContextMenu={(event) => event.preventDefault()}
         >
           <svg
             viewBox={`0 0 ${width} ${height}`}
