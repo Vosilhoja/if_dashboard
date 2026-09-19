@@ -14,12 +14,12 @@ const METRIC_LABELS: Record<MetricKey, string> = {
 };
 
 const COLOR_STOPS = [
-  { stop: 0, color: '#F1F5F9', label: '0' },
-  { stop: 0.2, color: '#DBEAFE', label: '' },
-  { stop: 0.4, color: '#93C5FD', label: '' },
-  { stop: 0.6, color: '#3B82F6', label: '' },
-  { stop: 0.8, color: '#1D4ED8', label: '' },
-  { stop: 1, color: '#1E3A8A', label: 'max' },
+  { stop: 0, color: '#111827', label: '0' },
+  { stop: 0.2, color: '#172554', label: '' },
+  { stop: 0.4, color: '#1D4ED8', label: '' },
+  { stop: 0.6, color: '#2563EB', label: '' },
+  { stop: 0.8, color: '#60A5FA', label: '' },
+  { stop: 1, color: '#BFDBFE', label: 'max' },
 ];
 
 function interpolateColor(ratio: number): string {
@@ -270,7 +270,7 @@ export default function HeatmapPage() {
                     {days.map((day) => {
                       const n = getValue(day, hour);
                       const ratio = n / max;
-                      const bgColor = n > 0 ? interpolateColor(ratio) : '#F8FAFC';
+                      const bgColor = n > 0 ? interpolateColor(ratio) : '#0F172A';
                       const isLight = isLightColor(bgColor);
                       const isHovered =
                         hoveredCell?.day === day && hoveredCell?.hour === hour;

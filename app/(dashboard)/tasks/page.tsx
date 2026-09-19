@@ -40,7 +40,7 @@ interface TaskComment {
 }
 
 interface Task {
-  id: number;
+  id: number | string;
   title: string;
   notes: string;
   status: Status;
@@ -55,6 +55,7 @@ interface Task {
   createdBy: number | null;
   createdAt: string;
   updatedAt: string;
+  source?: 'todoist' | 'local';
 }
 
 interface UserLite {
@@ -116,9 +117,10 @@ export default function TasksPage() {
   const [detailOpen, setDetailOpen] = useState<Task | null>(null);
   const [commentDraft, setCommentDraft] = useState('');
   const [postingComment, setPostingComment] = useState(false);
-  const [draggingTaskId, setDraggingTaskId] = useState<number | null>(null);
+  const [draggingTaskId, setDraggingTaskId] = useState<number | string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<Status | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [taskSource, setTaskSource] = useState<'local' | 'todoist'>('local');
 
   const [filters, setFilters] = useState<{
     q: string;
@@ -157,7 +159,7 @@ export default function TasksPage() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch(`/api/proxy/tasks?${buildQuery()}`, { cache: 'no-store' });
+      const r = await fetch(taskSource === 'todoist' ? '/api/proxy/tasks/todoist' : `/api/proxy/tasks?${buildQuery()}`, { cache: 'no-store' });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json().catch(() => ({}));
       setTasks(Array.isArray(data.tasks) ? data.tasks : []);
@@ -173,7 +175,7 @@ export default function TasksPage() {
   }, []);
   useEffect(() => {
     void loadTasks();
-  }, [filters.q, filters.priority, filters.category, filters.assignee, filters.period, filters.mineOnly]);
+  }, [filters.q, filters.priority, filters.category, filters.assignee, filters.period, filters.mineOnly, taskSource]);
 
   const categories = useMemo(() => {
     const s = new Set<string>();
@@ -263,14 +265,16 @@ export default function TasksPage() {
     }
   };
 
-  const deleteTask = async (id: number) => {
+  const deleteTask = async (id: number | string) => {
+    if (taskSource === 'todoist') return;
     if (!confirm('Удалить задачу?')) return;
     await fetch(`/api/proxy/tasks/${id}`, { method: 'DELETE' });
     if (detailOpen?.id === id) setDetailOpen(null);
     void loadTasks();
   };
 
-  const updateStatus = async (id: number, status: Status) => {
+  const updateStatus = async (id: number | string, status: Status) => {
+    if (taskSource === 'todoist') return;
     const r = await fetch(`/api/proxy/tasks/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -280,7 +284,8 @@ export default function TasksPage() {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status } : t)));
   };
 
-  const postComment = async (taskId: number) => {
+  const postComment = async (taskId: number | string) => {
+    if (taskSource === 'todoist' || typeof taskId !== 'number') return;
     if (!commentDraft.trim() || postingComment) return;
     setPostingComment(true);
     try {
@@ -347,13 +352,21 @@ export default function TasksPage() {
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Обновить
           </button>
           <button
+            onClick={() => setTaskSource((source) => source === 'local' ? 'todoist' : 'local')}
+            className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${taskSource === 'todoist' ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-surface text-secondary hover:text-primary'}`}
+          >
+            {taskSource === 'todoist' ? 'Todoist' : 'CRM задачи'}
+          </button>
+          <button
             onClick={openCreate}
+            disabled={taskSource === 'todoist'}
             className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
           >
             <Plus className="h-3.5 w-3.5" /> Новая задача
           </button>
         </div>
       </div>
+      {taskSource === 'todoist' && <div className="rounded-md border border-accent/30 bg-accent/5 px-3 py-2 text-xs text-secondary">Показаны задачи Todoist в режиме просмотра. Изменения выполняются в Todoist.</div>}
 
       {/* ============== FILTERS ============== */}
       <div className="rounded-md border border-border bg-surface p-2.5 flex flex-wrap items-center gap-2">

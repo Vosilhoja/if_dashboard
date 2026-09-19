@@ -25,6 +25,8 @@ import {
   ListTodo,
   HeartPulse,
   Grid3X3,
+  Bot,
+  CalendarDays,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme-context';
 import { useAuth, hasMinRole, normalizeRole } from '@/lib/auth-context';
@@ -81,6 +83,20 @@ const allNavItems: NavItem[] = [
     label: 'Задачи',
     subtitle: 'Напоминания и работа команды',
     icon: ListTodo,
+  },
+  {
+    href: '/telegram',
+    label: 'Telegram боты',
+    subtitle: 'Боты, функции и привязка',
+    icon: Bot,
+    minRole: 'operator',
+  },
+  {
+    href: '/calendar',
+    label: 'Календарь',
+    subtitle: 'События Google Calendar',
+    icon: CalendarDays,
+    minRole: 'operator',
   },
   {
     href: '/health',
@@ -403,6 +419,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       else if (item.href === '/analytics') pageKey = 'analytics';
       else if (item.href === '/analytics/heatmap') pageKey = 'analytics';
       else if (item.href === '/tasks') pageKey = 'tasks';
+      else if (item.href === '/telegram') pageKey = 'telegram';
       else if (item.href === '/health') pageKey = 'health';
       else if (item.href === '/map') pageKey = 'map';
       else if (item.href === '/raw') pageKey = 'raw';

@@ -207,6 +207,8 @@ export default function SettingsPage() {
   const [testingBotId, setTestingBotId] = useState<number | null>(null);
   const [showBotTokens, setShowBotTokens] = useState<Record<number, boolean>>({});
   const [telegramCapabilities, setTelegramCapabilities] = useState<TelegramCapabilities | null>(null);
+  const [telegramLinkCode, setTelegramLinkCode] = useState<string | null>(null);
+  const [telegramLinkCodeLoading, setTelegramLinkCodeLoading] = useState(false);
 
   // === NEW: RBAC ENHANCEMENTS (duplicate + reset password) ===
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState<number | null>(null);
@@ -408,7 +410,7 @@ export default function SettingsPage() {
         throw new Error('Endpoint not available yet');
       }
     } catch {
-      setBotsV2Error('Бэкенд-эндпоинт /api/proxy/settings/telegram ещё не реализован. Показаны локально сохранённые боты.');
+      setBotsV2Error('Список Telegram-ботов временно недоступен.');
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('hurmo_pending_telegram_bots');
         if (saved) {
@@ -514,6 +516,20 @@ export default function SettingsPage() {
       );
     } finally {
       setTestingBotId(null);
+    }
+  };
+
+  const generateTelegramLinkCode = async () => {
+    setTelegramLinkCodeLoading(true);
+    try {
+      const response = await fetch('/api/proxy/auth/telegram-link-code', { method: 'POST' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Не удалось получить код');
+      setTelegramLinkCode(data.code);
+    } catch (error) {
+      setBotsV2Error(error instanceof Error ? error.message : 'Не удалось получить код привязки');
+    } finally {
+      setTelegramLinkCodeLoading(false);
     }
   };
 
@@ -1701,6 +1717,21 @@ export default function SettingsPage() {
               <p className="text-[11px] text-secondary">Функции бота выдаются через роли пользователей дашборда.</p>
             </div>
           </div>
+          <div className="rounded-[6px] border border-accent/30 bg-accent/5 p-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-primary">Привязка Telegram</p>
+              <p className="text-[10px] text-secondary">Нажмите кнопку, затем отправьте боту команду <code>/link КОД</code>. Код действует 5 минут.</p>
+              {telegramLinkCode && <code className="mt-2 inline-block rounded bg-surface px-2 py-1 text-sm font-bold tracking-widest text-accent">{telegramLinkCode}</code>}
+            </div>
+            <button
+              type="button"
+              onClick={generateTelegramLinkCode}
+              disabled={telegramLinkCodeLoading}
+              className="rounded-[6px] bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            >
+              {telegramLinkCodeLoading ? 'Генерация...' : 'Получить код'}
+            </button>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="rounded-[6px] border border-border/60 overflow-hidden">
               <div className="px-3 py-2 bg-surface-2/70 text-[10px] font-bold uppercase tracking-wider text-secondary">Функции</div>
@@ -1770,7 +1801,7 @@ export default function SettingsPage() {
           <form onSubmit={handleAddNewBot} className="p-3 rounded-[6px] bg-surface-2/40 border border-border/60 space-y-2.5">
             <div className="flex items-center gap-2 mb-1">
               <UserPlus className="w-3.5 h-3.5 text-accent" />
-              <span className="text-xs font-semibold text-primary">Добавить нового бота (добавьте в Railway Variables)</span>
+              <span className="text-xs font-semibold text-primary">Добавить бота</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="space-y-1">
@@ -1785,7 +1816,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-1 sm:col-span-1">
-                <label className="text-[10px] font-medium text-secondary">TELEGRAM_TOKEN_:</label>
+                <label className="text-[10px] font-medium text-secondary">Токен бота:</label>
                 <input
                   type="password"
                   placeholder="123456789:ABCdefGhIJKlmNoPQRstUvWxYz..."
@@ -1795,7 +1826,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-secondary">TELEGRAM_USER_ID_:</label>
+                <label className="text-[10px] font-medium text-secondary">Telegram ID получателя:</label>
                 <input
                   type="text"
                   placeholder="123456789"
@@ -1806,9 +1837,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="flex items-center justify-between pt-0.5">
-              <div className="text-[10px] text-secondary">
-                <span className="font-semibold text-amber-600 dark:text-amber-400">💡 Pending for env copy:</span> Сохраняется локально в localStorage. После добавления в Railway — перезапустите сервер.
-              </div>
+              <div className="text-[10px] text-secondary">Токен используется только для проверки и не сохраняется в браузере.</div>
               <button
                 type="submit"
                 disabled={savingNewBot || !newBotForm.id || !newBotForm.token || !newBotForm.userId}
@@ -1961,22 +1990,6 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Railway notice */}
-          <div className="p-3 rounded-[6px] bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 text-[11px] space-y-1.5">
-            <p className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5" />
-              ⚙️ Добавьте в Railway Variables
-            </p>
-            <ol className="list-decimal list-inside space-y-0.5 text-amber-700 dark:text-amber-300/80 ml-1">
-              <li>Откройте проект в Railway.app → Variables</li>
-              <li>Добавьте пары: <code className="font-mono bg-surface px-1.5 rounded text-[10px]">TELEGRAM_TOKEN_1=...</code> и <code className="font-mono bg-surface px-1.5 rounded text-[10px]">TELEGRAM_USER_ID_1=...</code></li>
-              <li>Для второго бота используйте суффикс _2, для третьего _3 и т.д.</li>
-              <li>Сохраните и дождитесь автоматического redeploy бэкенда (сервер перезапустится сам)</li>
-            </ol>
-            <p className="pt-1 text-[10px] text-amber-600/80 dark:text-amber-300/60">
-              Пока что все боты, добавленные через эту форму, хранятся локально в браузере как «pending for env copy».
-            </p>
-          </div>
         </section>
       )}
 
