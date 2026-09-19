@@ -310,8 +310,10 @@ export default function MapPage() {
 
       <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.8fr)] gap-5 items-start">
         <section
-          className={`relative min-w-0 ${
-            selectedRegion ? 'lg:pr-96 2xl:pr-0' : ''
+          className={`relative min-w-0 overflow-hidden ${
+            selectedRegion
+              ? 'rounded-2xl border border-border/80 bg-surface shadow-xs'
+              : ''
           }`}
         >
           <UzbekistanMap
@@ -323,6 +325,7 @@ export default function MapPage() {
             onDeselect={handleClearSelection}
             onHoverRegion={handleRowHover}
             hoveredRegion={hoveredRegion}
+            embedded={Boolean(selectedRegion)}
           />
 
           <RegionDetailPanel

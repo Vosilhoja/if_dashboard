@@ -84,8 +84,9 @@ export const RegionDetailPanel: React.FC<RegionDetailPanelProps> = ({
       <aside
         className={`absolute z-50 bg-surface border-border flex flex-col shadow-2xl transition-all duration-200
           inset-x-0 bottom-0 max-h-[85vh] rounded-t-[16px] border-t max-lg:fixed
-          lg:rounded-2xl lg:border-t-0 lg:inset-y-3 lg:right-3 lg:left-auto lg:w-96
-          lg:border lg:max-h-none lg:overflow-hidden 2xl:fixed`}
+          lg:rounded-r-2xl lg:rounded-l-none lg:border-y-0 lg:border-r-0
+          lg:inset-y-0 lg:right-0 lg:left-auto lg:w-96 lg:border-l
+          lg:max-h-none lg:overflow-hidden`}
       >
         {/* Header */}
         <div className="p-4 border-b border-border flex items-start justify-between gap-3 bg-surface shrink-0">

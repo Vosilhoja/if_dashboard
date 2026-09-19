@@ -40,6 +40,7 @@ interface UzbekistanMapProps {
   onDeselect?: () => void;
   onHoverRegion?: (ruName: string | null) => void;
   hoveredRegion?: string | null;
+  embedded?: boolean;
 }
 
 let geoJsonPromise: Promise<GeoJSONData> | null = null;
@@ -182,6 +183,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   onDeselect,
   onHoverRegion,
   hoveredRegion: externalHoveredRegion,
+  embedded = false,
 }) => {
   const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -191,6 +193,9 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const panPointerId = useRef<number | null>(null);
   const startPan = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const isPanningRef = useRef(false);
+  const didPanRef = useRef(false);
+  const transformRef = useRef(transform);
 
   const [internalHovered, setInternalHovered] = useState<string | null>(null);
   const activeHovered = externalHoveredRegion ?? internalHovered;
@@ -198,6 +203,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const [flashRegion, setFlashRegion] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const interactionRef = useRef<HTMLDivElement>(null);
   const mapBBoxRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
 
   const activeHoveredRegion = useRef<string | null>(null);
@@ -440,6 +446,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const applyTransform = useCallback(
     (k: number, tx: number, ty: number) => {
       const constrained = constrainTransform(k, tx, ty);
+      transformRef.current = constrained;
       setTransform(constrained);
     },
     [constrainTransform]
@@ -512,8 +519,8 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     applyTransform(1, 0, 0);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!e.ctrlKey && !e.metaKey) return;
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    if (!e.altKey) return;
     e.preventDefault();
     const delta = e.deltaY;
     const factor = delta < 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
@@ -534,18 +541,39 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     const newTx = fx - (fx - transform.x) * scaleRatio;
     const newTy = fy - (fy - transform.y) * scaleRatio;
     applyTransform(newK, newTx, newTy);
-  };
+  }, [applyTransform, transform]);
+
+  useEffect(() => {
+    const element = interactionRef.current;
+    if (!element) return;
+
+    const handleNativeWheel = (event: WheelEvent) => {
+      if (!event.altKey) return;
+      event.preventDefault();
+      handleWheel(event as unknown as React.WheelEvent);
+    };
+
+    element.addEventListener('wheel', handleNativeWheel, { passive: false });
+    return () => element.removeEventListener('wheel', handleNativeWheel);
+  }, [handleWheel]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     panPointerId.current = e.pointerId;
+    isPanningRef.current = true;
+    didPanRef.current = false;
     setIsPanning(true);
-    startPan.current = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
+    startPan.current = {
+      x: e.clientX,
+      y: e.clientY,
+      tx: transformRef.current.x,
+      ty: transformRef.current.y,
+    };
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPanning || panPointerId.current !== e.pointerId) return;
+    if (!isPanningRef.current || panPointerId.current !== e.pointerId) return;
     const svgEl = containerRef.current?.querySelector('svg');
     let ratioX = 1;
     let ratioY = 1;
@@ -556,7 +584,10 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     }
     const dx = (e.clientX - startPan.current.x) * ratioX;
     const dy = (e.clientY - startPan.current.y) * ratioY;
-    applyTransform(transform.k, startPan.current.tx + dx, startPan.current.ty + dy);
+    if (Math.abs(e.clientX - startPan.current.x) > 4 || Math.abs(e.clientY - startPan.current.y) > 4) {
+      didPanRef.current = true;
+    }
+    applyTransform(transformRef.current.k, startPan.current.tx + dx, startPan.current.ty + dy);
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -565,6 +596,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
     panPointerId.current = null;
+    isPanningRef.current = false;
     setIsPanning(false);
   };
 
@@ -582,6 +614,10 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
   const handleRegionClick = (e: React.MouseEvent, ruName: string) => {
     e.stopPropagation();
+    if (didPanRef.current) {
+      didPanRef.current = false;
+      return;
+    }
     const isAlreadySelected = Boolean(
       selectedRegion &&
         selectedRegion.trim() !== '' &&
@@ -646,7 +682,11 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative isolate w-full min-h-[620px] overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-xs select-none flex flex-col"
+      className={`relative isolate w-full min-h-[620px] overflow-hidden bg-surface select-none flex flex-col ${
+        embedded
+          ? 'rounded-none border-0 shadow-none'
+          : 'rounded-2xl border border-border/80 shadow-xs'
+      }`}
     >
       <div className="w-full flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border/60 text-xs bg-surface">
         <div className="flex items-center gap-2">
@@ -664,13 +704,13 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
       <div className="relative min-h-[560px] w-full flex-1">
         <div
+          ref={interactionRef}
           className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3 cursor-grab active:cursor-grabbing"
-          onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
-          style={{ touchAction: 'pan-y' }}
+          style={{ touchAction: 'none' }}
         >
           <svg
             viewBox={`0 0 ${width} ${height}`}
