@@ -67,6 +67,7 @@ function getGeoJSON(): Promise<GeoJSONData> {
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
+const REGION_FOCUS_MAX_ZOOM = 2.5;
 const ZOOM_STEP = 1.25;
 const WHEEL_ZOOM_FACTOR = 1.06;
 const LEGEND_BINS = 5;
@@ -455,7 +456,12 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
       const x = (x0 + x1) / 2;
       const y = (y0 + y1) / 2;
 
-      const scale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, 0.78 / Math.max(dx / width, dy / height)));
+      // Small administrative features such as Tashkent city would otherwise
+      // produce an extreme auto-zoom and move the rest of the map off-screen.
+      const scale = Math.max(
+        MIN_ZOOM,
+        Math.min(REGION_FOCUS_MAX_ZOOM, 0.78 / Math.max(dx / width, dy / height))
+      );
       const translate = [width / 2 - scale * x, height / 2 - scale * y];
 
       applyTransform(scale, translate[0] - pad, translate[1] - pad);
@@ -632,7 +638,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full bg-surface border border-border/80 rounded-[8px] overflow-hidden select-none flex flex-col shadow-xs"
+      className="relative isolate w-full min-h-[620px] overflow-hidden rounded-2xl border border-border/80 bg-surface shadow-xs select-none flex flex-col"
     >
       <div className="w-full flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border/60 text-xs bg-surface">
         <div className="flex items-center gap-2">
@@ -648,9 +654,9 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
         </div>
       </div>
 
-      <div className="relative w-full">
+      <div className="relative min-h-[560px] w-full flex-1">
         <div
-          className="w-full flex justify-center py-2 overflow-hidden cursor-grab active:cursor-grabbing"
+          className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3 cursor-grab active:cursor-grabbing"
           onWheel={handleWheel}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -660,7 +666,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
         >
           <svg
             viewBox={`0 0 ${width} ${height}`}
-            className="w-full h-auto max-h-[560px] min-h-[320px]"
+            className="block h-auto w-full max-h-[620px] min-h-[520px]"
             style={{ transform: 'translateZ(0)' }}
             onClick={(e) => {
               if (e.target === e.currentTarget || (e.target as SVGElement).tagName === 'rect') {

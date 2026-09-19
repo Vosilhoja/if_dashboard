@@ -226,8 +226,8 @@ export default function MapPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface p-4 rounded-2xl sm:rounded-3xl border border-border/80 shadow-xs">
+    <div className="mx-auto w-full max-w-[1600px] space-y-5 pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-surface p-5 rounded-2xl border border-border/80 shadow-xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-500 flex items-center justify-center shrink-0">
@@ -288,16 +288,18 @@ export default function MapPage() {
         </div>
       </div>
 
-      <DateFilter
-        mode={filterMode}
-        onModeChange={setFilterMode}
-        currentDate={currentDate}
-        onCurrentDateChange={setCurrentDate}
-        startDate={startDate}
-        endDate={endDate}
-        onCustomRangeChange={(s, e) => setDateRange(s, e)}
-        weekStartsOn={weekStartsOn}
-      />
+      <div className="rounded-2xl border border-border/80 bg-surface p-3 shadow-xs">
+        <DateFilter
+          mode={filterMode}
+          onModeChange={setFilterMode}
+          currentDate={currentDate}
+          onCurrentDateChange={setCurrentDate}
+          startDate={startDate}
+          endDate={endDate}
+          onCustomRangeChange={(s, e) => setDateRange(s, e)}
+          weekStartsOn={weekStartsOn}
+        />
+      </div>
 
       {error && (
         <div className="p-3 rounded-[6px] bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
@@ -306,8 +308,12 @@ export default function MapPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 relative">
+      <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.8fr)] gap-5 items-start">
+        <section
+          className={`relative min-w-0 ${
+            selectedRegion ? 'lg:pr-96 2xl:pr-0' : ''
+          }`}
+        >
           <UzbekistanMap
             regionCounts={regionCounts}
             previousRegionCounts={previousRows.length > 0 ? previousRegionCounts : undefined}
@@ -328,9 +334,9 @@ export default function MapPage() {
             isOpen={Boolean(isPanelOpen && selectedRegion)}
             onClose={handleClosePanel}
           />
-        </div>
+        </section>
 
-        <div className="xl:col-span-1 flex flex-col gap-0 min-h-[480px] bg-surface border border-border/80 rounded-[8px] shadow-xs overflow-hidden">
+        <section className="flex min-w-0 min-h-full flex-col gap-0 bg-surface border border-border/80 rounded-2xl shadow-xs overflow-hidden">
           <div className="px-4 py-3 border-b border-border/60 bg-surface flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-[6px] bg-accent/15 text-accent flex items-center justify-center">
@@ -350,7 +356,7 @@ export default function MapPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-border/50 text-xs">
+          <div className="min-h-0 flex-1 overflow-y-auto divide-y divide-border/50 text-xs">
             {rankedRegions.map((row) => {
               const isSelected =
                 selectedRegion && normalizeRegionName(selectedRegion) === normalizeRegionName(row.ruName);
@@ -366,10 +372,11 @@ export default function MapPage() {
               return (
                 <button
                   key={row.ruName}
+                  data-map-ranking-row
                   onClick={() => handleSelectRegion(row.ruName)}
                   onMouseEnter={() => handleRowHover(row.ruName)}
                   onMouseLeave={() => handleRowHover(null)}
-                  className={`w-full px-3 py-2.5 text-left transition-all cursor-pointer flex flex-col gap-1.5 ${
+                  className={`w-full px-4 py-10 text-left transition-all cursor-pointer flex flex-col justify-center! gap-1.5 ${
                     isSelected
                       ? 'bg-accent/10 border-l-4 border-l-accent'
                       : isHovered
@@ -460,7 +467,7 @@ export default function MapPage() {
               Итого: <span className="font-bold text-primary">{totalRespondents.toLocaleString('ru-RU')}</span>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
