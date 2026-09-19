@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
+import { DateFilter } from '@/components/DateFilter';
+import { useAnalyticsFilter } from '@/lib/analytics-filter-context';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TrendingUp, Clock, Activity, AlertCircle } from 'lucide-react';
@@ -58,17 +60,21 @@ function isLightColor(color: string): boolean {
 }
 
 export default function HeatmapPage() {
+  const { startDate, endDate, filterMode, currentDate, weekStartsOn, setFilterMode, setCurrentDate, setDateRange } = useAnalyticsFilter();
   const [points, setPoints] = useState<Point[]>([]);
   const [loading, setLoading] = useState(true);
   const [metric, setMetric] = useState<MetricKey>('all');
   const [hoveredCell, setHoveredCell] = useState<{ day: string; hour: number } | null>(null);
 
   useEffect(() => {
-    fetch('/api/proxy/data/heatmap', { cache: 'no-store' })
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    fetch(`/api/proxy/data/heatmap?${params.toString()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => setPoints(d.points || []))
       .finally(() => setLoading(false));
-  }, []);
+  }, [startDate, endDate]);
 
   const days = useMemo(() => [...new Set(points.map((p) => p.day))].slice(-14), [points]);
 
@@ -166,7 +172,15 @@ export default function HeatmapPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-accent">Аналитика</p>
           <h1 className="text-2xl font-black text-primary">Тепловая карта нагрузки</h1>
-          <p className="text-sm text-secondary">Количество обращений по дням и часам.</p>
+          <p className="text-sm text-secondary">Показывает {METRIC_LABELS[metric].toLowerCase()} по дням и часам за период {startDate && endDate ? `${startDate} — ${endDate}` : 'за всё время'} (Asia/Tashkent).</p>
+        </div>
+        <DateFilter mode={filterMode} onModeChange={setFilterMode} currentDate={currentDate} onCurrentDateChange={setCurrentDate} startDate={startDate} endDate={endDate} onCustomRangeChange={(start, end) => setDateRange(start, end, filterMode, currentDate)} weekStartsOn={weekStartsOn} />
+        <div className="flex flex-wrap items-center gap-2">
+          {(Object.keys(METRIC_LABELS) as MetricKey[]).map((key) => (
+            <button key={key} type="button" onClick={() => setMetric(key)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${metric === key ? 'bg-accent text-white' : 'bg-surface-2 text-secondary'}`}>
+              {METRIC_LABELS[key]}
+            </button>
+          ))}
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4 shadow-xs overflow-x-auto">
           {renderSkeleton()}
@@ -183,6 +197,11 @@ export default function HeatmapPage() {
         <p className="text-sm text-secondary">Количество обращений по дням и часам.</p>
       </div>
 
+      {days.length === 0 && (
+        <div className="rounded-2xl border border-border bg-surface p-10 text-center text-sm text-secondary">
+          За выбранный период данных для тепловой карты нет.
+        </div>
+      )}
       {/* KPI Cards */}
       {days.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -249,7 +268,7 @@ export default function HeatmapPage() {
             </div>
 
             <div className="mt-4">
-              <div className="mb-2 ml-14 mr-16 grid gap-1 text-[10px] text-secondary font-medium" style={columns}>
+              <div className="mb-2 ml-14 mr-16 grid gap-1 text-[10px] text-secondary font-medium" style={columns} aria-label="Дни периода">
                 {days.map((day) => {
                   const { weekday, dayMonth } = formatDayLabel(day);
                   return (
@@ -261,6 +280,7 @@ export default function HeatmapPage() {
                 })}
               </div>
 
+              <p className="mb-2 ml-14 text-[10px] font-semibold uppercase tracking-wide text-secondary">Дни периода → · Часы 0–23 ↓</p>
               {Array.from({ length: 24 }, (_, hour) => (
                 <div key={hour} className="mb-1 flex items-center gap-2">
                   <span className="w-12 shrink-0 text-right text-[11px] font-bold text-primary tabular-nums bg-surface-2 rounded px-1.5 py-1">
@@ -331,7 +351,7 @@ export default function HeatmapPage() {
 
             <div className="mt-6 space-y-2">
               <p className="text-[11px] font-medium uppercase tracking-wider text-secondary">
-                Шкала интенсивности ({METRIC_LABELS[metric].toLowerCase()})
+                Меньше → больше: {METRIC_LABELS[metric].toLowerCase()}
               </p>
               <div className="flex items-center gap-4">
                 <div className="flex h-8 flex-1 overflow-hidden rounded-lg border border-border">

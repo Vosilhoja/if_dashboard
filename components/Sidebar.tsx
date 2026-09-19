@@ -417,7 +417,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       if (item.href === '/overview') pageKey = 'overview';
       else if (item.href === '/dashboard') pageKey = 'dashboard';
       else if (item.href === '/analytics') pageKey = 'analytics';
-      else if (item.href === '/analytics/heatmap') pageKey = 'analytics';
+      else if (item.href === '/analytics/heatmap') pageKey = 'heatmap';
       else if (item.href === '/tasks') pageKey = 'tasks';
       else if (item.href === '/telegram') pageKey = 'telegram';
       else if (item.href === '/health') pageKey = 'health';

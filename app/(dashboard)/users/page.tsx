@@ -36,7 +36,7 @@ const AVAILABLE_PAGES = [
   { key: 'analytics', label: 'BI-аналитика', desc: 'Демография и образование' },
   { key: 'tasks', label: 'Задачи', desc: 'Напоминания и работа команды' },
   { key: 'health', label: 'Состояние системы', desc: 'Backend и интеграции' },
-  { key: 'analytics', label: 'Тепловая карта', desc: 'Нагрузка по часам' },
+  { key: 'heatmap', label: 'Тепловая карта', desc: 'Нагрузка по часам' },
   { key: 'telegram', label: 'Telegram боты', desc: 'Управление ботами и функциями' },
   { key: 'calendar', label: 'Календарь', desc: 'События и интеграции' },
   { key: 'map', label: 'Карта регионов', desc: 'География 14 областей' },

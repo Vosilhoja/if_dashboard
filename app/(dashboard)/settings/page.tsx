@@ -412,14 +412,6 @@ export default function SettingsPage() {
     } catch {
       setBotsV2Error('Список Telegram-ботов временно недоступен.');
       if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('hurmo_pending_telegram_bots');
-        if (saved) {
-          try {
-            setTelegramBotsV2(JSON.parse(saved));
-          } catch {
-            setTelegramBotsV2([]);
-          }
-        }
       }
     } finally {
       setLoadingBotsV2(false);
@@ -441,14 +433,14 @@ export default function SettingsPage() {
   const handleAddNewBot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBotForm.id || !newBotForm.token || !newBotForm.userId) {
-      setBotsV2Error('Заполните все поля: ID бота, токен и User ID');
+      setBotsV2Error('Заполните токен и Telegram ID получателя');
       return;
     }
     setSavingNewBot(true);
     setBotsV2Error(null);
     try {
       const botId = parseInt(newBotForm.id, 10);
-      if (isNaN(botId)) throw new Error('ID бота должен быть числом');
+      if (isNaN(botId)) throw new Error('Некорректный идентификатор');
 
       const res = await fetch('/api/proxy/settings/telegram', {
         method: 'POST',
@@ -477,7 +469,7 @@ export default function SettingsPage() {
     } catch (e: unknown) {
       setBotsV2Error(e instanceof Error
         ? e.message
-        : 'Бот не добавлен. Настройте токен через защищённые переменные Railway.');
+        : 'Бот не добавлен. Откройте страницу Telegram-ботов.');
     } finally {
       setNewBotForm({ id: '', token: '', userId: '' });
       setSavingNewBot(false);
@@ -538,7 +530,6 @@ export default function SettingsPage() {
     setTelegramBotsV2((prev) => {
       const next = prev.filter((b) => b.id !== botId);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('hurmo_pending_telegram_bots', JSON.stringify(next));
       }
       return next;
     });
@@ -773,17 +764,6 @@ export default function SettingsPage() {
       }
 
       // NEW: pending Telegram bots
-      const savedPendingBots = localStorage.getItem('hurmo_pending_telegram_bots');
-      if (savedPendingBots) {
-        try {
-          const parsed = JSON.parse(savedPendingBots);
-          if (Array.isArray(parsed)) {
-            setTelegramBotsV2(parsed);
-          }
-        } catch {
-          // ignore
-        }
-      }
     }
 
     async function loadSettingsData() {
@@ -821,7 +801,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (canManageUsers) {
-      void loadTelegramBots();
       void loadTelegramBotsV2();
       void loadTelegramCapabilities();
     }
@@ -1299,8 +1278,14 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 6.5 Multi-account Telegram Bot Configuration (super_admin only) */}
-      {canManageUsers && (
+      <section className="p-4 rounded-[8px] bg-surface border border-border/80 shadow-xs">
+        <h2 className="text-sm font-semibold text-primary">Telegram-боты</h2>
+        <p className="mt-1 text-xs text-secondary">Управление ботами, функциями и тестовыми сообщениями перенесено в отдельный раздел.</p>
+        <a href="/telegram" className="mt-3 inline-flex rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white">Открыть Telegram-боты</a>
+      </section>
+
+      {/* Legacy Telegram configuration is intentionally disabled; use /telegram. */}
+      {false && canManageUsers && (
         <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1327,7 +1312,7 @@ export default function SettingsPage() {
                 </div>
               ) : telegramBots.length === 0 ? (
                 <div className="p-3 rounded-lg bg-surface-2 border border-border/60 text-xs text-secondary">
-                  Нет настроенных ботов. Добавьте токены в Railway environment variables: TELEGRAM_TOKEN_1, TELEGRAM_USER_ID_1, и т.д.
+                  Нет настроенных ботов. Управление доступно на странице Telegram-ботов.
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1604,7 +1589,7 @@ export default function SettingsPage() {
       </section>
 
       {/* NEW: ADVANCED SYNC (super_admin only) */}
-      {canManageUsers && (
+      {false && canManageUsers && (
         <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1805,7 +1790,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="space-y-1">
-                <label className="text-[10px] font-medium text-secondary">ID бота (№):</label>
+                <label className="text-[10px] font-medium text-secondary">Системный идентификатор:</label>
                 <input
                   type="number"
                   min="1"
@@ -1912,7 +1897,7 @@ export default function SettingsPage() {
                             {bot.isPending ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-semibold">
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                Pending env
+                                Только сервер
                               </span>
                             ) : bot.status === 'active' ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold">
