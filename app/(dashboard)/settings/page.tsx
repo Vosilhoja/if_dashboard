@@ -1356,7 +1356,7 @@ export default function SettingsPage() {
                 <p className="font-medium mb-1">Как добавить новый бот:</p>
                 <ol className="list-decimal list-inside space-y-1 text-secondary">
                   <li>Получите токен у @BotFather в Telegram</li>
-                  <li>Добавьте в Railway переменные: TELEGRAM_TOKEN_N и TELEGRAM_USER_ID_N</li>
+                  <li>Добавьте в конфигурацию сервера переменные: TELEGRAM_TOKEN_N и TELEGRAM_USER_ID_N</li>
                   <li>Перезапустите сервер для применения изменений</li>
                 </ol>
               </div>
