@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { geoMercator, geoPath } from 'd3-geo';
 import { REGION_EN_TO_RU, normalizeRegionName } from '@/lib/region-name-map';
-import { ZoomIn, ZoomOut, RotateCcw, AlertTriangle, RefreshCw, MapPin, Maximize2, TrendingUp, TrendingDown, Minus as MinusIcon, Trophy } from 'lucide-react';
+import { AlertTriangle, RefreshCw, MapPin, TrendingUp, TrendingDown, Minus as MinusIcon, Trophy } from 'lucide-react';
 
 interface GeoFeature {
   type: string;
@@ -66,40 +66,9 @@ function getGeoJSON(): Promise<GeoJSONData> {
   return geoJsonPromise;
 }
 
-const MIN_ZOOM = 1;
-const MAX_ZOOM = 8;
-const REGION_FOCUS_MAX_ZOOM = 2.5;
-const ZOOM_STEP = 1.25;
-const WHEEL_ZOOM_FACTOR = 1.06;
 const LEGEND_BINS = 5;
 
 const LEGEND_COLORS = ['#EEF2FF', '#C7D2FE', '#818CF8', '#4F46E5', '#3730A3'];
-
-function resolveBBox(
-  features: { pathString: string; centroid: [number, number] | null; ruName: string }[],
-  width: number,
-  height: number,
-  margin: number = 30
-) {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  for (const f of features) {
-    if (!f.pathString) continue;
-    const re = /-?\d+\.?\d*/g;
-    const nums = [...f.pathString.matchAll(re)].map(m => parseFloat(m[0]));
-    for (let i = 0; i < nums.length; i += 2) {
-      const x = nums[i], y = nums[i + 1];
-      if (isNaN(x) || isNaN(y)) continue;
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    }
-  }
-  if (!isFinite(minX)) {
-    return { minX: margin, minY: margin, maxX: width - margin, maxY: height - margin };
-  }
-  return { minX, minY, maxX, maxY };
-}
 
 interface LabelRect {
   ruName: string;
@@ -189,24 +158,10 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [transform, setTransform] = useState({ k: 1, x: 0, y: 0 });
-  const panPointerId = useRef<number | null>(null);
-  const startPan = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  const isPanningRef = useRef(false);
-  const didPanRef = useRef(false);
-  const transformRef = useRef(transform);
-
   const [internalHovered, setInternalHovered] = useState<string | null>(null);
   const activeHovered = externalHoveredRegion ?? internalHovered;
 
   const [flashRegion, setFlashRegion] = useState<string | null>(null);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const interactionRef = useRef<HTMLDivElement>(null);
-  const mapBBoxRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
-
-  const activeHoveredRegion = useRef<string | null>(null);
-  activeHoveredRegion.current = activeHovered;
 
   const loadGeoJSON = useCallback(() => {
     setLoading(true);
@@ -232,14 +187,12 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const height = 560;
   const pad = 30;
 
-  const { paths, featureBounds } = useMemo(() => {
-    if (!geoData) return { paths: [], featureBounds: {} };
+  const { paths } = useMemo(() => {
+    if (!geoData) return { paths: [] };
 
     try {
       const projection = geoMercator().fitSize([width - 60, height - 60], geoData as any);
       const pathGenerator = geoPath().projection(projection);
-
-      const fBounds: Record<string, [[number, number], [number, number]]> = {};
 
       const pList = geoData.features
         .map((feature, idx) => {
@@ -256,10 +209,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
               centroid = [c[0], c[1]];
             }
 
-            const bounds = pathGenerator.bounds(feature as any);
-            if (bounds && !isNaN(bounds[0][0])) {
-              fBounds[ruName] = bounds;
-            }
           } catch (genErr) {
             console.warn(`Path generation failed for feature ${enName}:`, genErr);
             return null;
@@ -283,13 +232,10 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
         centroid: [number, number] | null;
       }[];
 
-      const bbox = resolveBBox(pList, width, height, pad);
-      mapBBoxRef.current = bbox;
-
-      return { paths: pList, featureBounds: fBounds };
+      return { paths: pList };
     } catch (projErr) {
       console.error('Projection fitting error:', projErr);
-      return { paths: [], featureBounds: {} };
+      return { paths: [] };
     }
   }, [geoData]);
 
@@ -395,252 +341,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     return layoutLabels(items, width - pad * 2, height - pad * 2);
   }, [paths]);
 
-  const constrainTransform = useCallback(
-    (k: number, tx: number, ty: number): { k: number; x: number; y: number } => {
-      const clampedK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, k));
-      const bbox = mapBBoxRef.current;
-      if (!bbox) {
-        return { k: clampedK, x: tx, y: ty };
-      }
-      const innerW = (bbox.maxX - bbox.minX);
-      const innerH = (bbox.maxY - bbox.minY);
-      const scaledW = innerW * clampedK;
-      const scaledH = innerH * clampedK;
-
-      const availW = width - pad * 2;
-      const availH = height - pad * 2;
-
-      const baseShiftX = pad - bbox.minX * clampedK;
-      const baseShiftY = pad - bbox.minY * clampedK;
-
-      let maxTx: number, minTx: number;
-      if (scaledW <= availW) {
-        const centerTx = (availW - scaledW) / 2 + baseShiftX;
-        maxTx = centerTx;
-        minTx = centerTx;
-      } else {
-        maxTx = baseShiftX + (availW - scaledW);
-        minTx = baseShiftX;
-      }
-
-      let maxTy: number, minTy: number;
-      if (scaledH <= availH) {
-        const centerTy = (availH - scaledH) / 2 + baseShiftY;
-        maxTy = centerTy;
-        minTy = centerTy;
-      } else {
-        maxTy = baseShiftY + (availH - scaledH);
-        minTy = baseShiftY;
-      }
-
-      return {
-        k: clampedK,
-        x: Math.min(maxTx, Math.max(minTx, tx)),
-        y: Math.min(maxTy, Math.max(minTy, ty)),
-      };
-    },
-    []
-  );
-
-  const applyTransform = useCallback(
-    (k: number, tx: number, ty: number) => {
-      const constrained = constrainTransform(k, tx, ty);
-      transformRef.current = constrained;
-      setTransform(constrained);
-    },
-    [constrainTransform]
-  );
-
-  const zoomToRegion = useCallback(
-    (ruName: string) => {
-      const bounds = featureBounds[ruName];
-      if (!bounds) return;
-
-      const [[x0, y0], [x1, y1]] = bounds;
-      const dx = x1 - x0;
-      const dy = y1 - y0;
-      const x = (x0 + x1) / 2;
-      const y = (y0 + y1) / 2;
-
-      // Small administrative features such as Tashkent city would otherwise
-      // produce an extreme auto-zoom and move the rest of the map off-screen.
-      const scale = Math.max(
-        MIN_ZOOM,
-        Math.min(REGION_FOCUS_MAX_ZOOM, 0.78 / Math.max(dx / width, dy / height))
-      );
-      // The detail panel occupies the right side of the map section. Focus
-      // the selected region in the remaining left-hand viewport instead of
-      // centering it underneath the panel.
-      const focusX = width * 0.38;
-      const translate = [focusX - scale * x, height / 2 - scale * y];
-
-      // This focus intentionally uses the left map viewport; the normal
-      // full-width bounds would clamp the translation underneath the panel.
-      const focusedTransform = {
-        k: scale,
-        x: translate[0] - pad,
-        y: translate[1] - pad,
-      };
-      transformRef.current = focusedTransform;
-      setTransform(focusedTransform);
-    },
-    [featureBounds, width, height]
-  );
-
-  useEffect(() => {
-    if (!selectedRegion || selectedRegion.trim() === '') return;
-    zoomToRegion(normalizeRegionName(selectedRegion));
-  }, [selectedRegion, zoomToRegion]);
-
-  const handleZoomIn = () => {
-    const newK = Math.min(MAX_ZOOM, transform.k * ZOOM_STEP);
-    const cx = width / 2 - pad;
-    const cy = height / 2 - pad;
-    const factor = newK / transform.k;
-    const newTx = cx - (cx - transform.x) * factor;
-    const newTy = cy - (cy - transform.y) * factor;
-    applyTransform(newK, newTx, newTy);
-  };
-
-  const handleZoomOut = () => {
-    const newK = Math.max(MIN_ZOOM, transform.k / ZOOM_STEP);
-    const cx = width / 2 - pad;
-    const cy = height / 2 - pad;
-    const factor = newK / transform.k;
-    const newTx = cx - (cx - transform.x) * factor;
-    const newTy = cy - (cy - transform.y) * factor;
-    applyTransform(newK, newTx, newTy);
-  };
-
-  const handleFitToScreen = () => {
-    applyTransform(1, 0, 0);
-  };
-
-  const handleResetZoom = () => {
-    applyTransform(1, 0, 0);
-  };
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY;
-    const factor = delta < 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
-    if (!containerRef.current) {
-      const newK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, transform.k * factor));
-      const nextTransform = { k: newK, x: transform.x, y: transform.y };
-      transformRef.current = nextTransform;
-      setTransform(nextTransform);
-      return;
-    }
-    const svgEl = containerRef.current.querySelector('svg');
-    if (!svgEl) return;
-    const svgRect = svgEl.getBoundingClientRect();
-    let px = (e.clientX - svgRect.left) * (width / svgRect.width);
-    let py = (e.clientY - svgRect.top) * (height / svgRect.height);
-    const screenMatrix = svgEl.getScreenCTM();
-    if (screenMatrix) {
-      const point = new DOMPoint(e.clientX, e.clientY).matrixTransform(screenMatrix.inverse());
-      px = point.x;
-      py = point.y;
-    }
-    const newK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, transform.k * factor));
-    const groupEl = svgEl.querySelector<SVGGElement>(':scope > g');
-    const groupMatrix = groupEl?.getScreenCTM();
-    let newTx: number;
-    let newTy: number;
-    if (groupMatrix) {
-      const worldPoint = new DOMPoint(e.clientX, e.clientY).matrixTransform(groupMatrix.inverse());
-      newTx = px - pad - worldPoint.x * newK;
-      newTy = py - pad - worldPoint.y * newK;
-    } else {
-      const fx = px - pad;
-      const fy = py - pad;
-      const scaleRatio = newK / transform.k;
-      newTx = fx - (fx - transform.x) * scaleRatio;
-      newTy = fy - (fy - transform.y) * scaleRatio;
-    }
-    const nextTransform = { k: newK, x: newTx, y: newTy };
-    transformRef.current = nextTransform;
-    setTransform(nextTransform);
-  }, [applyTransform, transform]);
-
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-
-    const handleNativeWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-      handleWheel(event as unknown as React.WheelEvent);
-    };
-
-    element.addEventListener('wheel', handleNativeWheel, { passive: false, capture: true });
-    return () => element.removeEventListener('wheel', handleNativeWheel, true);
-  }, [handleWheel]);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    panPointerId.current = e.pointerId;
-    isPanningRef.current = true;
-    didPanRef.current = false;
-    startPan.current = {
-      x: e.clientX,
-      y: e.clientY,
-      tx: transformRef.current.x,
-      ty: transformRef.current.y,
-    };
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isPanningRef.current || panPointerId.current !== e.pointerId) return;
-    e.preventDefault();
-    const svgEl = containerRef.current?.querySelector('svg');
-    let ratioX = 1;
-    let ratioY = 1;
-    if (svgEl) {
-      const rect = svgEl.getBoundingClientRect();
-      ratioX = width / rect.width;
-      ratioY = height / rect.height;
-    }
-    const dx = (e.clientX - startPan.current.x) * ratioX;
-    const dy = (e.clientY - startPan.current.y) * ratioY;
-    if (Math.abs(e.clientX - startPan.current.x) > 4 || Math.abs(e.clientY - startPan.current.y) > 4) {
-      didPanRef.current = true;
-    }
-    applyTransform(transformRef.current.k, startPan.current.tx + dx, startPan.current.ty + dy);
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (panPointerId.current !== e.pointerId) return;
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    panPointerId.current = null;
-    isPanningRef.current = false;
-  };
-
-  useEffect(() => {
-    const element = interactionRef.current;
-    if (!element) return;
-
-    const handleNativePointerMove = (event: PointerEvent) => {
-      handlePointerMove(event as unknown as React.PointerEvent<HTMLDivElement>);
-    };
-    const handleNativePointerUp = (event: PointerEvent) => {
-      handlePointerUp(event as unknown as React.PointerEvent<HTMLDivElement>);
-    };
-
-    element.addEventListener('pointermove', handleNativePointerMove);
-    element.addEventListener('pointerup', handleNativePointerUp);
-    element.addEventListener('pointercancel', handleNativePointerUp);
-    return () => {
-      element.removeEventListener('pointermove', handleNativePointerMove);
-      element.removeEventListener('pointerup', handleNativePointerUp);
-      element.removeEventListener('pointercancel', handleNativePointerUp);
-    };
-  });
-
   const handleRegionHoverEnter = (
     ruName: string
   ) => {
@@ -655,10 +355,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
   const handleRegionClick = (e: React.MouseEvent, ruName: string) => {
     e.stopPropagation();
-    if (didPanRef.current) {
-      didPanRef.current = false;
-      return;
-    }
     const isAlreadySelected = Boolean(
       selectedRegion &&
         selectedRegion.trim() !== '' &&
@@ -668,12 +364,10 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     if (isAlreadySelected) {
       if (onDeselect) onDeselect();
       else onSelectRegion('');
-      handleFitToScreen();
     } else {
       setFlashRegion(ruName);
       setTimeout(() => setFlashRegion(null), 200);
       onSelectRegion(ruName);
-      zoomToRegion(ruName);
     }
   };
 
@@ -722,7 +416,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
   return (
     <div
-      ref={containerRef}
       className={`relative isolate w-full min-h-[620px] overflow-hidden bg-surface select-none flex flex-col ${
         embedded
           ? 'rounded-none border-0 shadow-none'
@@ -734,7 +427,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
           <div className="w-2 h-2 rounded-full bg-emerald-500" />
           <span className="font-semibold text-primary">14 административных регионов</span>
           <span className="text-secondary text-[11px] hidden sm:inline">
-            • Клик — выбрать регион, колесо — зум вокруг курсора, перетаскивание — панорама
+            • Кликните по области, чтобы открыть региональный срез
           </span>
         </div>
 
@@ -744,13 +437,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
       </div>
 
       <div className="relative min-h-[560px] w-full flex-1">
-        <div
-          ref={interactionRef}
-          className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3 cursor-grab active:cursor-grabbing"
-          onPointerDown={handlePointerDown}
-          style={{ touchAction: 'none' }}
-          onContextMenu={(event) => event.preventDefault()}
-        >
+        <div className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3">
           <svg
             viewBox={`0 0 ${width} ${height}`}
             className="block h-auto w-full max-h-[620px] min-h-[520px]"
@@ -776,11 +463,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
                 }
               }}
             />
-            <g
-              transform={`translate(${transform.x + pad}, ${transform.y + pad}) scale(${transform.k})`}
-              className="origin-top-left"
-              style={{ transformOrigin: `${pad}px ${pad}px` }}
-            >
+            <g transform={`translate(${pad}, ${pad})`}>
               {paths.map(({ enName, ruName, pathString }) => {
                 const count = regionCounts[ruName] || regionCounts[enName] || 0;
 
@@ -819,11 +502,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
                         : isHovered
                         ? 'var(--color-accent, #4F46E5)'
                         : 'var(--color-border, #D6D3D1)'}
-                      strokeWidth={isSelected
-                        ? 2.5 / transform.k
-                        : isHovered
-                        ? 2 / transform.k
-                        : 1.2 / transform.k}
+                      strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 1.2}
                       style={{
                         filter: isHovered && !isSelected ? 'brightness(0.92)' : undefined,
                       }}
@@ -847,7 +526,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
                           height={14}
                           fill={isSelected ? 'rgba(79, 70, 229, 0.92)' : 'rgba(255, 255, 255, 0.86)'}
                           stroke={isSelected ? 'rgba(255,255,255,0.35)' : 'rgba(100, 116, 139, 0.22)'}
-                          strokeWidth={0.5 / transform.k}
+                          strokeWidth={0.5}
                           className={isHovered || isSelected ? '' : 'opacity-85'}
                         />
                         <text
@@ -859,10 +538,10 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
                             isSelected ? 'fill-white' : 'fill-slate-900 dark:fill-slate-800'
                           }`}
                           style={{
-                            fontSize: `${Math.max(7.5, Math.min(11, 9.5 / Math.sqrt(Math.max(1, transform.k / 1.8))))}px`,
+                            fontSize: '9.5px',
                             paintOrder: 'stroke',
                             stroke: isSelected ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.35)',
-                            strokeWidth: isSelected ? 0 : 0.4 / transform.k,
+                            strokeWidth: isSelected ? 0 : 0.4,
                           }}
                         >
                           {shortName}
@@ -874,52 +553,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
               })}
             </g>
           </svg>
-        </div>
-
-        <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5">
-          <div className="flex flex-col items-center bg-surface/95 backdrop-blur-sm rounded-[8px] border border-border shadow-lg overflow-hidden">
-            <button
-              onClick={handleZoomIn}
-              disabled={transform.k >= MAX_ZOOM}
-              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed border-b border-border"
-              title={`Приблизить (макс. ${MAX_ZOOM}x)`}
-              aria-label="Приблизить"
-            >
-              <ZoomIn className="w-4 h-4" />
-            </button>
-            <div className="w-9 h-6 flex items-center justify-center text-[10px] font-bold tabular-nums text-secondary border-b border-border bg-surface-2/40">
-              {transform.k.toFixed(1)}x
-            </div>
-            <button
-              onClick={handleZoomOut}
-              disabled={transform.k <= MIN_ZOOM}
-              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed border-b border-border"
-              title={`Отдалить (мин. ${MIN_ZOOM}x)`}
-              aria-label="Отдалить"
-            >
-              <ZoomOut className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleFitToScreen}
-              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-surface-2 transition-colors cursor-pointer border-b border-border"
-              title="Вписать в экран"
-              aria-label="Вписать в экран"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => {
-                handleResetZoom();
-                if (onDeselect) onDeselect();
-                else onSelectRegion('');
-              }}
-              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary hover:bg-surface-2 transition-colors cursor-pointer"
-              title="Сбросить всё"
-              aria-label="Сбросить всё"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
 
         <div className="absolute bottom-3 left-3 z-20 flex flex-col gap-2 bg-surface/95 backdrop-blur-sm rounded-[8px] border border-border shadow-lg p-3 w-56">

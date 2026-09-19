@@ -312,7 +312,7 @@ export default function MapPage() {
         <section
           className={`relative min-w-0 overflow-hidden ${
             selectedRegion
-              ? 'rounded-2xl border border-border/80 bg-surface shadow-xs'
+              ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] rounded-2xl border border-border/80 bg-surface shadow-xs'
               : ''
           }`}
         >
