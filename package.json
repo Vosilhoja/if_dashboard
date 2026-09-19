@@ -1,7 +1,7 @@
 {
-  "name": "hurmo-uz-dashboard",
+  "name": "talvera-web",
   "version": "1.0.0",
-  "description": "HURMO RESEARCH — Analytics dashboard for call-center operations and Telegram bot registration funnel",
+  "description": "Talvera — Analytics dashboard for call-center operations and Telegram bot registration funnel",
   "private": true,
   "scripts": {
     "dev": "next dev",

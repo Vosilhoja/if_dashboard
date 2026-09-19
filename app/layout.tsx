@@ -18,8 +18,8 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "HURMO UZ — Аналитический дашборд",
-  description: "Профессиональный BI-инструмент аналитики HURMO UZ: мониторинг звонков, SMS и регистраций",
+  title: "Talvera — Аналитический дашборд",
+  description: "Профессиональный BI-инструмент аналитики Talvera: мониторинг звонков, SMS и регистраций",
 };
 
 export default function RootLayout({
@@ -38,7 +38,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                const saved = localStorage.getItem('hurmo-theme');
+                const saved = localStorage.getItem('talvera-theme');
                 if (saved === 'light') {
                   document.documentElement.classList.remove('dark');
                 } else {

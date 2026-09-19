@@ -139,7 +139,7 @@ export default function TasksPage() {
         const data = await r.json().catch(() => ({}));
         setUsers(Array.isArray(data) ? data : Array.isArray(data?.users) ? data.users : []);
       }
-    } catch {}
+    } catch { }
   };
 
   const buildQuery = () => {
@@ -172,6 +172,22 @@ export default function TasksPage() {
 
   useEffect(() => {
     void loadUsers();
+    // Проверяем статус Todoist: если токен настроен, Todoist становится основным источником
+    const detectSource = async () => {
+      try {
+        const r = await fetch('/api/proxy/system/health', { cache: 'no-store' });
+        if (r.ok) {
+          const data = await r.json().catch(() => ({}));
+          const todoistService = Array.isArray(data?.services)
+            ? data.services.find((s: any) => s.name === 'todoist')
+            : null;
+          if (todoistService?.configured) {
+            setTaskSource('todoist');
+          }
+        }
+      } catch { }
+    };
+    void detectSource();
   }, []);
   useEffect(() => {
     void loadTasks();
@@ -266,7 +282,6 @@ export default function TasksPage() {
   };
 
   const deleteTask = async (id: number | string) => {
-    if (taskSource === 'todoist') return;
     if (!confirm('Удалить задачу?')) return;
     await fetch(`/api/proxy/tasks/${id}`, { method: 'DELETE' });
     if (detailOpen?.id === id) setDetailOpen(null);
@@ -274,7 +289,6 @@ export default function TasksPage() {
   };
 
   const updateStatus = async (id: number | string, status: Status) => {
-    if (taskSource === 'todoist') return;
     const r = await fetch(`/api/proxy/tasks/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -285,7 +299,7 @@ export default function TasksPage() {
   };
 
   const postComment = async (taskId: number | string) => {
-    if (taskSource === 'todoist' || typeof taskId !== 'number') return;
+    if (typeof taskId !== 'number') return;
     if (!commentDraft.trim() || postingComment) return;
     setPostingComment(true);
     try {
@@ -359,14 +373,13 @@ export default function TasksPage() {
           </button>
           <button
             onClick={openCreate}
-            disabled={taskSource === 'todoist'}
             className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
           >
             <Plus className="h-3.5 w-3.5" /> Новая задача
           </button>
         </div>
       </div>
-      {taskSource === 'todoist' && <div className="rounded-md border border-accent/30 bg-accent/5 px-3 py-2 text-xs text-secondary">Показаны задачи Todoist в режиме просмотра. Изменения выполняются в Todoist.</div>}
+
 
       {/* ============== FILTERS ============== */}
       <div className="rounded-md border border-border bg-surface p-2.5 flex flex-wrap items-center gap-2">
