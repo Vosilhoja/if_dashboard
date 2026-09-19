@@ -82,6 +82,12 @@ interface TelegramBot {
   testResult?: { ok: boolean; message: string } | null;
 }
 
+interface TelegramCapabilities {
+  features: Array<{ key: string; label: string; description: string }>;
+  roles: Record<string, string[]>;
+  linkedUsers: Array<{ id: number; username: string; fullName?: string; role: string; telegramId: string; isActive: boolean }>;
+}
+
 interface NewBotForm {
   id: string;
   token: string;
@@ -200,6 +206,7 @@ export default function SettingsPage() {
   const [savingNewBot, setSavingNewBot] = useState(false);
   const [testingBotId, setTestingBotId] = useState<number | null>(null);
   const [showBotTokens, setShowBotTokens] = useState<Record<number, boolean>>({});
+  const [telegramCapabilities, setTelegramCapabilities] = useState<TelegramCapabilities | null>(null);
 
   // === NEW: RBAC ENHANCEMENTS (duplicate + reset password) ===
   const [resettingPasswordUserId, setResettingPasswordUserId] = useState<number | null>(null);
@@ -400,7 +407,7 @@ export default function SettingsPage() {
       } else {
         throw new Error('Endpoint not available yet');
       }
-    } catch (_e: unknown) {
+    } catch {
       setBotsV2Error('Бэкенд-эндпоинт /api/proxy/settings/telegram ещё не реализован. Показаны локально сохранённые боты.');
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('hurmo_pending_telegram_bots');
@@ -414,6 +421,18 @@ export default function SettingsPage() {
       }
     } finally {
       setLoadingBotsV2(false);
+    }
+  };
+
+  const loadTelegramCapabilities = async () => {
+    if (!canManageUsers) return;
+    try {
+      const res = await fetch('/api/proxy/settings/telegram/capabilities');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Не удалось загрузить права Telegram');
+      setTelegramCapabilities(data);
+    } catch (e: unknown) {
+      setBotsV2Error(e instanceof Error ? e.message : 'Не удалось загрузить права Telegram');
     }
   };
 
@@ -453,23 +472,10 @@ export default function SettingsPage() {
           testResult: null,
         },
       ]);
-    } catch (_e: unknown) {
-      const botId = parseInt(newBotForm.id, 10) || Date.now();
-      const newBot: TelegramBot = {
-        id: botId,
-        token: newBotForm.token,
-        userId: newBotForm.userId,
-        status: 'pending',
-        isPending: true,
-        testResult: null,
-      };
-      setTelegramBotsV2((prev) => {
-        const next = [...prev, newBot];
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('hurmo_pending_telegram_bots', JSON.stringify(next));
-        }
-        return next;
-      });
+    } catch (e: unknown) {
+      setBotsV2Error(e instanceof Error
+        ? e.message
+        : 'Бот не добавлен. Настройте токен через защищённые переменные Railway.');
     } finally {
       setNewBotForm({ id: '', token: '', userId: '' });
       setSavingNewBot(false);
@@ -801,6 +807,7 @@ export default function SettingsPage() {
     if (canManageUsers) {
       void loadTelegramBots();
       void loadTelegramBotsV2();
+      void loadTelegramCapabilities();
     }
   }, [canManageUsers]);
 
@@ -1680,6 +1687,53 @@ export default function SettingsPage() {
             <p className="font-semibold">ℹ️ О временных метках:</p>
             <p>Даты последних запусков сохраняются локально в <code className="font-mono bg-surface px-1 rounded">localStorage</code> (ключ <code className="font-mono bg-surface px-1 rounded">hurmo_sync_timestamps</code>).</p>
             <p>Если бэкенд-эндпоинты ещё не реализованы — дата обновляется на стороне клиента для демонстрации UX.</p>
+          </div>
+        </section>
+      )}
+
+      {/* TELEGRAM CONTROL CENTER */}
+      {canManageUsers && telegramCapabilities && (
+        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-4 shadow-xs">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-accent" />
+            <div>
+              <h2 className="text-sm font-semibold text-primary">Центр контроля Telegram</h2>
+              <p className="text-[11px] text-secondary">Функции бота выдаются через роли пользователей дашборда.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div className="rounded-[6px] border border-border/60 overflow-hidden">
+              <div className="px-3 py-2 bg-surface-2/70 text-[10px] font-bold uppercase tracking-wider text-secondary">Функции</div>
+              <div className="divide-y divide-border/40">
+                {telegramCapabilities.features.map((feature) => (
+                  <div key={feature.key} className="px-3 py-2 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-primary">{feature.label}</p>
+                      <p className="text-[10px] text-secondary">{feature.description}</p>
+                    </div>
+                    <code className="text-[9px] text-accent">{feature.key}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[6px] border border-border/60 overflow-hidden">
+              <div className="px-3 py-2 bg-surface-2/70 text-[10px] font-bold uppercase tracking-wider text-secondary">Подключённые пользователи</div>
+              {telegramCapabilities.linkedUsers.length === 0 ? (
+                <p className="p-3 text-xs text-secondary">Пока нет привязанных Telegram-профилей.</p>
+              ) : (
+                <div className="divide-y divide-border/40">
+                  {telegramCapabilities.linkedUsers.map((user) => (
+                    <div key={user.id} className="px-3 py-2 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-primary">{user.fullName || user.username}</p>
+                        <p className="text-[10px] text-secondary">@{user.username} · TG {user.telegramId}</p>
+                      </div>
+                      <span className="text-[10px] rounded-full px-2 py-0.5 bg-accent/10 text-accent">{user.role}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}

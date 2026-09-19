@@ -4,42 +4,45 @@ import { cookies } from 'next/headers';
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ifdashboardbackend-production.up.railway.app';
 
-async function requestBackend(request: Request, method: 'GET' | 'POST' | 'PUT' | 'DELETE', pathSuffix = '') {
+async function requestBackend(
+  request: Request,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  pathSuffix = '',
+) {
   const token = (await cookies()).get('hurmo_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
-  
+
   try {
     const url = new URL(request.url);
     const response = await fetch(`${BACKEND_URL}/api/settings/telegram${pathSuffix}${url.search}`, {
       method,
-      headers: { 
+      headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
       body: method !== 'GET' ? await request.text() : undefined,
     });
-    
+
     const data = await response.json().catch(() => ({}));
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка запроса к настройкам Telegram' }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Ошибка запроса к настройкам Telegram' },
+      { status: 500 },
+    );
   }
 }
 
 export async function GET(request: NextRequest) {
-  return requestBackend(request, 'GET');
+  const url = new URL(request.url);
+  return requestBackend(request, 'GET', url.pathname.endsWith('/capabilities') ? '/capabilities' : '');
 }
 
 export async function POST(request: NextRequest) {
   const url = new URL(request.url);
   const idMatch = url.pathname.match(/\/telegram\/(\d+)\/test$/);
-  
-  if (idMatch) {
-    return requestBackend(request, 'POST', `/${idMatch[1]}/test`);
-  }
-  
-  return requestBackend(request, 'POST');
+  return requestBackend(request, 'POST', idMatch ? `/${idMatch[1]}/test` : '');
 }
 
 export async function PUT(request: NextRequest) {
