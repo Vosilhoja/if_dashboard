@@ -151,10 +151,6 @@ export default function SettingsPage() {
   const [telegramChatId, setTelegramChatId] = useState<string>('');
   const [telegramTestStatus, setTelegramTestStatus] = useState<string | null>(null);
 
-  // 4.5 Multi-account Telegram Bot Configuration (super_admin only)
-  const [telegramBots, setTelegramBots] = useState<Array<{ id: number; token: string; userId: string; allowedIds: string[] }>>([]);
-  const [loadingTelegramBots, setLoadingTelegramBots] = useState(false);
-  const [showTelegramConfig, setShowTelegramConfig] = useState(false);
 
   // 5. Export Preferences
   const [csvDelimiter, setCsvDelimiter] = useState<string>(';');
@@ -238,21 +234,6 @@ export default function SettingsPage() {
       setUsersError(e instanceof Error ? e.message : 'Ошибка');
     } finally {
       setUsersLoading(false);
-    }
-  };
-
-  const loadTelegramBots = async () => {
-    if (!canManageUsers) return;
-    setLoadingTelegramBots(true);
-    try {
-      const res = await fetch('/api/proxy/settings/telegram');
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Ошибка загрузки конфигураций ботов');
-      setTelegramBots(data.bots || []);
-    } catch (e: unknown) {
-      console.error('Error loading telegram bots:', e);
-    } finally {
-      setLoadingTelegramBots(false);
     }
   };
 
@@ -1284,71 +1265,7 @@ export default function SettingsPage() {
         <a href="/telegram" className="mt-3 inline-flex rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white">Открыть Telegram-боты</a>
       </section>
 
-      {/* Legacy Telegram configuration is intentionally disabled; use /telegram. */}
-      {false && canManageUsers && (
-        <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-accent" />
-              <h2 className="text-sm font-semibold text-primary">Мульти-аккаунт Telegram боты</h2>
-            </div>
-            <button
-              onClick={() => setShowTelegramConfig(!showTelegramConfig)}
-              className="text-xs text-accent hover:text-accent/80 transition-colors"
-            >
-              {showTelegramConfig ? 'Скрыть' : 'Показать'}
-            </button>
-          </div>
-          <p className="text-xs text-secondary">
-            Управление несколькими Telegram ботами с разными токенами и пользователями. Только для супер-администратора.
-          </p>
 
-          {showTelegramConfig && (
-            <div className="pt-2 space-y-3">
-              {loadingTelegramBots ? (
-                <div className="flex items-center gap-2 text-xs text-secondary">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Загрузка конфигураций...</span>
-                </div>
-              ) : telegramBots.length === 0 ? (
-                <div className="p-3 rounded-lg bg-surface-2 border border-border/60 text-xs text-secondary">
-                  Нет настроенных ботов. Управление доступно на странице Telegram-ботов.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {telegramBots.map((bot) => (
-                    <div key={bot.id} className="p-3 rounded-lg bg-surface-2 border border-border/60 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-primary">Бот #{bot.id}</span>
-                        <span className="text-[10px] text-secondary font-mono">{bot.token}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-secondary/70">User ID:</span>
-                          <span className="ml-1 font-mono text-primary">{bot.userId || '—'}</span>
-                        </div>
-                        <div>
-                          <span className="text-secondary/70">Allowed IDs:</span>
-                          <span className="ml-1 font-mono text-primary">{bot.allowedIds.length}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-600 dark:text-amber-400">
-                <p className="font-medium mb-1">Как добавить новый бот:</p>
-                <ol className="list-decimal list-inside space-y-1 text-secondary">
-                  <li>Получите токен у @BotFather в Telegram</li>
-                  <li>Добавьте в конфигурацию сервера переменные: TELEGRAM_TOKEN_N и TELEGRAM_USER_ID_N</li>
-                  <li>Перезапустите сервер для применения изменений</li>
-                </ol>
-              </div>
-            </div>
-          )}
-        </section>
-      )}
 
       {/* 6.6 Advanced System Settings */}
       <section className="p-4 rounded-[8px] bg-surface border border-border/80 space-y-3 shadow-xs">
