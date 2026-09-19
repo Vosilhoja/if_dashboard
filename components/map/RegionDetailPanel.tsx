@@ -84,11 +84,11 @@ export const RegionDetailPanel: React.FC<RegionDetailPanelProps> = ({
       <aside
         className={`absolute z-50 bg-surface border-border flex flex-col shadow-2xl transition-all duration-200
           inset-x-0 bottom-0 max-h-[85vh] rounded-t-[16px] border-t max-lg:fixed
-          lg:rounded-none lg:border-t-0 lg:inset-y-0 lg:right-0 lg:left-auto lg:w-96
-          lg:border-l lg:max-h-none 2xl:fixed`}
+          lg:rounded-2xl lg:border-t-0 lg:inset-y-3 lg:right-3 lg:left-auto lg:w-96
+          lg:border lg:max-h-none lg:overflow-hidden 2xl:fixed`}
       >
         {/* Header */}
-        <div className="p-4 border-b border-border flex items-start justify-between gap-3 bg-surface sticky top-0 z-10">
+        <div className="p-4 border-b border-border flex items-start justify-between gap-3 bg-surface shrink-0">
           <div className="space-y-0.5">
             <div className="flex items-center gap-1.5 text-xs text-accent font-medium">
               <MapPin className="w-3.5 h-3.5" />

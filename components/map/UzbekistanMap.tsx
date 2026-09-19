@@ -469,13 +469,6 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     [featureBounds, width, height, applyTransform]
   );
 
-  useEffect(() => {
-    if (selectedRegion && selectedRegion.trim() !== '') {
-      const canonical = normalizeRegionName(selectedRegion);
-      zoomToRegion(canonical);
-    }
-  }, [selectedRegion, zoomToRegion]);
-
   const handleZoomIn = () => {
     const newK = Math.min(MAX_ZOOM, transform.k * ZOOM_STEP);
     const cx = width / 2 - pad;
