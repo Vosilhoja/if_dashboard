@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthTokenFromCookies } from '@/lib/auth-token';
+import { cookies } from 'next/headers';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get('hurmo_jwt_token')?.value;
+  const token = getAuthTokenFromCookies(await cookies());
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
   const response = await fetch(`${BACKEND_URL}/api/tasks?source=todoist`, {
     headers: { Authorization: `Bearer ${token}` },

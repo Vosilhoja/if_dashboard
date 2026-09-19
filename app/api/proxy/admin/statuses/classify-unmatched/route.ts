@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 async function requestBackend(request: Request, method: 'GET' | 'POST') {
-  const token = (await cookies()).get('hurmo_jwt_token')?.value;
+  const token = (await cookies()).get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   try {
     const url = new URL(request.url);

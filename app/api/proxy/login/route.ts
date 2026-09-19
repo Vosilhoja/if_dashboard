@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendErrorResponse } from '@/lib/proxy-response';
+import { getBackendUrl } from '@/lib/backend-url';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = getBackendUrl();
 
 export async function POST(request: NextRequest) {
   try {

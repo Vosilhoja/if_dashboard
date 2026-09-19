@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ type: string }> },
 ) {
   try {
-    const token = request.cookies.get('hurmo_jwt_token')?.value;
+    const token = request.cookies.get('talvera_jwt_token')?.value;
     if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
 
     const { type } = await params;

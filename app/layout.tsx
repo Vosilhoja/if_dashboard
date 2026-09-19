@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "@/lib/query-provider";
+import "@/lib/storage-migration";
 
 const inter = Inter({
   variable: "--font-inter",

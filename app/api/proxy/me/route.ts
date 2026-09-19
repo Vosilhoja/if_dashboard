@@ -4,7 +4,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('hurmo_jwt_token')?.value;
+    const token = request.cookies.get('talvera_jwt_token')?.value;
 
     if (!token) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });

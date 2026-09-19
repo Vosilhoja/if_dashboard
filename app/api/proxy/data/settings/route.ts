@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 async function proxy(request: NextRequest, method: 'GET' | 'PUT') {
-  const token = request.cookies.get('hurmo_jwt_token')?.value;
+  const token = request.cookies.get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
 
   const body = method === 'PUT' ? await request.text() : undefined;

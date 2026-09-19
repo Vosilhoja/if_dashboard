@@ -5,7 +5,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 /** GET /api/proxy/admin/users — список пользователей */
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('hurmo_jwt_token')?.value;
+    const token = request.cookies.get('talvera_jwt_token')?.value;
     if (!token) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 /** POST /api/proxy/admin/users — создание нового пользователя */
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('hurmo_jwt_token')?.value;
+    const token = request.cookies.get('talvera_jwt_token')?.value;
     if (!token) {
       return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
     }

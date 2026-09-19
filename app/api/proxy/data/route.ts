@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { backendErrorResponse } from '@/lib/proxy-response';
+import { getAuthTokenFromCookies } from '@/lib/auth-token';
+import { cookies } from 'next/headers';
+import { getBackendUrl } from '@/lib/backend-url';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const BACKEND_URL = getBackendUrl();
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('hurmo_jwt_token')?.value;
+    const token = getAuthTokenFromCookies(await cookies());
 
     if (!token) {
       return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = request.cookies.get('hurmo_jwt_token')?.value;
+    const token = getAuthTokenFromCookies(await cookies());
 
     if (!token) {
       return NextResponse.json({ error: 'Необходима авторизация' }, { status: 401 });

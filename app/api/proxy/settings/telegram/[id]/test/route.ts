@@ -7,7 +7,7 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const token = (await cookies()).get('hurmo_jwt_token')?.value;
+  const token = (await cookies()).get('talvera_jwt_token')?.value;
   if (!token) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
   const { id } = await context.params;
