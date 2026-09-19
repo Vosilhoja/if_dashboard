@@ -243,7 +243,7 @@ export default function SettingsPage() {
     if (!canManageUsers) return;
     setLoadingTelegramBots(true);
     try {
-      const res = await fetch('/api/proxy/system?path=/telegram/bots');
+      const res = await fetch('/api/proxy/settings/telegram');
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Ошибка загрузки конфигураций ботов');
       setTelegramBots(data.bots || []);
