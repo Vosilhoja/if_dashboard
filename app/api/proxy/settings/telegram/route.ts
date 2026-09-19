@@ -6,7 +6,7 @@ const BACKEND_URL =
 
 async function requestBackend(
   request: Request,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   pathSuffix = '',
 ) {
   const token = (await cookies()).get('hurmo_jwt_token')?.value;
@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   return requestBackend(request, 'PUT');
+}
+
+export async function PATCH(request: NextRequest) {
+  return requestBackend(request, 'PATCH');
 }
 
 export async function DELETE(request: NextRequest) {

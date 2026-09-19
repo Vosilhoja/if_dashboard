@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, Copy, Link2, Send, ShieldCheck } from 'lucide-react';
+import { Bot, Copy, Link2, Plus, Send, ShieldCheck, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
-type BotInfo = { id: number; token: string; userId: string; allowedIds: string[] };
+type BotInfo = { id: number | string; name?: string; token: string; userId?: string; chatId?: string; allowedIds: string[]; source?: string; status?: string; enabledFeatures?: string[]; isActive?: boolean };
 type Capability = { key: string; label: string; description: string };
 
 export default function TelegramPage() {
@@ -14,6 +14,8 @@ export default function TelegramPage() {
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState({ name: '', token: '', chatId: '' });
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -39,6 +41,34 @@ export default function TelegramPage() {
     setMessage(response.ok ? data.message || 'Test отправлен' : data.error || 'Ошибка отправки');
   };
 
+  const addBot = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setAdding(true);
+    const response = await fetch('/api/proxy/settings/telegram', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+    const data = await response.json();
+    if (response.ok) {
+      setBots((current) => [...current, data.bot]);
+      setForm({ name: '', token: '', chatId: '' });
+      setMessage('Бот добавлен и запускается.');
+    } else setMessage(data.error || 'Не удалось добавить бота');
+    setAdding(false);
+  };
+
+  const toggleFeature = async (bot: BotInfo, key: string) => {
+    if (bot.source !== 'database') return;
+    const enabled = new Set(bot.enabledFeatures || features.map((item) => item.key));
+    if (enabled.has(key)) enabled.delete(key);
+    else enabled.add(key);
+    const response = await fetch(`/api/proxy/settings/telegram/${bot.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabledFeatures: [...enabled] }) });
+    if (response.ok) setBots((current) => current.map((item) => item.id === bot.id ? { ...item, enabledFeatures: [...enabled] } : item));
+  };
+
+  const removeBot = async (id: number | string) => {
+    if (!window.confirm('Удалить этого Telegram-бота?')) return;
+    const response = await fetch(`/api/proxy/settings/telegram/${id}`, { method: 'DELETE' });
+    if (response.ok) setBots((current) => current.filter((item) => item.id !== id));
+  };
+
   return (
     <div className="space-y-5">
       <div>
@@ -60,12 +90,21 @@ export default function TelegramPage() {
       </section>
       {message && <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs text-primary">{message}</div>}
       <section className="rounded-2xl border border-border bg-surface p-4 shadow-xs">
+        <div className="mb-3 flex items-center gap-2"><Plus className="h-4 w-4 text-accent" /><h2 className="text-sm font-semibold text-primary">Добавить бота</h2></div>
+        <form onSubmit={addBot} className="grid gap-2 md:grid-cols-4">
+          <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Название" className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-primary outline-none" />
+          <input required type="password" value={form.token} onChange={(e) => setForm({ ...form, token: e.target.value })} placeholder="Токен из @BotFather" className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-primary outline-none md:col-span-2" />
+          <input required value={form.chatId} onChange={(e) => setForm({ ...form, chatId: e.target.value })} placeholder="Ваш Telegram ID" className="rounded-lg bg-surface-2 px-3 py-2 text-xs text-primary outline-none" />
+          <button disabled={adding} className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white md:col-span-4">{adding ? 'Проверка...' : 'Добавить и запустить'}</button>
+        </form>
+      </section>
+      <section className="rounded-2xl border border-border bg-surface p-4 shadow-xs">
         <div className="mb-3 flex items-center gap-2"><Bot className="h-4 w-4 text-accent" /><h2 className="text-sm font-semibold text-primary">Подключённые боты</h2></div>
         {loading ? <p className="text-xs text-secondary">Загрузка...</p> : bots.length === 0 ? <p className="text-xs text-secondary">Боты не настроены.</p> : (
           <div className="space-y-3">
-            {bots.map((bot) => <div key={bot.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface-2/40 p-3">
-              <div><p className="text-xs font-semibold text-primary">Бот #{bot.id}</p><p className="text-[11px] text-secondary">Получатель: {bot.userId || 'не указан'} · Разрешённых пользователей: {bot.allowedIds.length}</p></div>
-              <button onClick={() => testBot(bot.id)} className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"><Send className="h-3.5 w-3.5" /> Отправить Test</button>
+            {bots.map((bot) => <div key={bot.id} className="space-y-3 rounded-lg border border-border/60 bg-surface-2/40 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold text-primary">{bot.name || `Бот #${bot.id}`} <span className="ml-2 text-[10px] text-secondary">{bot.source === 'env' ? 'ENV' : bot.status || 'database'}</span></p><p className="text-[11px] text-secondary">Получатель: {bot.chatId || bot.userId || 'не указан'} · Разрешённых пользователей: {bot.allowedIds?.length || 0}</p></div><div className="flex gap-2"><button onClick={() => testBot(Number(bot.id))} className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"><Send className="h-3.5 w-3.5" /> Test</button>{bot.source === 'database' && <button onClick={() => removeBot(bot.id)} className="rounded-lg border border-red-500/30 px-2 py-2 text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>}</div></div>
+              {bot.source === 'database' && <div className="grid gap-2 sm:grid-cols-2">{features.map((feature) => <label key={feature.key} className="flex items-center gap-2 text-[11px] text-secondary"><input type="checkbox" checked={(bot.enabledFeatures || features.map((item) => item.key)).includes(feature.key)} onChange={() => toggleFeature(bot, feature.key)} />{feature.label}</label>)}</div>}
             </div>)}
           </div>
         )}
