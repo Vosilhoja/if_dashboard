@@ -202,6 +202,7 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
   const [flashRegion, setFlashRegion] = useState<string | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const interactionRef = useRef<HTMLDivElement>(null);
   const mapBBoxRef = useRef<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
 
   const activeHoveredRegion = useRef<string | null>(null);
@@ -524,21 +525,41 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     const factor = delta < 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
     if (!containerRef.current) {
       const newK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, transform.k * factor));
-      applyTransform(newK, transform.x, transform.y);
+      const nextTransform = { k: newK, x: transform.x, y: transform.y };
+      transformRef.current = nextTransform;
+      setTransform(nextTransform);
       return;
     }
     const svgEl = containerRef.current.querySelector('svg');
     if (!svgEl) return;
     const svgRect = svgEl.getBoundingClientRect();
-    const px = (e.clientX - svgRect.left) * (width / svgRect.width);
-    const py = (e.clientY - svgRect.top) * (height / svgRect.height);
-    const fx = px - pad;
-    const fy = py - pad;
+    let px = (e.clientX - svgRect.left) * (width / svgRect.width);
+    let py = (e.clientY - svgRect.top) * (height / svgRect.height);
+    const screenMatrix = svgEl.getScreenCTM();
+    if (screenMatrix) {
+      const point = new DOMPoint(e.clientX, e.clientY).matrixTransform(screenMatrix.inverse());
+      px = point.x;
+      py = point.y;
+    }
     const newK = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, transform.k * factor));
-    const scaleRatio = newK / transform.k;
-    const newTx = fx - (fx - transform.x) * scaleRatio;
-    const newTy = fy - (fy - transform.y) * scaleRatio;
-    applyTransform(newK, newTx, newTy);
+    const groupEl = svgEl.querySelector<SVGGElement>(':scope > g');
+    const groupMatrix = groupEl?.getScreenCTM();
+    let newTx: number;
+    let newTy: number;
+    if (groupMatrix) {
+      const worldPoint = new DOMPoint(e.clientX, e.clientY).matrixTransform(groupMatrix.inverse());
+      newTx = px - pad - worldPoint.x * newK;
+      newTy = py - pad - worldPoint.y * newK;
+    } else {
+      const fx = px - pad;
+      const fy = py - pad;
+      const scaleRatio = newK / transform.k;
+      newTx = fx - (fx - transform.x) * scaleRatio;
+      newTy = fy - (fy - transform.y) * scaleRatio;
+    }
+    const nextTransform = { k: newK, x: newTx, y: newTy };
+    transformRef.current = nextTransform;
+    setTransform(nextTransform);
   }, [applyTransform, transform]);
 
   useEffect(() => {
@@ -598,6 +619,27 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
     panPointerId.current = null;
     isPanningRef.current = false;
   };
+
+  useEffect(() => {
+    const element = interactionRef.current;
+    if (!element) return;
+
+    const handleNativePointerMove = (event: PointerEvent) => {
+      handlePointerMove(event as unknown as React.PointerEvent<HTMLDivElement>);
+    };
+    const handleNativePointerUp = (event: PointerEvent) => {
+      handlePointerUp(event as unknown as React.PointerEvent<HTMLDivElement>);
+    };
+
+    element.addEventListener('pointermove', handleNativePointerMove);
+    element.addEventListener('pointerup', handleNativePointerUp);
+    element.addEventListener('pointercancel', handleNativePointerUp);
+    return () => {
+      element.removeEventListener('pointermove', handleNativePointerMove);
+      element.removeEventListener('pointerup', handleNativePointerUp);
+      element.removeEventListener('pointercancel', handleNativePointerUp);
+    };
+  });
 
   const handleRegionHoverEnter = (
     ruName: string
@@ -703,11 +745,9 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
 
       <div className="relative min-h-[560px] w-full flex-1">
         <div
+          ref={interactionRef}
           className="flex min-h-[560px] w-full items-center justify-center overflow-hidden py-3 cursor-grab active:cursor-grabbing"
           onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
           style={{ touchAction: 'none' }}
         >
           <svg
