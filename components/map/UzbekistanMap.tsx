@@ -462,12 +462,27 @@ export const UzbekistanMap: React.FC<UzbekistanMapProps> = ({
         MIN_ZOOM,
         Math.min(REGION_FOCUS_MAX_ZOOM, 0.78 / Math.max(dx / width, dy / height))
       );
-      const translate = [width / 2 - scale * x, height / 2 - scale * y];
+      // The detail panel occupies the right side of the map section. Focus
+      // the selected region in the remaining left-hand viewport instead of
+      // centering it underneath the panel.
+      const focusX = width * 0.38;
+      const translate = [focusX - scale * x, height / 2 - scale * y];
 
-      applyTransform(scale, translate[0] - pad, translate[1] - pad);
+      // This focus intentionally uses the left map viewport; the normal
+      // full-width bounds would clamp the translation underneath the panel.
+      setTransform({
+        k: scale,
+        x: translate[0] - pad,
+        y: translate[1] - pad,
+      });
     },
-    [featureBounds, width, height, applyTransform]
+    [featureBounds, width, height]
   );
+
+  useEffect(() => {
+    if (!selectedRegion || selectedRegion.trim() === '') return;
+    zoomToRegion(normalizeRegionName(selectedRegion));
+  }, [selectedRegion, zoomToRegion]);
 
   const handleZoomIn = () => {
     const newK = Math.min(MAX_ZOOM, transform.k * ZOOM_STEP);
